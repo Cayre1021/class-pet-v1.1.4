@@ -58,5 +58,8 @@
     "portable": {
       "artifactName": "${productName}-Portable-${version}.${ext}"
     }
+  },
+  "dependencies": {
+    "sql.js": "^1.14.2"
   }
 }

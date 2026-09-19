@@ -514,11 +514,9 @@
             </button>
             <button class="btn-header-touch" id="btnThresholds" style="background: #EEF2FF; color: #4338CA; border-color: #6366F1;" onclick="openLevelThresholdsModal()">⚙️ 经验设置</button>
             <button class="btn-header-touch" style="background: #FEF3C7; color: #000;" onclick="openBackupModal()">💾 备份/还原</button>
-            <button class="btn-header-touch" style="background: var(--warning); color: #000;" onclick="triggerBigScreenRandomPick()">🎲 抽选</button>
             <button class="btn-mode-pro" id="btnAttendanceMode" onclick="toggleAttendanceMode()">📋 考勤模式</button>
             <button class="btn-header-touch" style="background: #16A34A; color: white;" onclick="openExcelModal()">📊 导入Excel</button>
             <button class="btn-header-touch" onclick="openAuditLogModal()">📄 审计</button>
-            <button class="btn-header-touch" style="background: #FEF9C3; color: #854D0E; border-color: #EAB308;" onclick="openTeacherGuidedTourModal()">💡 指引</button>
             <button class="btn-header-touch" style="background: var(--accent); color: white;" onclick="openDisplayBigscreen()">🖥️ 大屏</button>
         </div>
     </div>
@@ -989,67 +987,31 @@
         </div>
     </div>
 
-    <!-- 模态框：教师控制台全套操作指引与按键实战向导 -->
-    <div class="modal-overlay" id="modalTeacherGuidedTour">
-        <div class="modal-box" style="max-width: 780px; max-height: 90vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--border); padding-bottom: 12px; margin-bottom: 14px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 24px;">💡</span>
-                    <div>
-                        <h2 style="font-size: 18px; font-weight: 900; margin: 0;">教师控制台 · 课堂赋分与操作入门指导</h2>
-                        <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">依次了解各项按键功能、批量赋分技巧与学期个性化设置</p>
-                    </div>
+    <!-- 模态框：单学生明细历史流水与单条撤销 (第10点：讲台一体机触控穿透) -->
+    <div class="modal-overlay" id="modalStudentAudit" style="display: none; z-index: 2000;">
+        <div class="modal-box" style="max-width: 680px; max-height: 85vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 10px; margin-bottom: 12px;">
+                <div>
+                    <h3 style="font-size: 18px; font-weight: 900; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span>📜</span>
+                        <span id="auditStudentTitle">学生积分成长明细流水</span>
+                    </h3>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;" id="auditStudentSubtitle">当前总积分：0 EXP · 等级：Lv.1</div>
                 </div>
-                <button class="btn-header-touch" style="height: 36px; padding: 0 12px;" onclick="closeTeacherGuidedTourModal()">✕ 关闭</button>
+                <button class="btn-header-touch" style="height: 36px; padding: 0 12px;" onclick="closeStudentAuditModal()">✕ 关闭</button>
             </div>
 
-            <!-- 模式切换：分步向导 VS 功能速查 -->
-            <div style="display: flex; gap: 6px; margin-bottom: 14px;">
-                <button class="btn-header-touch active" id="btnTeacherTourTabStep" style="flex: 1; justify-content: center; height: 38px; background: var(--accent); color: white;" onclick="switchTeacherTourTab('step')">🚀 6步实战入门向导</button>
-                <button class="btn-header-touch" id="btnTeacherTourTabOverview" style="flex: 1; justify-content: center; height: 38px; background: var(--bg-secondary);" onclick="switchTeacherTourTab('overview')">📋 教师全按键功能速查表</button>
+            <!-- 流水列表容器 -->
+            <div id="studentAuditListContainer" style="flex: 1; overflow-y: auto; max-height: 520px; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                <div style="text-align: center; color: var(--text-secondary); padding: 30px;">正在加载该学生历史成长流水...</div>
             </div>
 
-            <!-- 视图 1：分步向导 -->
-            <div id="teacherTourStepView">
-                <!-- 步进进度条指示器 -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; background: var(--bg-secondary); border: 2px solid var(--border); padding: 8px 14px;">
-                    <div style="font-size: 13px; font-weight: 900;" id="teacherTourStepIndicator">步骤 1 / 6</div>
-                    <div style="display: flex; gap: 6px;" id="teacherTourStepDots">
-                        <span class="tour-dot active" onclick="goToTeacherTourStep(1)">1</span>
-                        <span class="tour-dot" onclick="goToTeacherTourStep(2)">2</span>
-                        <span class="tour-dot" onclick="goToTeacherTourStep(3)">3</span>
-                        <span class="tour-dot" onclick="goToTeacherTourStep(4)">4</span>
-                        <span class="tour-dot" onclick="goToTeacherTourStep(5)">5</span>
-                        <span class="tour-dot" onclick="goToTeacherTourStep(6)">6</span>
-                    </div>
-                </div>
-
-                <!-- 步骤动态容器 -->
-                <div id="teacherTourStepContent" style="min-height: 280px;"></div>
-
-                <!-- 底部步进控制条 -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 2.5px solid var(--border); padding-top: 14px;">
-                    <button class="btn-header-touch" id="btnTeacherTourPrev" style="height: 42px; padding: 0 18px;" onclick="prevTeacherTourStep()">← 上一步</button>
-                    <button class="btn-header-touch" style="height: 42px; padding: 0 16px; background: #F3F4F6;" onclick="closeTeacherGuidedTourModal()">已了解 / 关闭向导</button>
-                    <button class="btn-header-touch" id="btnTeacherTourNext" style="height: 42px; padding: 0 24px; background: var(--accent); color: white;" onclick="nextTeacherTourStep()">下一步 →</button>
-                </div>
-            </div>
-
-            <!-- 视图 2：全按键功能速查表 -->
-            <div id="teacherTourOverviewView" style="display: none; max-height: 420px; overflow-y: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 2px solid var(--border);">
-                    <thead>
-                        <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border); text-align: left;">
-                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border); width: 130px;">按键 / 操作功能</th>
-                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border); width: 110px;">所在区域</th>
-                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border);">核心作用说明</th>
-                            <th style="padding: 8px 10px;">课堂高效实战技巧</th>
-                        </tr>
-                    </thead>
-                    <tbody id="teacherTourOverviewTableBody"></tbody>
-                </table>
+            <div style="margin-top: 12px; border-top: 2px solid var(--border); padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; color: var(--text-secondary);">💡 提示：点击每条记录右侧【↩ 撤销该次】可独立回退单笔赋分，扣除相应经验值并同步大屏</span>
+                <button class="btn-header-touch" style="height: 38px; padding: 0 20px;" onclick="closeStudentAuditModal()">已查看 / 完成</button>
             </div>
         </div>
+    </div>
     <!-- 全局统一教室风 Toast 浮动提示 -->
     <div id="classroomToast" class="classroom-toast" style="display: none;">
         <span id="classroomToastIcon">✅</span>
@@ -1260,9 +1222,6 @@
                                 <button class="btn-header-touch" style="background: var(--accent); color: white; justify-content: center; height: 42px;" onclick="openAddStudentModal()">
                                     ➕ 手动添加第一个学生
                                 </button>
-                                <button class="btn-header-touch" style="background: #FEF9C3; color: #854D0E; border-color: #EAB308; justify-content: center; height: 42px;" onclick="openTeacherGuidedTourModal()">
-                                    💡 查看新手操作入门指导
-                                </button>
                             </div>
                         </div>
                     `;
@@ -1300,8 +1259,9 @@
                                     ${s.isAbsent ? `<span style="font-size: calc(12px * var(--stu-scale, 1.0)); color: var(--error); font-weight: 800;">[请假]</span>` : ''}
                                     ${s.isArchived ? 
                                         `<button class="btn-header-touch" style="height:calc(32px * var(--stu-scale, 1.0));padding:0 calc(10px * var(--stu-scale, 1.0));font-size:calc(12px * var(--stu-scale, 1.0));background:#DCFCE7;color:#15803D;" onclick="event.stopPropagation(); restoreArchivedStudent('${s.id}')">还原</button>` :
-                                        `<button class="btn-header-touch" style="height:calc(32px * var(--stu-scale, 1.0));padding:0 calc(10px * var(--stu-scale, 1.0));font-size:calc(13px * var(--stu-scale, 1.0));" title="编辑学生信息" onclick="event.stopPropagation(); openEditStudentModal('${s.id}')">✏️</button>
-                                         <button class="btn-header-touch" style="height:calc(32px * var(--stu-scale, 1.0));padding:0 calc(10px * var(--stu-scale, 1.0));font-size:calc(13px * var(--stu-scale, 1.0));background:#F3F4F6;" title="移入归档库" onclick="event.stopPropagation(); archiveStudentDirect('${s.id}')">📦</button>`
+                                        `<button class="btn-header-touch" style="height:calc(32px * var(--stu-scale, 1.0));padding:0 calc(8px * var(--stu-scale, 1.0));font-size:calc(12px * var(--stu-scale, 1.0));background:#FEF3C7;color:#92400E;font-weight:900;" title="查看该生历史流水与单次撤销" onclick="event.stopPropagation(); openStudentAuditModal('${s.id}')">📜流水</button>
+                                         <button class="btn-header-touch" style="height:calc(32px * var(--stu-scale, 1.0));padding:0 calc(8px * var(--stu-scale, 1.0));font-size:calc(13px * var(--stu-scale, 1.0));" title="编辑学生信息" onclick="event.stopPropagation(); openEditStudentModal('${s.id}')">✏️</button>
+                                         <button class="btn-header-touch" style="height:calc(32px * var(--stu-scale, 1.0));padding:0 calc(8px * var(--stu-scale, 1.0));font-size:calc(13px * var(--stu-scale, 1.0));background:#F3F4F6;" title="移入归档库" onclick="event.stopPropagation(); archiveStudentDirect('${s.id}')">📦</button>`
                                     }
                                 </div>
                             </div>
@@ -1434,16 +1394,155 @@
             showClassroomToast(`↺ 已撤销对 [${undoneNames}] 的上一笔赋分变更！`);
         }
 
-        function triggerBigScreenRandomPick() {
-            const chosen = store.startRandomPick();
-            if (chosen) {
-                selectedIds.clear();
-                selectedIds.add(chosen.id);
-                renderStudentList();
-                showClassroomToast(`🎲 随机抽选指令已发送！大屏正在聚焦抽中学生：${chosen.name} (#${chosen.no})`);
-            } else {
-                showClassroomToast('⚠️ 暂无可选学生（班级为空或全部请假）！', '⚠️');
+        // ==========================================
+        // 单学生明细历史流水穿透与单笔撤销 (第10点：讲台一体机触控穿透)
+        // ==========================================
+        let currentAuditStudentId = null;
+
+        async function openStudentAuditModal(studentId) {
+            currentAuditStudentId = studentId;
+            const s = store.students.find(x => x.id === studentId);
+            if (!s) return;
+
+            document.getElementById('auditStudentTitle').textContent = `📜 ${s.name} (#${s.no}) 的积分成长明细流水`;
+            document.getElementById('auditStudentSubtitle').textContent = `所属大组：第 ${s.group} 组 · 当前总经验：${s.exp} EXP · 等级：Lv.${s.level} (${!s.isHatched ? '🐣 蛋形态' : s.pets[s.activeSubject]?.name || '宠物'})`;
+
+            const container = document.getElementById('studentAuditListContainer');
+            container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-secondary);">正在调取本地 SQLite 数据库审计流水...</div>';
+            document.getElementById('modalStudentAudit').style.display = 'flex';
+
+            let logs = [];
+            if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.getStudentAuditLogs === 'function') {
+                try {
+                    logs = await window.electronAPI.db.getStudentAuditLogs(studentId);
+                } catch (err) {
+                    console.error('Failed to get audit logs from SQLite:', err);
+                }
             }
+
+            // 若无 SQLite 日志则兼容读取内存/全局 auditLogs
+            if (!logs || logs.length === 0) {
+                const memoryMatches = (auditLogs || []).filter(item => {
+                    return (item.targetIds && item.targetIds.includes(studentId)) || (item.names && item.names.includes(s.name));
+                });
+                logs = memoryMatches.map((m, idx) => ({
+                    operation_id: 'mem_' + idx,
+                    created_at: m.time,
+                    points: m.delta,
+                    action_name: m.label,
+                    undone_at: m.isUndone ? Date.now() : null
+                }));
+            }
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; background: var(--bg-secondary); border: 2px dashed var(--border);">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📋</div>
+                        <strong style="font-size: 14px;">该学生暂无加减分流水记录</strong>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">在右侧快捷赋分面板对该生赋分后，即可在此进行逐笔审查与一键撤销</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = logs.map(item => {
+                const delta = item.points || 0;
+                const isPos = delta > 0;
+                const isUndone = !!item.undone_at;
+                const deltaText = isPos ? `+${delta}` : `${delta}`;
+                const timeStr = (typeof item.created_at === 'number') 
+                    ? new Date(item.created_at).toLocaleTimeString() 
+                    : (item.created_at || '刚刚');
+
+                return `
+                    <div style="background: var(--card-bg); border: 2px solid ${isUndone ? '#9CA3AF' : 'var(--border)'}; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; opacity: ${isUndone ? '0.6' : '1'};">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 15px; font-weight: 900; min-width: 48px; text-align: center; padding: 4px 8px; border: 1.5px solid var(--border); border-radius: 4px; ${isPos ? 'background:#DCFCE7; color:#15803D;' : 'background:#FEE2E2; color:#B91C1C;'}">
+                                ${deltaText}
+                            </span>
+                            <div>
+                                <div style="font-size: 14px; font-weight: 900; ${isUndone ? 'text-decoration: line-through;' : ''}">
+                                    ${item.action_name || '课堂表现评价'}
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                                    <span>🕒 ${timeStr}</span>
+                                    ${isUndone ? '<span style="color:#DC2626; font-weight:800; margin-left:8px;">[该记录已撤销]</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            ${!isUndone ? `
+                                <button class="btn-header-touch" style="height: 34px; padding: 0 12px; font-size: 12px; background: #FEE2E2; color: #B91C1C; border-color: #EF4444; font-weight: 900;" 
+                                    onclick="undoSingleAuditRecord('${item.operation_id}', '${studentId}', ${delta}, '${item.action_name || ''}')">
+                                    ↩ 撤销该次
+                                </button>
+                            ` : `
+                                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 800;">已回退</span>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function closeStudentAuditModal() {
+            document.getElementById('modalStudentAudit').style.display = 'none';
+        }
+
+        async function undoSingleAuditRecord(opId, studentId, delta, reason) {
+            const s = store.students.find(x => x.id === studentId);
+            if (!s) return;
+
+            showClassroomConfirm(
+                `确定要撤销学生【${s.name}】的此笔记录（${delta > 0 ? '+' : ''}${delta}分，原因：${reason}）吗？\n撤销后将自动扣减其 ${delta} 点经验，并重算等级。`,
+                '单笔流水撤销确认',
+                async () => {
+                    let dbSuccess = true;
+                    if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.undoScore === 'function') {
+                        try {
+                            const res = await window.electronAPI.db.undoScore(opId);
+                            dbSuccess = res && res.success;
+                        } catch (e) {
+                            console.error('DB undo failed:', e);
+                        }
+                    }
+
+                    if (dbSuccess) {
+                        s.exp = Math.max(0, s.exp - delta);
+                        s.level = store.calculateLevel(s.exp);
+                        s.visualStage = store.getVisualStage(s.level);
+                        s.minExpForCurrentLevel = store.getCurrentLevelMinExp(s.level);
+                        s.nextLevelExp = store.getNextLevelThreshold(s.level);
+                        if (s.activeSubject && s.pets[s.activeSubject]) {
+                            s.pets[s.activeSubject].exp = s.exp;
+                            s.pets[s.activeSubject].level = s.level;
+                            s.pets[s.activeSubject].visualStage = s.visualStage;
+                        }
+                        store.save();
+                        store.broadcast('SCORE_TRIGGERED', {
+                            studentId: s.id,
+                            studentName: s.name,
+                            studentNo: s.no,
+                            student: s,
+                            delta: -delta,
+                            reason: '撤销记录: ' + reason,
+                            newExp: s.exp,
+                            newLevel: s.level
+                        });
+
+                        showClassroomToast(`✅ 成功撤销学生【${s.name}】该次赋分记录！`);
+                        openStudentAuditModal(studentId);
+                        renderStudentList();
+                    } else {
+                        showClassroomAlert('撤销操作失败，请重试', '错误提示', '❌');
+                    }
+                },
+                null,
+                '↩',
+                '确认撤销',
+                '#DC2626'
+            );
         }
 
         function openGroupMoveModal() {
@@ -1630,182 +1729,6 @@
             } else {
                 showClassroomAlert('表格中未找到有效姓名行，请使用标准模板重试！', '导入提醒', '⚠️');
             }
-        }
-
-        // ==========================================
-        // 💡 教师控制台全套操作指引向导与速查表
-        // ==========================================
-        const TEACHER_TOUR_STEPS = [
-            {
-                step: 1,
-                title: '👥 学生快速检索与批量勾选机制',
-                targetBadge: '左侧搜索栏 & 组别筛选 Tab & [全选/清空]',
-                icon: '👥',
-                position: '控制台左侧学生管理列表栏',
-                feature: '【关键词秒搜】支持在顶部输入框键入姓名（如“张三”）或学号（如“05”）实时过滤；【组别与归档】点击上方【全班 / 1组 / 2组 / 3组 / 4组 / 归档】一键过滤目标组别；【批量框选】点击单行卡片勾选，点击【全选 / 清空当前组】可瞬间选中全班或当前小组所有学生！',
-                classroomTip: '小组合作汇报或小组竞赛加分时，先点击【2组】，再点【全选当前组】，3秒钟圈定全组同学进行批量赋分！'
-            },
-            {
-                step: 2,
-                title: '✨ 批量正负向行为秒级快速赋分',
-                targetBadge: '右侧 8 项绿色加分卡片 & 5 项红色规范关注',
-                icon: '✨',
-                position: '控制台右侧操作主面板',
-                feature: '【一键批量赋分】先在左侧勾选 1 名或多名学生，然后直接轻触右侧加分按钮（如“作业优秀 +5”、“主动回答 +3”），全量学生即时增减经验，并伴随原生 Web Audio 悦耳音效实时同步至大屏！【🔕 静音模式】勾选后，负向扣分仅在教师控制台和审计日志记录，大屏保持静音免打扰且不弹窗提示！',
-                classroomTip: '日常教学多使用正向激励；课上出现讲话或走神时，建议开启“静音模式”记录留档，课后单独沟通。'
-            },
-            {
-                step: 3,
-                title: '↩️ 3分钟防手滑一键撤销机制',
-                targetBadge: '顶部操作横条 [↩ 撤销] 按钮',
-                icon: '↩️',
-                position: '顶部操作横条左侧偏中',
-                feature: '【防手滑误操作安全网】当您加错分数或手滑扣分时，顶部【↩ 撤销】按钮会实时显示上一笔记录（例如：“撤销：全选 +5分”）。只要在 3 分钟内点击撤销，系统将把所有涉及学生的经验值、等级和形态完全回退至操作前，大屏同步刷新！',
-                classroomTip: '课堂节奏快时如果点错了行为项，不必慌张也不用手工算分，直接点击【↩ 撤销】立刻复原！'
-            },
-            {
-                step: 4,
-                title: '⚙️ 20级升级经验曲线与成长节奏自定义',
-                targetBadge: '顶部操作横条 [⚙️ 经验设置] 按钮',
-                icon: '⚙️',
-                position: '顶部操作横条右侧',
-                feature: '【成长节奏由您掌控】点击打开经验设置面板，支持自定义 0~20 级每级所需的累计经验值。您可以设置破壳经验（默认15 EXP）以及每级递增梯度，点击【💾 保存并应用到全班】后，系统会自动重新计算全班所有学生的等级与进阶形态；随时可点击【↺ 恢复官方默认】。',
-                classroomTip: '公开课或展示课可调低每级经验（如每级 5 EXP），让学生快速看到升级；一学期常规教学推荐使用官方标准 1250 EXP 曲线。'
-            },
-            {
-                step: 5,
-                title: '📊 Excel 花名册一键导入与班级组别调动',
-                targetBadge: '顶部 [📊 导入Excel] 与 [📦 划分大组...]',
-                icon: '📊',
-                position: '顶部横条 [导入Excel] / 左侧列表工具条',
-                feature: '【零成本极速建班】点击【📊 导入Excel】可一键下载标准 Excel 导入模板，将教务处学生名单填入后上传，系统自动建立全班名单并均分 4 大组；若没有 Excel 表格，也可随时点击左侧【➕ 新增】手动添加单个学生；勾选学生后点击【📦 划分大组...】可随意调组或一键按学号均分！',
-                classroomTip: '新学期建班时使用 Excel 导入，3 秒完成全班 40~50 人建档与宠物分配；座位调整后使用【划分大组】快速调配。'
-            },
-            {
-                step: 6,
-                title: '📋 考勤请假置灰与本地完整备份还原',
-                targetBadge: '顶部 [📋 考勤模式] 与 [💾 备份/还原]',
-                icon: '📋',
-                position: '顶部横条右侧功能区',
-                feature: '【考勤请假免打扰】点击【📋 考勤模式】后，直接点击学生卡片即可快速标记“请假/在校”，请假学生在大屏呈半透明置灰，且随堂随机抽选会自动跳过该学生；【本地数据安全保障】点击【💾 备份/还原】可一键将当前班级所有学生数据导出为 JSON 文件，换电脑或重装时一键导入恢复，班级数据永不丢失！',
-                classroomTip: '课前 10 秒开启考勤模式快速标记请假学生；建议每周五放学后点击一次【备份】，下载数据备份文件保存。'
-            }
-        ];
-
-        const TEACHER_OVERVIEW_LIST = [
-            { key: '← 门户', pos: '顶部最左', desc: '返回多账号管理主控台，切换或创建新班级', scene: '跨班授课或放学退出系统' },
-            { key: '班级徽标', pos: '顶部标题右侧', desc: '显示当前班级、任教老师与任教学科', scene: '核对正在操作的班级是否正确' },
-            { key: '↩ 撤销', pos: '顶部导航条', desc: '3分钟内撤销上一笔赋分操作并全量回退经验', scene: '手滑误加或点错分时' },
-            { key: '⚙️ 经验设置', pos: '顶部导航条', desc: '自定义 0~20 级经验升级阈值并重新计算全班', scene: '根据教学周期快慢调整成长节奏' },
-            { key: '💾 备份/还原', pos: '顶部导航条', desc: '一键导出班级完整数据 JSON，或导入历史备份', scene: '每周定期数据存档、换教室/电脑迁移' },
-            { key: '🎲 抽选', pos: '顶部导航条', desc: '向学生大屏发送随机抽选指令，大屏同步点名', scene: '课堂提问、抽背课文、选人演板' },
-            { key: '📋 考勤模式', pos: '顶部导航条', desc: '切换考勤状态，点击学生标记请假/在校并免打扰', scene: '上课前清点人数、标记请假学生' },
-            { key: '📊 导入Excel', pos: '顶部导航条', desc: '下载标准模板，上传 Excel/CSV 花名册一键建班', scene: '新学期开学快速录入全班 40~50 人名单' },
-            { key: '📄 审计日志', pos: '顶部导航条', desc: '查看本堂课完整的加减分流水账单与操作记录', scene: '课后查验赋分明细与家校沟通' },
-            { key: '💡 操作指引', pos: '顶部导航条', desc: '打开本份教师控制台入门指导向导与速查表', scene: '新手老师随时查阅操作技巧与按键' },
-            { key: '🖥️ 学生大屏', pos: '顶部最右', desc: '一键原地切换到常驻教室投影的学生大屏视图', scene: '准备上课投屏展示全班宠物' },
-            { key: '🔍 搜索框', pos: '左侧列表顶部', desc: '键入姓名或学号即时筛选学生', scene: '快速定位单个学生赋分' },
-            { key: '➕ 新增学生', pos: '左侧列表顶部', desc: '手动添加单个学生，输入姓名学号即可建档', scene: '转学生插班或无表格临时加人' },
-            { key: '组别筛选 Tab', pos: '左侧工具栏', desc: '切换全班、1组、2组、3组、4组或归档库', scene: '按小组进行批量赋分' },
-            { key: '全选 / 清空', pos: '左侧列表统计右', desc: '一键全选或清空当前视图内的所有学生', scene: '全班奖励或整组激励' },
-            { key: '📦 划分大组', pos: '左侧列表统计右', desc: '将勾选学生移至指定大组，或一键按学号均分', scene: '排座位调组、开学均分 4 大组' },
-            { key: '加分/扣分卡片', pos: '右侧操作主区', desc: '8项正向激励与5项规范关注，点击即时批量记录', scene: '课堂实时激励评价与纪律记录' }
-        ];
-
-        let currentTeacherTourStep = 1;
-
-        function openTeacherGuidedTourModal() {
-            currentTeacherTourStep = 1;
-            renderTeacherTourStep();
-            document.getElementById('modalTeacherGuidedTour').style.display = 'flex';
-        }
-
-        function closeTeacherGuidedTourModal() {
-            document.getElementById('modalTeacherGuidedTour').style.display = 'none';
-        }
-
-        function switchTeacherTourTab(tab) {
-            document.getElementById('btnTeacherTourTabStep').classList.toggle('active', tab === 'step');
-            document.getElementById('btnTeacherTourTabStep').style.background = tab === 'step' ? 'var(--accent)' : 'var(--bg-secondary)';
-            document.getElementById('btnTeacherTourTabStep').style.color = tab === 'step' ? 'white' : 'var(--text-primary)';
-
-            document.getElementById('btnTeacherTourTabOverview').classList.toggle('active', tab === 'overview');
-            document.getElementById('btnTeacherTourTabOverview').style.background = tab === 'overview' ? 'var(--accent)' : 'var(--bg-secondary)';
-            document.getElementById('btnTeacherTourTabOverview').style.color = tab === 'overview' ? 'white' : 'var(--text-primary)';
-
-            document.getElementById('teacherTourStepView').style.display = tab === 'step' ? 'block' : 'none';
-            document.getElementById('teacherTourOverviewView').style.display = tab === 'overview' ? 'block' : 'none';
-
-            if (tab === 'overview') renderTeacherTourOverview();
-        }
-
-        function goToTeacherTourStep(step) {
-            currentTeacherTourStep = Math.max(1, Math.min(step, TEACHER_TOUR_STEPS.length));
-            renderTeacherTourStep();
-        }
-
-        function nextTeacherTourStep() {
-            if (currentTeacherTourStep >= TEACHER_TOUR_STEPS.length) {
-                closeTeacherGuidedTourModal();
-                return;
-            }
-            currentTeacherTourStep++;
-            renderTeacherTourStep();
-        }
-
-        function prevTeacherTourStep() {
-            if (currentTeacherTourStep <= 1) return;
-            currentTeacherTourStep--;
-            renderTeacherTourStep();
-        }
-
-        function renderTeacherTourStep() {
-            const data = TEACHER_TOUR_STEPS[currentTeacherTourStep - 1];
-            document.getElementById('teacherTourStepIndicator').textContent = `步骤 ${currentTeacherTourStep} / ${TEACHER_TOUR_STEPS.length}`;
-            
-            document.querySelectorAll('#teacherTourStepDots .tour-dot').forEach((dot, idx) => {
-                dot.classList.toggle('active', idx + 1 === currentTeacherTourStep);
-            });
-
-            document.getElementById('btnTeacherTourPrev').disabled = currentTeacherTourStep === 1;
-            document.getElementById('btnTeacherTourPrev').style.opacity = currentTeacherTourStep === 1 ? '0.4' : '1';
-            document.getElementById('btnTeacherTourNext').textContent = currentTeacherTourStep === TEACHER_TOUR_STEPS.length ? '完成并开始体验 ✓' : '下一步 →';
-
-            const container = document.getElementById('teacherTourStepContent');
-            container.innerHTML = `
-                <div class="tour-step-card">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; border-bottom: 2px solid var(--border); padding-bottom: 8px;">
-                        <span style="font-size: 32px;">${data.icon}</span>
-                        <div>
-                            <h3 style="font-size: 16px; font-weight: 900; margin: 0;">${data.title}</h3>
-                            <span style="font-size: 11px; background: var(--warning); border: 1px solid var(--border); padding: 1px 6px; font-family: monospace; font-weight: 800;">
-                                🎯 操作对象：${data.targetBadge}
-                            </span>
-                        </div>
-                    </div>
-                    <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-secondary);">
-                        📍 <strong>所在区域：</strong> ${data.position}
-                    </div>
-                    <div style="background: var(--card-bg); border: 2px solid var(--border); padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.6; font-weight: 700;">
-                        ${data.feature}
-                    </div>
-                    <div style="background: #FEF9C3; border: 1.5px solid #CA8A04; padding: 10px 12px; font-size: 12px; color: #854D0E; font-weight: 800;">
-                        🏫 <strong>实战教学技巧：</strong> ${data.classroomTip}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderTeacherTourOverview() {
-            const tbody = document.getElementById('teacherTourOverviewTableBody');
-            tbody.innerHTML = TEACHER_OVERVIEW_LIST.map(item => `
-                <tr style="border-bottom: 1px solid var(--border); background: var(--card-bg);">
-                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-weight: 900; color: var(--accent);">${item.key}</td>
-                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-family: monospace; font-size: 11px;">${item.pos}</td>
-                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-weight: 700;">${item.desc}</td>
-                    <td style="padding: 8px 10px; color: #854D0E; font-weight: 700;">${item.scene}</td>
-                </tr>
-            `).join('');
         }
 
         let currentCustomRuleType = 'positive';

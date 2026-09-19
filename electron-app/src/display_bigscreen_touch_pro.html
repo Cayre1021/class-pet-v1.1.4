@@ -655,35 +655,91 @@
             pointer-events: auto;
         }
 
-        /* 💡 操作指引向导样式 */
-        .tour-dot {
-            width: 28px;
-            height: 28px;
+        /* 🐾 讲台一体机专属：可拖拽悬浮小球与圆形辐射轮盘菜单 (第5点) */
+        .floating-ball-container {
+            position: fixed;
+            left: 28px;
+            bottom: 36px;
+            z-index: 8000;
+            user-select: none;
+            touch-action: none;
+        }
+        .classpet-floating-ball {
+            width: 62px;
+            height: 62px;
             border-radius: 50%;
-            border: 2px solid var(--border);
-            display: inline-flex;
+            background: var(--accent);
+            color: var(--accent-text);
+            border: 3.5px solid var(--border);
+            box-shadow: 4px 4px 0 var(--shadow-color);
+            display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
-            font-weight: 900;
+            font-size: 26px;
+            cursor: move;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            outline: none;
+        }
+        .classpet-floating-ball:active {
+            transform: scale(0.94);
+            box-shadow: 2px 2px 0 var(--shadow-color);
+        }
+        .classpet-radial-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+        .classpet-radial-menu.open {
+            pointer-events: auto;
+        }
+        .radial-item {
+            position: absolute;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: 2.5px solid var(--border);
             background: var(--card-bg);
             color: var(--text-primary);
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
-            transition: transform 0.1s, background 0.1s;
+            outline: none;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
         }
-        .tour-dot.active {
-            background: var(--accent);
-            color: white;
-            box-shadow: 0 0 0;
-            transform: scale(1.08);
+        .radial-item span {
+            font-size: 18px;
+            line-height: 1;
         }
-        .tour-step-card {
-            background: var(--bg-secondary);
-            border: 2.5px solid var(--border);
-            box-shadow: 4px 4px 0 var(--shadow-color);
-            padding: 18px 20px;
-            margin-bottom: 12px;
+        .radial-item small {
+            font-size: 9px;
+            font-weight: 900;
+            margin-top: 2px;
+        }
+        .classpet-radial-menu.open .radial-item {
+            opacity: 1;
+            transform: translate(var(--rx), var(--ry)) scale(1);
+        }
+        /* 6个方位角度辐射定位 (半径 R=84px) */
+        .radial-item.r-item-1 { --rx: -42px; --ry: -73px; }  /* 约 60度 */
+        .radial-item.r-item-2 { --rx: 42px;  --ry: -73px; }  /* 约 120度 */
+        .radial-item.r-item-3 { --rx: 84px;  --ry: 0px; }    /* 约 0度 */
+        .radial-item.r-item-4 { --rx: 42px;  --ry: 73px; }   /* 约 300度 */
+        .radial-item.r-item-5 { --rx: -42px; --ry: 73px; }   /* 约 240度 */
+        .radial-item.r-item-6 { --rx: -84px; --ry: 0px; }    /* 约 180度 */
+
+        /* 破壳达标微动动画 */
+        @keyframes pulseHatch {
+            0%, 100% { transform: scale(1); box-shadow: 3px 3px 0 #000; }
+            50% { transform: scale(1.02); box-shadow: 0 0 16px rgba(245, 158, 11, 0.8); }
         }
 
         /* 升级弹窗 */
@@ -781,8 +837,6 @@
                 </div>
             </div>
 
-            <button class="btn-header-touch" style="background: var(--warning); color: #000;" onclick="startRandomPicker()">🎲 抽选</button>
-            <button class="btn-header-touch" style="background: #FEF9C3; color: #854D0E; border-color: #EAB308;" onclick="openGuidedTourModal()">💡 指引</button>
             <button class="btn-header-touch" onclick="toggleAppFullscreen()">⛶ 全屏</button>
             <select class="btn-header-touch" style="outline: none; cursor: pointer; height: 54px; padding: 0 10px; font-size: 14px;" id="themeSelect" onchange="setGlobalTheme(this.value, event)">
                 <option value="classic">🎨 经典</option>
@@ -806,46 +860,59 @@
             <div class="seat-group-col"><div id="groupList4"></div></div>
         </div>
 
-        <!-- 模式 3：四组 PK 赛道 -->
-        <div id="pkRaceView" style="display:none; padding:14px; flex-direction:column; gap:8px;">
-            <div id="raceTracksContainer"></div>
-        </div>
-    </div>
-
-    <!-- 底部操作坞 -->
-    <div class="bottom-touch-dock-pro">
-        <button class="btn-header-touch" onclick="sortCards('no')">🔢 学号排序</button>
-        <button class="btn-header-touch" onclick="sortCards('level')">⭐ 等级排行</button>
-
-        <!-- 底部大靶区缩放控制 -->
-        <div class="scale-control-box">
-            <span style="font-size: 12px; font-weight: 900; margin: 0 4px;">🔍 比例:</span>
-            <button class="btn-scale-step" onclick="adjustScale(-0.1)" title="卡片缩小 (更紧凑)">➖</button>
-            <button class="btn-scale-value" id="dockScaleBadge" onclick="toggleDockScaleMenu(event)" title="点击选择缩放预设档位">
-                <span id="dockScaleLabel">100%</span>
-                <span style="font-size: 9px;">▲</span>
-            </button>
-            <button class="btn-scale-step" onclick="adjustScale(0.1)" title="卡片放大 (更清晰)">➕</button>
-            
-            <div id="dockScaleMenu" class="scale-preset-popover dock-popover">
-                <div style="font-size: 11px; font-weight: 900; color: var(--text-secondary); padding: 3px 6px; border-bottom: 1.5px solid var(--border);">卡片比例预设</div>
-                <button class="scale-preset-item" data-preset="0.8" onclick="selectScalePreset(0.8)"><span>紧凑密集</span> <span>80%</span></button>
-                <button class="scale-preset-item active" data-preset="1.0" onclick="selectScalePreset(1.0)"><span>标准默认</span> <span>100%</span></button>
-                <button class="scale-preset-item" data-preset="1.25" onclick="selectScalePreset(1.25)"><span>舒适清晰</span> <span>125%</span></button>
-                <button class="scale-preset-item" data-preset="1.5" onclick="selectScalePreset(1.5)"><span>宽大震撼</span> <span>150%</span></button>
-                <button class="scale-preset-item" data-preset="1.75" onclick="selectScalePreset(1.75)"><span>巨型特写</span> <span>175%</span></button>
+        <!-- 模式 3：四组 PK 赛道 (支持竖向行情柱状图 VS 横向赛跑赛道双向切换，第8点) -->
+        <div id="pkRaceView" style="display:none; padding:14px; flex-direction:column; gap:10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border: 3px solid var(--border); box-shadow: 4px 4px 0 var(--shadow-color); padding: 10px 18px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">🏆</span>
+                    <strong style="font-size: 16px; font-weight: 900;">四大组团队竞速 PK 榜</strong>
+                    <span style="font-size: 12px; color: var(--text-secondary); margin-left: 6px;">(支持即时组加减分与看板形态切换)</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-header-touch active" id="btnPkVerticalMode" style="height: 38px; background: var(--accent); color: white;" onclick="setPKDisplayMode('vertical')">📊 竖向行情柱状图</button>
+                    <button class="btn-header-touch" id="btnPkHorizontalMode" style="height: 38px; background: var(--bg-secondary);" onclick="setPKDisplayMode('horizontal')">🏎️ 横向赛跑赛道</button>
+                </div>
             </div>
+            <!-- 竖向柱状图容器 -->
+            <div id="raceVerticalContainer" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; min-height: 480px;"></div>
+            <!-- 横向赛道容器 -->
+            <div id="raceTracksContainer" style="display: none;"></div>
         </div>
-
-        <button class="btn-header-touch" style="background: var(--warning); color: #000;" onclick="startRandomPicker()">🎲 随堂抽选点名</button>
-        <button class="btn-header-touch" style="background: var(--accent); color: var(--accent-text);" onclick="openTeacherWorkstation()">⚡ 教师工作台</button>
     </div>
 
-    <!-- 右下角屏幕沉降按键 -->
-    <button class="btn-reachability-trigger-pro" onclick="toggleReachability()">
-        <span id="reachIcon" style="font-size: 18px;">⬇️</span>
-        <span id="reachText">屏幕下沉</span>
-    </button>
+    <!-- 🐾 讲台一体机防误触：悬浮可拖拽操作小球与圆形辐射轮盘菜单 (第5点：极简释放大屏空间，随时收回) -->
+    <div id="floatingBallContainer" class="floating-ball-container">
+        <button id="classpetFloatingBall" class="classpet-floating-ball" title="拖动可移动位置，点击向四周辐射展开操作菜单" onclick="toggleRadialMenu(event)">
+            <span id="floatingBallIcon">🐾</span>
+        </button>
+
+        <div id="classpetRadialMenu" class="classpet-radial-menu">
+            <button class="radial-item r-item-1" onclick="handleRadialAction('sortNo')" title="学号排序">
+                <span>🔢</span>
+                <small>学号</small>
+            </button>
+            <button class="radial-item r-item-2" onclick="handleRadialAction('sortLevel')" title="等级排行">
+                <span>⭐</span>
+                <small>排行</small>
+            </button>
+            <button class="radial-item r-item-3" onclick="handleRadialAction('fullscreen')" title="全屏切换">
+                <span>⛶</span>
+                <small>全屏</small>
+            </button>
+            <button class="radial-item r-item-4" onclick="handleRadialAction('theme')" title="切换主题">
+                <span>🎨</span>
+                <small>主题</small>
+            </button>
+            <button class="radial-item r-item-5" onclick="handleRadialAction('reach')" title="屏幕下沉">
+                <span>⬇️</span>
+                <small>下沉</small>
+            </button>
+            <button class="radial-item r-item-6" onclick="handleRadialAction('teacher')" title="教师工作台">
+                <span>⚡</span>
+                <small>工作台</small>
+            </button>
+        </div>
+    </div>
 
     <!-- 学生详情 Modal (含 20 条治愈系台词冒泡与 6 种互动 CD 倒计时) -->
     <div class="modal-overlay" id="modalStudentDetails">
@@ -891,6 +958,12 @@
                             <div class="st-bar" style="height: 12px; border-radius: 6px; overflow: hidden; border: 1.5px solid var(--border);">
                                 <div class="st-bar-fill" id="heroProgressBar" style="width: 70%; height: 100%; background: linear-gradient(90deg, #FBBF24, #F59E0B);"></div>
                             </div>
+                        </div>
+                        <!-- 🐣 破壳达标原地操作条 (第15点：告别退回大屏，卡片内原地闭环) -->
+                        <div id="modalHatchTriggerBox" style="display: none; margin-top: 8px;">
+                            <button class="btn-header-touch" style="width: 100%; height: 46px; background: linear-gradient(135deg, #F59E0B, #D97706); color: white; font-size: 14px; font-weight: 900; justify-content: center; box-shadow: 3px 3px 0 #000; border-color: #000; animation: pulseHatch 1.5s infinite;" onclick="openHatchFromDetailsModal()">
+                                🐣 经验已达标，立即破壳认领专属电子宠物！
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -942,6 +1015,15 @@
                 <button class="btn-header-touch" style="height:36px;" onclick="closeHatchModal()">✕ 关闭</button>
             </div>
 
+            <!-- 学科自选与角色认领条 (第4点：联动教师账号学科属性与班主任自由选择) -->
+            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 10px 14px; margin: 8px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 13px; font-weight: 900;">认领学科：</span>
+                    <div id="hatchSubjectBtnGroup" style="display: flex; gap: 6px;"></div>
+                </div>
+                <div id="hatchSubjectRuleHint" style="font-size: 11px; color: var(--accent); font-weight: 800;"></div>
+            </div>
+
             <!-- 8 大物种网格 -->
             <div class="hatch-grid" id="hatchSpeciesGrid"></div>
 
@@ -979,68 +1061,6 @@
         </div>
     </div>
 
-    <!-- 模态框：学生大屏全套操作指引与按键实战向导 -->
-    <div class="modal-overlay" id="modalGuidedTour">
-        <div class="details-modal-box" style="max-width: 760px; max-height: 90vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--border); padding-bottom: 12px; margin-bottom: 14px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 24px;">💡</span>
-                    <div>
-                        <h2 style="font-size: 18px; font-weight: 900; margin: 0;">学生大屏 · 全套操作指引与按键向导</h2>
-                        <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">依次了解每个按键与交互触发，掌握课堂趣味互动与仪式感激励</p>
-                    </div>
-                </div>
-                <button class="btn-header-touch" style="height: 36px; padding: 0 12px;" onclick="closeGuidedTourModal()">✕ 关闭</button>
-            </div>
-
-            <!-- 模式切换：分步向导 VS 功能速查 -->
-            <div style="display: flex; gap: 6px; margin-bottom: 14px;">
-                <button class="btn-header-touch active" id="btnTourTabStep" style="flex: 1; justify-content: center; height: 38px; background: var(--accent); color: white;" onclick="switchTourTab('step')">🚀 5步新手实战向导</button>
-                <button class="btn-header-touch" id="btnTourTabOverview" style="flex: 1; justify-content: center; height: 38px; background: var(--bg-secondary);" onclick="switchTourTab('overview')">📋 全按键功能速查一览表</button>
-            </div>
-
-            <!-- 视图 1：分步向导 -->
-            <div id="tourStepView">
-                <!-- 步进进度条指示器 -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; background: var(--bg-secondary); border: 2px solid var(--border); padding: 8px 14px;">
-                    <div style="font-size: 13px; font-weight: 900;" id="tourStepIndicator">步骤 1 / 5</div>
-                    <div style="display: flex; gap: 6px;" id="tourStepDots">
-                        <span class="tour-dot active" onclick="goToTourStep(1)">1</span>
-                        <span class="tour-dot" onclick="goToTourStep(2)">2</span>
-                        <span class="tour-dot" onclick="goToTourStep(3)">3</span>
-                        <span class="tour-dot" onclick="goToTourStep(4)">4</span>
-                        <span class="tour-dot" onclick="goToTourStep(5)">5</span>
-                    </div>
-                </div>
-
-                <!-- 步骤动态容器 -->
-                <div id="tourStepContent" style="min-height: 280px;"></div>
-
-                <!-- 底部步进控制条 -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 2.5px solid var(--border); padding-top: 14px;">
-                    <button class="btn-header-touch" id="btnTourPrev" style="height: 42px; padding: 0 18px;" onclick="prevTourStep()">← 上一步</button>
-                    <button class="btn-header-touch" style="height: 42px; padding: 0 16px; background: #F3F4F6;" onclick="closeGuidedTourModal()">已了解 / 关闭向导</button>
-                    <button class="btn-header-touch" id="btnTourNext" style="height: 42px; padding: 0 24px; background: var(--accent); color: white;" onclick="nextTourStep()">下一步 →</button>
-                </div>
-            </div>
-
-            <!-- 视图 2：全按键功能速查表 -->
-            <div id="tourOverviewView" style="display: none; max-height: 420px; overflow-y: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 2px solid var(--border);">
-                    <thead>
-                        <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border); text-align: left;">
-                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border); width: 130px;">按键 / 交互对象</th>
-                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border); width: 100px;">所在位置</th>
-                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border);">核心功能与作用</th>
-                            <th style="padding: 8px 10px;">课堂推荐应用场景</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tourOverviewTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <!-- 全局统一教室风 Toast 浮动提示 -->
     <div id="classroomToast" class="classroom-toast" style="display: none;">
         <span id="classroomToastIcon">✅</span>
@@ -1071,6 +1091,7 @@
     </div>
 
     <script src="./classpet_core.js"></script>
+    <script src="./fireworks_engine.js"></script>
 
     <script>
         const store = window.classPetRuntime;
@@ -1206,12 +1227,13 @@
                 const s4L = stages[4]?.minLevel || 13;
                 const s5L = stages[5]?.minLevel || 20;
 
+                // 第2点：严格按精确学生对象指针或ID定位，彻底杜绝学号数值运算或索引溢出导致的“小红升级弹出小明”串人 Bug
+                const targetStudent = payload.student || store.students.find(s => s.id === payload.studentId) || store.students[0];
+
                 if (payload.newLevel >= 20 || payload.newLevel >= s5L) {
-                    const idx = payload.studentId ? (parseInt(payload.studentId.replace('stu_', ''), 10) - 1) : 4;
-                    triggerFullFireworksCelebration(Math.max(0, idx));
+                    triggerFullFireworksCelebration(targetStudent);
                 } else if ([s2L, s3L, s4L].includes(payload.newLevel)) {
-                    const idx = payload.studentId ? (parseInt(payload.studentId.replace('stu_', ''), 10) - 1) : 0;
-                    triggerSpotlightCelebration(Math.max(0, idx), payload.newLevel);
+                    triggerSpotlightCelebration(targetStudent, payload.newLevel);
                 }
             } else if (event === 'RANDOM_PICK' && payload && payload.chosenId) {
                 openStudentDetailsModal(payload.chosenId);
@@ -1228,6 +1250,7 @@
 
         let hatchTargetStudentId = null;
         let currentSelectedHatchSpecies = 'cat';
+        let currentSelectedHatchSubject = 'chinese';
         const interactCooldowns = {};
         let bubbleHideTimer = null;
 
@@ -1263,9 +1286,6 @@
                             <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
                                 <button class="btn-header-touch" style="background: var(--accent); color: white; height: 46px; font-size: 14px; padding: 0 24px;" onclick="openTeacherWorkstation()">
                                     ⚡ 前往教师工作台录入名单 ➔
-                                </button>
-                                <button class="btn-header-touch" style="background: #FEF9C3; color: #854D0E; height: 46px; font-size: 14px; padding: 0 20px;" onclick="openGuidedTourModal()">
-                                    💡 查看大屏操作指引
                                 </button>
                             </div>
                         </div>
@@ -1351,6 +1371,12 @@
             document.getElementById('seatmapView').style.display = v === 'seat' ? 'grid' : 'none';
             document.getElementById('pkRaceView').style.display = v === 'pk' ? 'flex' : 'none';
 
+            // 第9点：缩放控制盒仅在网格卡片模式下生效与显示，座次表和PK争霸赛下自动隐藏
+            const scaleBoxes = document.querySelectorAll('.scale-control-box');
+            scaleBoxes.forEach(box => {
+                box.style.display = v === 'grid' ? 'flex' : 'none';
+            });
+
             renderAll();
         }
 
@@ -1398,21 +1424,86 @@
             }
         }
 
+        // 第8点：四组团队竞速 PK 榜，支持横向赛道与竖向行情柱状图双向一键切换与记忆
+        let currentPKMode = localStorage.getItem('classpet_pk_mode') || 'vertical';
+
+        function setPKDisplayMode(mode) {
+            currentPKMode = mode;
+            try { localStorage.setItem('classpet_pk_mode', mode); } catch (e) {}
+            const btnV = document.getElementById('btnPkVerticalMode');
+            const btnH = document.getElementById('btnPkHorizontalMode');
+            const boxV = document.getElementById('raceVerticalContainer');
+            const boxH = document.getElementById('raceTracksContainer');
+
+            if (btnV) {
+                btnV.classList.toggle('active', mode === 'vertical');
+                btnV.style.background = mode === 'vertical' ? 'var(--accent)' : 'var(--bg-secondary)';
+                btnV.style.color = mode === 'vertical' ? 'white' : 'var(--text-primary)';
+            }
+            if (btnH) {
+                btnH.classList.toggle('active', mode === 'horizontal');
+                btnH.style.background = mode === 'horizontal' ? 'var(--accent)' : 'var(--bg-secondary)';
+                btnH.style.color = mode === 'horizontal' ? 'white' : 'var(--text-primary)';
+            }
+            if (boxV) boxV.style.display = mode === 'vertical' ? 'grid' : 'none';
+            if (boxH) boxH.style.display = mode === 'horizontal' ? 'block' : 'none';
+            renderPKRace();
+        }
+
         function renderPKRace() {
             const activeList = store.students.filter(s => !s.isArchived);
             updateHeaderClassInfo();
-            const container = document.getElementById('raceTracksContainer');
-            if (!container) return;
+            const boxV = document.getElementById('raceVerticalContainer');
+            const boxH = document.getElementById('raceTracksContainer');
+            if (!boxV || !boxH) return;
 
             if (activeList.length === 0) {
-                container.innerHTML = `<div style="padding:48px;text-align:center;background:var(--card-bg);border:2.5px dashed var(--border);color:var(--text-secondary);font-size:14px;font-weight:800;">🏃 当前班级暂无学生参与赛道，请先前往教师工作台录入名单</div>`;
+                const emptyHtml = `<div style="grid-column:1/-1;padding:48px;text-align:center;background:var(--card-bg);border:2.5px dashed var(--border);color:var(--text-secondary);font-size:14px;font-weight:800;">🏃 当前班级暂无学生参与赛道，请先前往教师工作台录入名单</div>`;
+                boxV.innerHTML = emptyHtml;
+                boxH.innerHTML = emptyHtml;
                 return;
             }
 
             const groups = store.getGroupStats();
-            const maxExp = Math.max(...groups.map(g => g.totalExp), 500);
+            const maxExp = Math.max(...groups.map(g => g.totalExp), 300);
 
-            container.innerHTML = groups.map(g => {
+            // 1. 竖向柱状行情看板
+            boxV.innerHTML = groups.map(g => {
+                const heightPct = Math.min(100, Math.max(12, Math.round((g.totalExp / maxExp) * 90)));
+                const mascot = g.group === 1 ? '🐱' : (g.group === 2 ? '🐶' : (g.group === 3 ? '🦊' : '🐰'));
+                const colColors = [
+                    'linear-gradient(180deg, #F87171, #EF4444)',
+                    'linear-gradient(180deg, #60A5FA, #3B82F6)',
+                    'linear-gradient(180deg, #34D399, #10B981)',
+                    'linear-gradient(180deg, #FBBF24, #F59E0B)'
+                ];
+                const barColor = colColors[g.group - 1] || colColors[0];
+
+                return `
+                    <div style="background: var(--card-bg); border: 3px solid var(--border); box-shadow: 4px 4px 0 var(--shadow-color); display: flex; flex-direction: column; justify-content: space-between; padding: 14px; border-radius: 8px;">
+                        <div style="text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 8px;">
+                            <div style="font-size: 28px; margin-bottom: 2px;">${mascot}</div>
+                            <strong style="font-size: 16px;">${g.name}</strong>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">均级 Lv.${g.avgLevel} · ${g.count}人</div>
+                            <div style="font-size: 18px; font-weight: 900; color: var(--accent); margin-top: 4px; font-family: monospace;">${g.totalExp} EXP</div>
+                        </div>
+
+                        <div style="flex: 1; min-height: 260px; background: var(--bg-secondary); border: 2px dashed var(--border); margin: 12px 0; display: flex; align-items: flex-end; justify-content: center; position: relative; border-radius: 6px; padding: 10px;">
+                            <div style="width: 70%; height: ${heightPct}%; background: ${barColor}; border: 2.5px solid var(--border); border-radius: 6px 6px 0 0; transition: height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; box-shadow: 2px -2px 0 rgba(0,0,0,0.15);">
+                                <span style="font-size: 11px; font-weight: 900; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.6); background: rgba(0,0,0,0.25); padding: 1px 6px; border-radius: 4px;">${g.totalExp}</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn-header-touch" style="flex: 1; height: 42px; justify-content: center; background: #DCFCE7; color: #15803D; font-weight: 900;" onclick="scoreGroup(${g.group}, 5)">+5</button>
+                            <button class="btn-header-touch" style="flex: 1; height: 42px; justify-content: center; background: #FEE2E2; color: #B91C1C; font-weight: 900;" onclick="scoreGroup(${g.group}, -3)">-3</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 2. 横向赛道跑道
+            boxH.innerHTML = groups.map(g => {
                 const percent = Math.min(88, Math.max(5, Math.round((g.totalExp / maxExp) * 85)));
                 const mascot = g.group === 1 ? '🐱' : (g.group === 2 ? '🐶' : (g.group === 3 ? '🦊' : '🐰'));
                 return `
@@ -1434,171 +1525,6 @@
             }).join('');
         }
 
-        // ==========================================
-        // 💡 大屏全套操作指引向导与速查表
-        // ==========================================
-        const BIGSCREEN_TOUR_STEPS = [
-            {
-                step: 1,
-                title: '🐾 学生萌宠卡片 · 5阶视觉进化体系',
-                targetBadge: '学生卡片 (普通 / 破壳 / 进化)',
-                icon: '🐱',
-                position: '大屏中央网格卡片区域',
-                feature: '【常驻大屏互动】点击任意学生卡片，即可进入该学生的专属【治愈系宠物空间】。支持抚摸、投喂苹果、喝水润嗓、鼓励加油等6种日常生理互动，内置20条温馨治愈台词与音效；【15 EXP破壳认领】学生初获15经验时卡片盖有【★ 可破壳 ★】印章，点击弹出【8大物种认领中心】供学生/教师自选物种（猫咪/柴犬/赤狐/月兔等）诞生！',
-                classroomTip: '课间让值日生或表现优秀的学生上讲台触控触摸自己的萌宠，极大提升学生的归属感与课堂积极性。'
-            },
-            {
-                step: 2,
-                title: '🔲 三大课堂展示视图 · 灵活适配不同教学课型',
-                targetBadge: '[🔲 卡片] / [🪑 座位] / [🏆 PK榜]',
-                icon: '🔲',
-                position: '顶部操作横条左侧导航 Tab',
-                feature: '【🔲 卡片】全班大网格标准视图，自适应充满大屏，一眼看清每位学生的宠物形态与等级条；【🪑 座位】四大小组物理空间矩阵排布，与讲台下真实座位一一对应，方便老师巡堂对照；【🏆 PK榜】四大小组动态经验竞速赛道，各组总积分化为龙舟竞渡，实时显示积分差距！',
-                classroomTip: '日常听讲使用【卡片】或【座位】视图；进行小组合作讨论、竞赛抢答时一键切换至【🏆 PK榜】，瞬间激发团队协作斗志！'
-            },
-            {
-                step: 3,
-                title: '🎲 随堂抽选 & C位暗化聚焦高光时刻',
-                targetBadge: '[🎲 抽选] / C位 Spotlight',
-                icon: '🎲',
-                position: '顶部横条右侧 或 底部操作坞右侧 [🎲 抽选]',
-                feature: '【随堂随机抽选点名】点击立即开启全屏动态随机滚动点名，大屏音效烘托紧张氛围，最终聚焦一名学生并自动弹开其萌宠空间（请假学生自动跳过）；【C位暗化聚焦】学生达到阶段升级（Lv.4、8、13）时触发全屏背景暗化、主角置顶放大的 Spotlight 光环；晋升至 Lv.20 满级神兽时全屏释放绚丽粒子礼炮烟花庆祝！',
-                classroomTip: '随堂提问、朗读抽背时点击抽选；期末或结课达成满级时，全班共同见证烟花大招，荣誉感拉满！'
-            },
-            {
-                step: 4,
-                title: '🔍 触控缩放微调 & ⬇️ 屏幕沉降触控适配',
-                targetBadge: '[➖] 100% [➕] 与 [⬇️ 屏幕下沉]',
-                icon: '🔍',
-                position: '顶部/底部比例调节盒 & 右下角浮动按键',
-                feature: '【卡片无级缩放】支持 80%（紧凑密集）、100%（标准）、125%（舒适）、150%（宽大）、175%（巨型特写）快捷预设与 +/- 微调，自适应各种大屏投影尺寸；【⬇️ 屏幕沉降模式】针对教室一体机挂载过高、老师或矮个子学生够不到屏幕顶部的痛点，点击右下角沉降按钮，整个大屏展示区域平滑下移至下半屏！',
-                classroomTip: '班级人数较多（50人以上）时选 80% 紧凑档；一体机安装位置过高时开启【屏幕下沉】，触控操作省力自如。'
-            },
-            {
-                step: 5,
-                title: '🎨 5套护眼主题 & 纯单窗口无缝全屏',
-                targetBadge: '[🎨 主题] / [⛶ 全屏] / [← 门户]',
-                icon: '🎨',
-                position: '顶部操作横条右侧 & 最左侧 [← 门户]',
-                feature: '【5套护眼主题】经典米白、暗夜霓虹、活力橙红、静谧森林、深海蓝调，切换带有丝滑圆形光波动画；【⛶ 全屏】一键隐藏所有窗口边框沉浸投影（支持键盘 F11）；【纯单窗口无缝平滑跳转】杜绝任何多余弹窗干扰课堂，大屏与工作台切换平滑如飞且全屏状态不丢；点击【← 门户】可随时退出并切换不同班级账号。',
-                classroomTip: '多媒体教室暗光拉窗帘环境下推荐【暗夜】或【深海】主题，保护视力不刺眼；白天明亮环境使用【经典】或【绿野】。'
-            }
-        ];
-
-        const BIGSCREEN_OVERVIEW_LIST = [
-            { key: '← 门户', pos: '顶部横条最左', desc: '返回系统主控门户，进行班级与教师账号切换', scene: '需要更换上课班级或交接时使用' },
-            { key: '⚡ 工作台', pos: '顶部横条左二', desc: '一键原地切换到教师快速赋分控制台', scene: '教师需要批量给学生加减分、导表排班时' },
-            { key: '班级徽标', pos: '顶部标题右侧', desc: '实时显示当前班级名称及在籍学生总数', scene: '核对当前是否在正确的班级空间' },
-            { key: '🔲 卡片视图', pos: '顶部视图Tab 1', desc: '默认全班宠物卡片网格自适应展示', scene: '日常课堂常规巡览' },
-            { key: '🪑 座位视图', pos: '顶部视图Tab 2', desc: '按 4 大组物理排布，对应教室内学生实际课桌方位', scene: '讲台对照座位提问与巡课' },
-            { key: '🏆 PK榜视图', pos: '顶部视图Tab 3', desc: '四大小组总 EXP 动态竞速跑道与实时排行', scene: '小组积分合作竞争与抢答对抗课' },
-            { key: '🔍 缩放控制', pos: '顶部及底部操作坞', desc: '80%~175% 卡片尺寸调节及预设弹出菜单', scene: '适配 65/75/86 寸一体机及不同人数排版' },
-            { key: '🎲 抽选点名', pos: '顶部右侧/底部中间', desc: '全屏动态随机滚动抽选一名学生，自动弹出其萌宠', scene: '课堂点名提问、互动发言' },
-            { key: '💡 操作指引', pos: '顶部右侧', desc: '打开当前这份全套按键操作与教学实战向导', scene: '新手教师快速上手与查阅功能' },
-            { key: '⛶ 全屏切换', pos: '顶部右侧', desc: '无缝进入/退出无边框沉浸全屏模式 (快捷键F11)', scene: '课堂常驻投影或一体机大屏展示' },
-            { key: '🎨 护眼主题', pos: '顶部最右下拉', desc: '提供经典米白、暗夜、橙红、森林、深海 5 套主题', scene: '根据教室光线和投影明暗随时切换' },
-            { key: '萌宠卡片点击', pos: '大屏中央卡片', desc: '进入学生专属治愈宠物空间 (抚摸/投喂/喝水等6种互动) 或 破壳认领', scene: '课间互动、课上表扬学生上台触控' },
-            { key: '⬇️ 屏幕下沉', pos: '右下角黄色大按键', desc: '将所有卡片舞台平滑沉降至下半屏，便于矮个触控', scene: '黑板/一体机挂载过高够不着时' }
-        ];
-
-        let currentTourStep = 1;
-
-        function openGuidedTourModal() {
-            currentTourStep = 1;
-            renderTourStep();
-            document.getElementById('modalGuidedTour').style.display = 'flex';
-        }
-
-        function closeGuidedTourModal() {
-            document.getElementById('modalGuidedTour').style.display = 'none';
-        }
-
-        function switchTourTab(tab) {
-            document.getElementById('btnTourTabStep').classList.toggle('active', tab === 'step');
-            document.getElementById('btnTourTabStep').style.background = tab === 'step' ? 'var(--accent)' : 'var(--bg-secondary)';
-            document.getElementById('btnTourTabStep').style.color = tab === 'step' ? 'white' : 'var(--text-primary)';
-
-            document.getElementById('btnTourTabOverview').classList.toggle('active', tab === 'overview');
-            document.getElementById('btnTourTabOverview').style.background = tab === 'overview' ? 'var(--accent)' : 'var(--bg-secondary)';
-            document.getElementById('btnTourTabOverview').style.color = tab === 'overview' ? 'white' : 'var(--text-primary)';
-
-            document.getElementById('tourStepView').style.display = tab === 'step' ? 'block' : 'none';
-            document.getElementById('tourOverviewView').style.display = tab === 'overview' ? 'block' : 'none';
-
-            if (tab === 'overview') renderTourOverview();
-        }
-
-        function goToTourStep(step) {
-            currentTourStep = Math.max(1, Math.min(step, BIGSCREEN_TOUR_STEPS.length));
-            renderTourStep();
-        }
-
-        function nextTourStep() {
-            if (currentTourStep >= BIGSCREEN_TOUR_STEPS.length) {
-                closeGuidedTourModal();
-                return;
-            }
-            currentTourStep++;
-            renderTourStep();
-        }
-
-        function prevTourStep() {
-            if (currentTourStep <= 1) return;
-            currentTourStep--;
-            renderTourStep();
-        }
-
-        function renderTourStep() {
-            const data = BIGSCREEN_TOUR_STEPS[currentTourStep - 1];
-            document.getElementById('tourStepIndicator').textContent = `步骤 ${currentTourStep} / ${BIGSCREEN_TOUR_STEPS.length}`;
-            
-            // 更新小圆点
-            document.querySelectorAll('#tourStepDots .tour-dot').forEach((dot, idx) => {
-                dot.classList.toggle('active', idx + 1 === currentTourStep);
-            });
-
-            // 更新上一步按钮可用性
-            document.getElementById('btnTourPrev').disabled = currentTourStep === 1;
-            document.getElementById('btnTourPrev').style.opacity = currentTourStep === 1 ? '0.4' : '1';
-            document.getElementById('btnTourNext').textContent = currentTourStep === BIGSCREEN_TOUR_STEPS.length ? '完成并开始体验 ✓' : '下一步 →';
-
-            const container = document.getElementById('tourStepContent');
-            container.innerHTML = `
-                <div class="tour-step-card">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; border-bottom: 2px solid var(--border); padding-bottom: 8px;">
-                        <span style="font-size: 32px;">${data.icon}</span>
-                        <div>
-                            <h3 style="font-size: 16px; font-weight: 900; margin: 0;">${data.title}</h3>
-                            <span style="font-size: 11px; background: var(--warning); border: 1px solid var(--border); padding: 1px 6px; font-family: monospace; font-weight: 800;">
-                                🎯 目标对象：${data.targetBadge}
-                            </span>
-                        </div>
-                    </div>
-                    <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-secondary);">
-                        📍 <strong>所在位置：</strong> ${data.position}
-                    </div>
-                    <div style="background: var(--card-bg); border: 2px solid var(--border); padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.6; font-weight: 700;">
-                        ${data.feature}
-                    </div>
-                    <div style="background: #FEF9C3; border: 1.5px solid #CA8A04; padding: 10px 12px; font-size: 12px; color: #854D0E; font-weight: 800;">
-                        🏫 <strong>课堂实战建议：</strong> ${data.classroomTip}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderTourOverview() {
-            const tbody = document.getElementById('tourOverviewTableBody');
-            tbody.innerHTML = BIGSCREEN_OVERVIEW_LIST.map(item => `
-                <tr style="border-bottom: 1px solid var(--border); background: var(--card-bg);">
-                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-weight: 900; color: var(--accent);">${item.key}</td>
-                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-family: monospace; font-size: 11px;">${item.pos}</td>
-                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-weight: 700;">${item.desc}</td>
-                    <td style="padding: 8px 10px; color: #854D0E; font-weight: 700;">${item.scene}</td>
-                </tr>
-            `).join('');
-        }
-
         function scoreGroup(g, d) {
             const list = store.students.filter(s => s.group === g && !s.isArchived);
             store.batchScore(list.map(s => s.id), d, `第${g}大组${d>0?'奖励':'扣分'}`);
@@ -1616,7 +1542,7 @@
 
         // ==========================================
         // ==========================================
-        // 电子宠物破壳认领中心逻辑
+        // 电子宠物破壳认领中心逻辑 (第4点：联动教师学科属性与班主任全选)
         // ==========================================
         function openHatchModal(studentId) {
             closeDetailsModal();
@@ -1624,6 +1550,38 @@
             if (!s) return;
             hatchTargetStudentId = studentId;
             currentSelectedHatchSpecies = 'cat';
+
+            // 获取学科认领权限规则
+            const hatchSubjInfo = store.getAvailableHatchSubjects ? store.getAvailableHatchSubjects(studentId) : {
+                allowedSubjects: ['chinese', 'math', 'english'],
+                defaultSubject: 'chinese',
+                reason: '请选择认领学科'
+            };
+            currentSelectedHatchSubject = hatchSubjInfo.defaultSubject || 'chinese';
+
+            const subGroup = document.getElementById('hatchSubjectBtnGroup');
+            const subHint = document.getElementById('hatchSubjectRuleHint');
+            if (subHint) subHint.textContent = hatchSubjInfo.reason || '';
+
+            const subNameMap = { chinese: '📖 语文', math: '📐 数学', english: '🔤 英语' };
+            if (subGroup) {
+                subGroup.innerHTML = ['chinese', 'math', 'english'].map(subKey => {
+                    const isAllowed = hatchSubjInfo.allowedSubjects.includes(subKey);
+                    const isHatched = (hatchSubjInfo.hatchedSubjects || []).includes(subKey);
+                    const isSelected = subKey === currentSelectedHatchSubject;
+                    let statusTag = '';
+                    if (isHatched) statusTag = ' (已认领)';
+                    else if (!isAllowed) statusTag = ' (不可选)';
+
+                    return `
+                        <button type="button" class="btn-header-touch" id="btnHatchSubj_${subKey}" 
+                            style="height: 34px; padding: 0 12px; font-size: 12px; ${isSelected ? 'background: var(--accent); color: white;' : 'background: var(--bg-primary);'} ${!isAllowed ? 'opacity: 0.5; cursor: not-allowed;' : ''}"
+                            onclick="selectHatchSubject('${subKey}', ${isAllowed})">
+                            ${subNameMap[subKey]}${statusTag}
+                        </button>
+                    `;
+                }).join('');
+            }
 
             document.getElementById('hatchStudentTitle').textContent = `🐣 电子宠物破壳认领中心 · ${s.name} (#${s.no})`;
             document.getElementById('hatchStudentSub').textContent = `恭喜积攒满 ${s.exp} EXP！破壳在即，请挑选心仪的电子宠物完成认领：`;
@@ -1650,6 +1608,27 @@
             document.getElementById('modalHatchCenter').style.display = 'flex';
         }
 
+        function selectHatchSubject(subKey, isAllowed) {
+            if (!isAllowed) {
+                showClassroomToast('根据当前教师学科权限规则，暂不可选择此学科', '⚠️');
+                return;
+            }
+            currentSelectedHatchSubject = subKey;
+            ['chinese', 'math', 'english'].forEach(k => {
+                const btn = document.getElementById('btnHatchSubj_' + k);
+                if (btn) {
+                    if (k === subKey) {
+                        btn.style.background = 'var(--accent)';
+                        btn.style.color = 'white';
+                    } else {
+                        btn.style.background = 'var(--bg-primary)';
+                        btn.style.color = 'var(--text-primary)';
+                    }
+                }
+            });
+            updateHatchSelectedBar();
+        }
+
         function selectHatchSpecies(spKey) {
             currentSelectedHatchSpecies = spKey;
             document.querySelectorAll('.hatch-card-option').forEach(el => el.classList.remove('selected'));
@@ -1660,7 +1639,8 @@
 
         function updateHatchSelectedBar() {
             const info = (window.PET_SPECIES_CATALOG || {})[currentSelectedHatchSpecies] || {};
-            document.getElementById('selectedSpeciesNameText').textContent = `${info.name || '猫咪'} (${currentSelectedHatchSpecies})`;
+            const subMap = { chinese: '语文', math: '数学', english: '英语' };
+            document.getElementById('selectedSpeciesNameText').textContent = `${info.name || '猫咪'} · 【${subMap[currentSelectedHatchSubject] || '语文'}】专属`;
             document.getElementById('selectedSpeciesMottoText').textContent = info.motto || '';
         }
 
@@ -1670,11 +1650,15 @@
 
         function confirmHatchPet() {
             if (!hatchTargetStudentId) return;
-            const hatched = store.hatchStudentPet(hatchTargetStudentId, currentSelectedHatchSpecies);
+            const targetStudentId = hatchTargetStudentId;
+            const hatched = store.hatchStudentPet(targetStudentId, currentSelectedHatchSpecies, currentSelectedHatchSubject);
             closeHatchModal();
             if (hatched) {
-                const sIdx = store.students.findIndex(x => x.id === hatchTargetStudentId);
-                triggerSpotlightCelebration(Math.max(0, sIdx), 1, '🐣 恭喜破壳诞生！成功认领专属电子宠物！');
+                const subMap = { chinese: '语文', math: '数学', english: '英语' };
+                triggerSpotlightCelebration(targetStudentId, 1, `🐣 恭喜破壳诞生！成功认领【${subMap[currentSelectedHatchSubject] || '语文'}】专属电子宠物！`);
+                if (window.classroomFireworks && typeof window.classroomFireworks.launchCelebration === 'function') {
+                    window.classroomFireworks.launchCelebration();
+                }
             }
             renderAll();
         }
@@ -1717,12 +1701,31 @@
             document.getElementById('heroExpText').textContent = `当前经验：${pet.exp} EXP · 下级阈值：${nextMax} EXP`;
             document.getElementById('heroProgressBar').style.width = percent + '%';
 
+            // 第15点：宠物卡片内直接点击孵化，告别退回大屏
+            const hatchThresh = store.getHatchThreshold ? store.getHatchThreshold() : 15;
+            const hatchBox = document.getElementById('modalHatchTriggerBox');
+            if (hatchBox) {
+                if (!s.isHatched && s.exp >= hatchThresh) {
+                    hatchBox.style.display = 'block';
+                } else {
+                    hatchBox.style.display = 'none';
+                }
+            }
+
             // 更新今日互动收益提示
             const todayKey = 'classpet_daily_interact_' + new Date().toISOString().slice(0, 10);
             let dailyRecord = {};
             try { dailyRecord = JSON.parse(localStorage.getItem(todayKey) || '{}'); } catch (e) {}
             const todayUsed = dailyRecord[s.id] || 0;
             document.getElementById('interactionDailyTip').textContent = `今日互动收益：${todayUsed}/5 EXP ${todayUsed >= 5 ? '(已达上限)' : ''}`;
+        }
+
+        // 第15点：卡片内原地一键破壳
+        function openHatchFromDetailsModal() {
+            if (!activeModalStudent) return;
+            const sId = activeModalStudent.id;
+            closeDetailsModal();
+            openHatchModal(sId);
         }
 
         function switchModalSubject(sub) {
@@ -1740,16 +1743,14 @@
             if (!activeModalStudent) return;
             const now = Date.now();
             if (interactCooldowns[key] && interactCooldowns[key] > now) {
-                return; // 还在冷却中
+                return;
             }
 
-            // 设置 15 秒冷却
             interactCooldowns[key] = now + 15000;
             const btn = document.getElementById('btnInteract_' + key);
             const label = document.getElementById('label_' + key);
             const originalText = label.textContent;
 
-            // 倒计时刷新
             const cdInterval = setInterval(() => {
                 const remaining = Math.ceil((interactCooldowns[key] - Date.now()) / 1000);
                 if (remaining <= 0) {
@@ -1778,21 +1779,13 @@
             renderAll();
         }
 
-        function startRandomPicker() {
-            const activeList = store.students.filter(s => !s.isArchived);
-            if (activeList.length === 0) {
-                showClassroomAlert('当前班级暂无学生数据，请先前往教师工作台录入学生名单！', '班级提示', '👥');
-                return;
-            }
-            const chosen = store.startRandomPick();
-            if (chosen) openStudentDetailsModal(chosen.id);
-        }
-
         function toggleReachability() {
             const w = document.getElementById('stageWrapper');
             const isActive = w.classList.toggle('reachability-active');
-            document.getElementById('reachIcon').textContent = isActive ? '⬆️' : '⬇️';
-            document.getElementById('reachText').textContent = isActive ? '还原大屏原位' : '屏幕下沉';
+            const icon = document.getElementById('reachIcon');
+            const text = document.getElementById('reachText');
+            if (icon) icon.textContent = isActive ? '⬆️' : '⬇️';
+            if (text) text.textContent = isActive ? '还原大屏原位' : '屏幕下沉';
         }
 
         function sortCards(by) {
@@ -1803,8 +1796,12 @@
 
         function closeDetailsModal() { document.getElementById('modalStudentDetails').style.display = 'none'; }
 
-        function triggerSpotlightCelebration(index, lvl, customMsg) {
-            const s = store.students[index] || store.students[0];
+        // 第2点：消除串人 bug，精准查找对应学生对象
+        function triggerSpotlightCelebration(target, lvl, customMsg) {
+            const s = (typeof target === 'object' && target !== null)
+                ? target
+                : (store.students.find(x => x.id === target) || store.students[target] || store.students[0]);
+            if (!s) return;
             const pet = s.pets[s.activeSubject] || s.pets.chinese;
             const imgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(pet.species, pet.visualStage) : '');
             document.getElementById('spotPetIcon').innerHTML = `<img src="${imgSrc}" style="width:130px;height:130px;object-fit:contain;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.18));animation: petHeroFloat 2.6s ease-in-out infinite;" onerror="this.outerHTML='<span style=\\'font-size:72px;\\'>${pet.icon}</span>'" />`;
@@ -1812,6 +1809,11 @@
             document.getElementById('spotLevelMsg').textContent = customMsg || `成功晋升至 Lv.${lvl} 进阶期！`;
             store.audio.playFanfare();
             document.getElementById('spotlightModal').style.display = 'flex';
+
+            // 第15点：升级/形态变换恢复底部发射礼炮烟花动画
+            if (window.classroomFireworks && typeof window.classroomFireworks.launchCelebration === 'function') {
+                window.classroomFireworks.launchCelebration();
+            }
         }
 
         function closeSpotlightCelebration() { document.getElementById('spotlightModal').style.display = 'none'; }
@@ -1819,12 +1821,20 @@
         let fireworksRunning = false;
         let fireworksAnimationId = null;
 
-        function triggerFullFireworksCelebration(studentIndex = 4) {
-            const s = store.students[studentIndex] || store.students[4];
+        function triggerFullFireworksCelebration(target) {
+            const s = (typeof target === 'object' && target !== null)
+                ? target
+                : (store.students.find(x => x.id === target) || store.students[target] || store.students[0]);
+            if (!s) return;
             document.getElementById('fireworksStudentName').textContent = `${s.name} (#${s.no})`;
             document.getElementById('fireworksPetMsg').textContent = `恭喜达成 Lv.20 满级大师形态！`;
             document.getElementById('fireworksLayer').style.display = 'flex';
             store.audio.playFanfare();
+
+            // 恢复烟花特效
+            if (window.classroomFireworks && typeof window.classroomFireworks.launchCelebration === 'function') {
+                window.classroomFireworks.launchCelebration();
+            }
 
             const canvas = document.getElementById('fireworksCanvas');
             if (!canvas) return;
@@ -1905,6 +1915,137 @@
             if (fireworksAnimationId) cancelAnimationFrame(fireworksAnimationId);
             document.getElementById('fireworksLayer').style.display = 'none';
         }
+
+        // ==========================================
+        // 🐾 讲台一体机触控与防误触：悬浮可移动小球与辐射菜单 (第5点 & 第6点)
+        // ==========================================
+        let radialMenuTimer = null;
+
+        function toggleRadialMenu(e) {
+            if (e) e.stopPropagation();
+            const menu = document.getElementById('classpetRadialMenu');
+            if (!menu) return;
+            const isOpen = menu.classList.toggle('open');
+            clearTimeout(radialMenuTimer);
+            if (isOpen) {
+                // 8 秒无操作自动收回，防课堂遗忘遮挡
+                radialMenuTimer = setTimeout(() => {
+                    closeRadialMenu();
+                }, 8000);
+            }
+        }
+
+        function closeRadialMenu() {
+            const menu = document.getElementById('classpetRadialMenu');
+            if (menu) menu.classList.remove('open');
+            clearTimeout(radialMenuTimer);
+        }
+
+        function handleRadialAction(action) {
+            closeRadialMenu();
+            if (action === 'sortNo') {
+                sortCards('no');
+                showClassroomToast('已按学号升序重排', '🔢');
+            } else if (action === 'sortLevel') {
+                sortCards('level');
+                showClassroomToast('已按等级与经验排行', '⭐');
+            } else if (action === 'fullscreen') {
+                toggleAppFullscreen();
+            } else if (action === 'theme') {
+                const themes = ['classic', 'dark', 'orange', 'forest', 'ocean'];
+                const current = document.documentElement.getAttribute('data-theme') || 'classic';
+                const nextIdx = (themes.indexOf(current) + 1) % themes.length;
+                setGlobalTheme(themes[nextIdx]);
+                showClassroomToast(`已切换主题：${themes[nextIdx]}`, '🎨');
+            } else if (action === 'reach') {
+                toggleReachability();
+            } else if (action === 'teacher') {
+                openTeacherWorkstation();
+            }
+        }
+
+        // 悬浮小球触摸与鼠标拖拽移动逻辑
+        (function initFloatingBallDrag() {
+            const ballContainer = document.getElementById('floatingBallContainer');
+            const ball = document.getElementById('classpetFloatingBall');
+            if (!ballContainer || !ball) return;
+
+            // 读取保存的位置
+            try {
+                const savedPos = JSON.parse(localStorage.getItem('classpet_floating_ball_pos') || 'null');
+                if (savedPos && typeof savedPos.left === 'number' && typeof savedPos.top === 'number') {
+                    ballContainer.style.left = Math.min(window.innerWidth - 70, Math.max(10, savedPos.left)) + 'px';
+                    ballContainer.style.top = Math.min(window.innerHeight - 70, Math.max(10, savedPos.top)) + 'px';
+                    ballContainer.style.bottom = 'auto';
+                }
+            } catch (e) {}
+
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let initialLeft = 0, initialTop = 0;
+            let hasMoved = false;
+
+            function onPointerDown(e) {
+                if (e.target.closest('.radial-item')) return;
+                isDragging = true;
+                hasMoved = false;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startX = clientX;
+                startY = clientY;
+                const rect = ballContainer.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+            }
+
+            function onPointerMove(e) {
+                if (!isDragging) return;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const dx = clientX - startX;
+                const dy = clientY - startY;
+                if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+                    hasMoved = true;
+                    closeRadialMenu();
+                }
+
+                if (hasMoved) {
+                    let newLeft = initialLeft + dx;
+                    let newTop = initialTop + dy;
+                    newLeft = Math.max(8, Math.min(window.innerWidth - 72, newLeft));
+                    newTop = Math.max(8, Math.min(window.innerHeight - 72, newTop));
+                    ballContainer.style.left = newLeft + 'px';
+                    ballContainer.style.top = newTop + 'px';
+                    ballContainer.style.bottom = 'auto';
+                }
+            }
+
+            function onPointerUp() {
+                if (!isDragging) return;
+                isDragging = false;
+                if (hasMoved) {
+                    const rect = ballContainer.getBoundingClientRect();
+                    try {
+                        localStorage.setItem('classpet_floating_ball_pos', JSON.stringify({ left: rect.left, top: rect.top }));
+                    } catch (e) {}
+                }
+            }
+
+            ball.addEventListener('mousedown', onPointerDown);
+            window.addEventListener('mousemove', onPointerMove);
+            window.addEventListener('mouseup', onPointerUp);
+
+            ball.addEventListener('touchstart', onPointerDown, { passive: true });
+            window.addEventListener('touchmove', onPointerMove, { passive: true });
+            window.addEventListener('touchend', onPointerUp);
+
+            // 点击外侧收回辐射菜单
+            document.addEventListener('click', (e) => {
+                if (!ballContainer.contains(e.target)) {
+                    closeRadialMenu();
+                }
+            });
+        })();
 
         function toggleAppFullscreen() {
             if (window.electronAPI && typeof window.electronAPI.toggleFullscreen === 'function') {

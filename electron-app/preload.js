@@ -12,5 +12,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const handler = (event, data) => callback(data);
         ipcRenderer.on('broadcast-sync', handler);
         return () => ipcRenderer.removeListener('broadcast-sync', handler);
+    },
+    // 本地 SQLite 真实数据库访问与操作接口 (单机零配置)
+    db: {
+        loadAllState: (classId) => ipcRenderer.invoke('db:loadAllState', classId),
+        recordScore: (payload) => ipcRenderer.invoke('db:recordScore', payload),
+        undoScore: (operationId) => ipcRenderer.invoke('db:undoScore', operationId),
+        getStudentAuditLogs: (studentId) => ipcRenderer.invoke('db:getStudentAuditLogs', studentId),
+        hatchPet: (payload) => ipcRenderer.invoke('db:hatchPet', payload),
+        query: (sql, params) => ipcRenderer.invoke('db:query', { sql, params }),
+        execute: (sql, params) => ipcRenderer.invoke('db:execute', { sql, params })
     }
 });

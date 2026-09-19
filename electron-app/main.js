@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, screen, globalShortcut } = require('electron');
 const path = require('path');
+const sqliteService = require('./sqlite_service.js');
 
 let mainWindow = null;
 
@@ -99,7 +100,80 @@ ipcMain.on('broadcast-sync', (event, data) => {
     });
 });
 
-app.whenReady().then(() => {
+// ==========================================
+// 真实本地 SQLite 数据库 IPC 管道与服务处理
+// ==========================================
+ipcMain.handle('db:loadAllState', async (event, classId) => {
+    try {
+        return sqliteService.loadAllState(classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:loadAllState 失败:', err);
+        return null;
+    }
+});
+
+ipcMain.handle('db:recordScore', async (event, payload) => {
+    try {
+        return sqliteService.recordScoreOperation(payload);
+    } catch (err) {
+        console.error('[Main IPC] db:recordScore 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('db:undoScore', async (event, operationId) => {
+    try {
+        return sqliteService.undoOperation(operationId);
+    } catch (err) {
+        console.error('[Main IPC] db:undoScore 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('db:getStudentAuditLogs', async (event, studentId) => {
+    try {
+        return sqliteService.getStudentAuditLogs(studentId);
+    } catch (err) {
+        console.error('[Main IPC] db:getStudentAuditLogs 失败:', err);
+        return [];
+    }
+});
+
+ipcMain.handle('db:hatchPet', async (event, payload) => {
+    try {
+        return sqliteService.hatchStudentPet(payload);
+    } catch (err) {
+        console.error('[Main IPC] db:hatchPet 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('db:query', async (event, { sql, params }) => {
+    try {
+        return sqliteService.query(sql, params);
+    } catch (err) {
+        console.error('[Main IPC] db:query 失败:', err);
+        return [];
+    }
+});
+
+ipcMain.handle('db:execute', async (event, { sql, params }) => {
+    try {
+        return sqliteService.execute(sql, params);
+    } catch (err) {
+        console.error('[Main IPC] db:execute 失败:', err);
+        return false;
+    }
+});
+
+app.whenReady().then(async () => {
+    try {
+        await sqliteService.init(app);
+        console.log('[Main] SQLite 服务初始化就绪！');
+    } catch (e) {
+        console.error('[Main] SQLite 初始化发生异常:', e);
+    }
+
     createMainWindow();
 
     // 注册全局 F11 全屏切换快捷键 (支持教室一体机全屏使用)
@@ -117,6 +191,9 @@ app.whenReady().then(() => {
 });
 
 app.on('will-quit', () => {
+    if (sqliteService) {
+        sqliteService.saveToDiskSync();
+    }
     globalShortcut.unregisterAll();
 });
 

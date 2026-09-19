@@ -612,31 +612,33 @@ class ClassPetStore {
                     },
                     math: {
                         id: 'pet_m_' + (i + 1),
-                        species: 'dog',
+                        species: 'egg',
                         subject: '数学',
-                        name: '柴犬',
-                        icon: '🐶',
-                        image: getPetImagePath('dog', Math.max(1, visualStage - 1)),
-                        level: Math.max(1, level - 1),
-                        exp: Math.max(15, exp - 20),
-                        visualStage: Math.max(1, visualStage - 1),
-                        affection: 60,
-                        fullness: 70,
-                        energy: 65
+                        name: '神秘宠物蛋 (待破壳)',
+                        icon: '🐣',
+                        image: getPetImagePath('egg', 0),
+                        level: 0,
+                        exp: 0,
+                        visualStage: 0,
+                        isHatched: false,
+                        affection: 20,
+                        fullness: 50,
+                        energy: 50
                     },
                     english: {
                         id: 'pet_e_' + (i + 1),
-                        species: 'fox',
+                        species: 'egg',
                         subject: '英语',
-                        name: '赤狐',
-                        icon: '🦊',
-                        image: getPetImagePath('fox', 1),
-                        level: Math.max(1, level - 2),
-                        exp: Math.max(15, exp - 40),
-                        visualStage: 1,
-                        affection: 55,
-                        fullness: 60,
-                        energy: 85
+                        name: '神秘宠物蛋 (待破壳)',
+                        icon: '🐣',
+                        image: getPetImagePath('egg', 0),
+                        level: 0,
+                        exp: 0,
+                        visualStage: 0,
+                        isHatched: false,
+                        affection: 20,
+                        fullness: 50,
+                        energy: 50
                     }
                 }
             };
@@ -798,16 +800,29 @@ class ClassPetStore {
         const payload = {
             studentId: id,
             studentName: student.name,
+            studentNo: student.no,
+            student: student, // 传入精确对象指针，杜绝索引推导导致串人
             delta,
             reason,
             isPrivate,
             newExp: student.exp,
             newLevel: student.level,
+            newStage: student.visualStage,
             stamp: student.stamp
         };
 
         if (delta > 0) this.audio.playDing();
         else this.audio.playDeduct();
+
+        // 异步同步到 SQLite
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.recordScore === 'function') {
+            window.electronAPI.db.recordScore({
+                studentIds: [id],
+                delta,
+                reason,
+                ruleId: isPrivate ? null : 'rule_quick'
+            });
+        }
 
         this.broadcast('SCORE_TRIGGERED', payload);
         this.notify('SCORE', payload);
@@ -860,31 +875,59 @@ class ClassPetStore {
         if (delta > 0) this.audio.playDing();
         else this.audio.playDeduct();
 
+        // 异步同步到 SQLite
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.recordScore === 'function') {
+            window.electronAPI.db.recordScore({
+                studentIds: ids,
+                delta,
+                reason,
+                ruleId: isPrivate ? null : 'rule_batch'
+            });
+        }
+
         const payload = { ids, delta, reason, isPrivate };
         this.broadcast('SCORE_TRIGGERED', payload);
         this.notify('SCORE', payload);
     }
 
-    // 破壳认领中心：学生在 8 大电子宠物中完成自选挑选并认领破壳
-    hatchStudentPet(studentId, speciesCode) {
+    // 破壳认领中心：支持针对指定学科认领 8 大电子宠物
+    hatchStudentPet(studentId, speciesCode, targetSubject = null) {
         const student = this.students.find(s => s.id === studentId);
         if (!student) return null;
         const sp = PET_SPECIES_CATALOG[speciesCode] ? speciesCode : 'cat';
         const info = PET_SPECIES_CATALOG[sp];
 
-        student.isHatched = true;
-        student.level = Math.max(1, student.level);
-        student.visualStage = Math.max(1, student.visualStage);
-        student.stamp = null;
+        const subjectKey = targetSubject || student.activeSubject || 'chinese';
+        if (!student.pets[subjectKey]) {
+            const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
+            student.pets[subjectKey] = {
+                id: 'pet_' + subjectKey.charAt(0) + '_' + student.id,
+                subject: subNameMap[subjectKey] || '综合',
+                species: 'egg',
+                name: '神秘宠物蛋',
+                icon: '🐣',
+                level: 1,
+                exp: 15,
+                visualStage: 0
+            };
+        }
 
-        const currentPet = student.pets[student.activeSubject];
+        const currentPet = student.pets[subjectKey];
         currentPet.species = sp;
         currentPet.name = info.name;
         currentPet.icon = info.icon;
-        currentPet.image = getPetImagePath(sp, student.visualStage);
-        currentPet.level = student.level;
-        currentPet.exp = student.exp;
-        currentPet.affection = 60;
+        currentPet.visualStage = 1;
+        currentPet.image = getPetImagePath(sp, 1);
+        currentPet.level = Math.max(1, currentPet.level || 1);
+        currentPet.exp = Math.max(15, currentPet.exp || 15);
+        currentPet.isHatched = true;
+
+        student.isHatched = true;
+        student.activeSubject = subjectKey;
+        student.stamp = null;
+        student.level = currentPet.level;
+        student.exp = currentPet.exp;
+        student.visualStage = currentPet.visualStage;
 
         student.minExpForCurrentLevel = this.getCurrentLevelMinExp(student.level);
         student.nextLevelExp = this.getNextLevelThreshold(student.level);
@@ -892,9 +935,22 @@ class ClassPetStore {
         this.save();
         this.audio.playFanfare();
 
+        // 异步同步到 SQLite
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.hatchPet === 'function') {
+            window.electronAPI.db.hatchPet({
+                studentId: student.id,
+                subjectCode: subjectKey,
+                speciesCode: sp,
+                nickname: info.name
+            });
+        }
+
         const payload = {
             studentId: student.id,
             studentName: student.name,
+            studentNo: student.no,
+            student: student,
+            subject: subjectKey,
             species: sp,
             speciesName: info.name,
             icon: info.icon,
@@ -904,6 +960,62 @@ class ClassPetStore {
         this.broadcast('HATCH_TRIGGERED', payload);
         this.notify('HATCH', payload);
         return student;
+    }
+
+    // 获取当前学生在当前教师角色下允许破壳认领的学科列表
+    getAvailableHatchSubjects(studentId) {
+        const student = this.students.find(s => s.id === studentId);
+        const curAcc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const teacherSubject = curAcc.subject || '综合';
+
+        const hatchedSubjects = [];
+        const unhatchedSubjects = [];
+        ['chinese', 'math', 'english'].forEach(sub => {
+            const p = student?.pets?.[sub];
+            if (p && p.species && p.species !== 'egg' && (p.isHatched || (p.visualStage && p.visualStage >= 1))) {
+                hatchedSubjects.push(sub);
+            } else {
+                unhatchedSubjects.push(sub);
+            }
+        });
+
+        // 规则 1：如果是班主任 / 综合账号：
+        // 允许从第 1 只宠物蛋开始自主选择任意学科
+        if (teacherSubject === '综合' || teacherSubject.includes('班主任')) {
+            return {
+                mode: 'free',
+                teacherSubject,
+                allowedSubjects: unhatchedSubjects.length > 0 ? unhatchedSubjects : ['chinese'],
+                hatchedSubjects,
+                defaultSubject: unhatchedSubjects[0] || 'chinese',
+                reason: '班主任权限：可自由选择任意未孵化宠物蛋的学科'
+            };
+        }
+
+        // 规则 2：如果是单科教师（语文 / 数学 / 英语）：
+        const subjectMap = { '语文': 'chinese', '数学': 'math', '英语': 'english' };
+        const mySubject = subjectMap[teacherSubject] || 'chinese';
+
+        if (!hatchedSubjects.includes(mySubject)) {
+            return {
+                mode: 'subject_locked',
+                teacherSubject,
+                allowedSubjects: [mySubject],
+                hatchedSubjects,
+                defaultSubject: mySubject,
+                reason: `【${teacherSubject}】任课教师：首次孵化必须认领【${teacherSubject}】专属电子宠物`
+            };
+        }
+
+        // 本科已破壳，孵化下一只宠物蛋时，在另外两个学科中选择其一
+        return {
+            mode: 'secondary_choice',
+            teacherSubject,
+            allowedSubjects: unhatchedSubjects,
+            hatchedSubjects,
+            defaultSubject: unhatchedSubjects[0] || (mySubject === 'chinese' ? 'math' : 'chinese'),
+            reason: `已认领【${teacherSubject}】宠物，现可从其余未孵化学科中选择其一`
+        };
     }
 
     // 治愈系互动动作：每日 5 EXP 限制、触发温馨台词
