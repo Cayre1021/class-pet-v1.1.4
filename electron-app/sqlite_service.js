@@ -15,21 +15,36 @@ class SQLiteService {
         if (this.isInitialized) return this.db;
         this.SQL = await initSqlJs();
 
-        // 优先在项目 database/classpet.sqlite 读取与存储，兼顾开发与教室一体机便携运行
-        const projectDbPath = path.resolve(__dirname, '..', 'database', 'classpet.sqlite');
-        const localDbPath = path.resolve(__dirname, 'classpet.sqlite');
-        const userDbPath = app ? path.join(app.getPath('userData'), 'classpet.sqlite') : null;
-
-        if (fs.existsSync(projectDbPath)) {
-            this.dbPath = projectDbPath;
-        } else if (userDbPath && fs.existsSync(userDbPath)) {
-            this.dbPath = userDbPath;
-        } else if (fs.existsSync(localDbPath)) {
-            this.dbPath = localDbPath;
-        } else if (userDbPath) {
-            this.dbPath = userDbPath;
+        // 区分开发环境与打包发布环境：
+        if (app && app.isPackaged) {
+            this.dbPath = path.join(app.getPath('userData'), 'classpet.sqlite');
+            const resourceDb = path.join(process.resourcesPath, 'database', 'classpet.sqlite');
+            if (!fs.existsSync(this.dbPath) && fs.existsSync(resourceDb)) {
+                try {
+                    const dir = path.dirname(this.dbPath);
+                    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                    fs.copyFileSync(resourceDb, this.dbPath);
+                } catch (e) {
+                    console.error('[SQLiteService] 复制打包种子数据库失败:', e);
+                }
+            }
         } else {
-            this.dbPath = projectDbPath;
+            // 开发模式 / 便携运行优先在项目 database/classpet.sqlite 读取与存储
+            const projectDbPath = path.resolve(__dirname, '..', 'database', 'classpet.sqlite');
+            const localDbPath = path.resolve(__dirname, 'classpet.sqlite');
+            const userDbPath = app ? path.join(app.getPath('userData'), 'classpet.sqlite') : null;
+
+            if (fs.existsSync(projectDbPath)) {
+                this.dbPath = projectDbPath;
+            } else if (userDbPath && fs.existsSync(userDbPath)) {
+                this.dbPath = userDbPath;
+            } else if (fs.existsSync(localDbPath)) {
+                this.dbPath = localDbPath;
+            } else if (userDbPath) {
+                this.dbPath = userDbPath;
+            } else {
+                this.dbPath = projectDbPath;
+            }
         }
 
         console.log('[SQLiteService] 正在连接本地 SQLite 数据库:', this.dbPath);
