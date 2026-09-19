@@ -1,0 +1,755 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>班级电子宠物项目全景画布 · 现状动线与甲方需求思维导图</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #0f172a;
+    font-family: 'Plus Jakarta Sans', 'Noto Sans SC', system-ui, sans-serif;
+    user-select: none;
+    color: #e2e8f0;
+  }
+
+  /* 画布网格背景 */
+  #viewport {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    cursor: grab;
+    background-image: 
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0);
+    background-size: 28px 28px;
+    background-position: 0 0;
+  }
+  #viewport:active { cursor: grabbing; }
+
+  #world {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    width: 5000px;
+    height: 3500px;
+    pointer-events: none;
+  }
+
+  #svg-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .nodes-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: auto;
+  }
+
+  /* 节点卡片样式 */
+  .canvas-card {
+    position: absolute;
+    border-radius: 16px;
+    padding: 20px 24px;
+    backdrop-filter: blur(12px);
+    transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .canvas-card:hover {
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.7), 0 0 20px rgba(99,102,241,0.2);
+    border-color: rgba(255,255,255,0.3);
+    z-index: 50 !important;
+  }
+
+  .theme-old {
+    background: rgba(30, 41, 59, 0.88);
+    border-top: 4px solid #38bdf8;
+  }
+  .theme-demand {
+    background: rgba(30, 41, 59, 0.88);
+    border-top: 4px solid #f43f5e;
+  }
+  .theme-solution {
+    background: rgba(30, 41, 59, 0.88);
+    border-top: 4px solid #10b981;
+  }
+  .theme-core {
+    background: linear-gradient(135deg, rgba(30, 27, 75, 0.95), rgba(49, 46, 129, 0.9));
+    border: 2px solid #818cf8;
+    box-shadow: 0 0 50px rgba(99,102,241,0.3);
+  }
+  .theme-arch {
+    background: rgba(30, 41, 59, 0.88);
+    border-top: 4px solid #a855f7;
+  }
+
+  /* 徽章与胶囊 */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* UI 悬浮控制台 */
+  .control-panel {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 9999px;
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 100;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  }
+
+  .nav-tabs {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+    z-index: 100;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .nav-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.08);
+  }
+  .nav-btn.active {
+    color: #fff;
+    background: #4f46e5;
+    box-shadow: 0 2px 10px rgba(79,70,229,0.4);
+  }
+
+  /* 提示浮窗 */
+  .legend-box {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 12px 16px;
+    z-index: 100;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶部快速导航跳转栏 -->
+<div class="nav-tabs">
+  <button class="nav-btn active" onclick="focusSection('all')">🗺️ 全局总览</button>
+  <button class="nav-btn" onclick="focusSection('old')">🔵 老版本现状动线 (As-Is)</button>
+  <button class="nav-btn" onclick="focusSection('demand')">🔴 甲方真实痛点 (Voice)</button>
+  <button class="nav-btn" onclick="focusSection('solution')">🟢 重构与新版解法 (To-Be)</button>
+  <button class="nav-btn" onclick="focusSection('cloud')">🟣 云端就绪架构 (Cloud)</button>
+</div>
+
+<!-- 左下角图例说明 -->
+<div class="legend-box space-y-2 pointer-events-auto">
+  <div class="text-xs font-bold text-slate-400 mb-1 tracking-wider uppercase">图例分支</div>
+  <div class="flex items-center gap-2">
+    <span class="w-3 h-3 rounded-full bg-[#38bdf8]"></span>
+    <span class="text-slate-300 font-medium">老版本现有动线 (单机)</span>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="w-3 h-3 rounded-full bg-[#f43f5e]"></span>
+    <span class="text-slate-300 font-medium">甲方录音痛点 (批判)</span>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="w-3 h-3 rounded-full bg-[#10b981]"></span>
+    <span class="text-slate-300 font-medium">UX 重构落地解法</span>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="w-3 h-3 rounded-full bg-[#818cf8]"></span>
+    <span class="text-slate-300 font-medium">核心机制与云端架构</span>
+  </div>
+  <div class="pt-1 text-[11px] text-slate-500">
+    💡 鼠标左键拖拽平移，滚轮缩放
+  </div>
+</div>
+
+<!-- 底部缩放控制浮条 -->
+<div class="control-panel text-xs font-semibold">
+  <button onclick="zoomDelta(0.15)" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-lg border border-slate-700">＋</button>
+  <span id="zoom-label" class="text-slate-300 w-12 text-center font-mono">100%</span>
+  <button onclick="zoomDelta(-0.15)" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-lg border border-slate-700">－</button>
+  <div class="h-4 w-px bg-slate-700"></div>
+  <button onclick="resetView()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300">重置视角</button>
+  <button onclick="focusSection('all')" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm">适应窗口</button>
+</div>
+
+<!-- 无限画布视口 -->
+<div id="viewport">
+  <div id="world">
+    <!-- SVG 连接线层 -->
+    <svg id="svg-layer">
+      <defs>
+        <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
+        </marker>
+        <marker id="arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e" />
+        </marker>
+        <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#10b981" />
+        </marker>
+        <marker id="arrow-purple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#818cf8" />
+        </marker>
+      </defs>
+      <!-- 动态贝塞尔曲线由 JS 生成 -->
+    </svg>
+
+    <!-- 卡片节点层 -->
+    <div class="nodes-layer" id="nodes-container">
+
+      <!-- ==================== 核心中枢卡片 ==================== -->
+      <div class="canvas-card theme-core w-[420px]" id="node-core" style="left: 1700px; top: 1100px;">
+        <div class="flex items-center justify-between mb-3">
+          <span class="tag bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">PROJECT CORE</span>
+          <span class="text-xs text-indigo-300 font-mono">v0.2.0 ➔ v2.0 重构中枢</span>
+        </div>
+        <h2 class="text-2xl font-black text-white tracking-tight mb-2">班级电子宠物平台</h2>
+        <p class="text-sm text-indigo-200/80 leading-relaxed mb-4">
+          连通现实班级激励、游戏化成长体验与云端跨设备同步的数字化班级生态系统。
+        </p>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="p-2.5 rounded-lg bg-indigo-950/60 border border-indigo-500/20">
+            <div class="text-indigo-300 font-bold mb-1">左侧：现状动线 (As-Is)</div>
+            <div class="text-slate-400">单机、操作割裂、视觉同质</div>
+          </div>
+          <div class="p-2.5 rounded-lg bg-indigo-950/60 border border-indigo-500/20">
+            <div class="text-emerald-300 font-bold mb-1">右侧：甲方重构 (To-Be)</div>
+            <div class="text-slate-400">一人多宠、批量赋分、C位聚焦</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 左侧：老版本现状动线 (As-Is) ==================== -->
+      
+      <!-- 现状根节点 -->
+      <div class="canvas-card theme-old w-[360px]" id="node-old-root" style="left: 1100px; top: 1120px;">
+        <div class="flex items-center justify-between mb-2">
+          <span class="tag bg-sky-500/20 text-sky-300 border border-sky-500/30">AS-IS BASELINE</span>
+          <span class="text-xs text-sky-400 font-bold">单机 React+Electron</span>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">老版本使用动线全景</h3>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          基于 LocalStorage 的单机模式，分流为 3 个主要独立入口。
+        </p>
+      </div>
+
+      <!-- 门户入口 -->
+      <div class="canvas-card theme-old w-[340px]" id="node-old-portal" style="left: 600px; top: 700px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-sky-500/20 text-sky-300">PORTAL (`/`)</span>
+          <span class="text-xs text-slate-400">分流总入口</span>
+        </div>
+        <h4 class="text-lg font-bold text-white mb-2">统一门户导航</h4>
+        <ul class="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+          <li><strong>👨‍🏫 大屏展示</strong>：教室常态全班展示</li>
+          <li><strong>👑 教师管理</strong>：学籍名单、加扣分录入</li>
+          <li><strong>👦 学生查询</strong>：单人积分账单查看</li>
+        </ul>
+        <div class="mt-3 text-[11px] text-amber-300/80 bg-amber-500/10 p-2 rounded border border-amber-500/20">
+          ⚠️ 缺陷：三大卡片孤立，缺乏数据概览与快速切换
+        </div>
+      </div>
+
+      <!-- 教师工作台 -->
+      <div class="canvas-card theme-old w-[380px]" id="node-old-teacher" style="left: 600px; top: 1000px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-sky-500/20 text-sky-300">TEACHER (`/admin`)</span>
+          <span class="text-xs text-red-400 font-bold">高频痛点集中区</span>
+        </div>
+        <h4 class="text-lg font-bold text-white mb-2">教师工作台操作流</h4>
+        <div class="text-xs text-slate-300 space-y-2">
+          <div class="p-2 rounded bg-slate-800/80 border border-slate-700">
+            <strong>1. 名单导入</strong>：单条录入 / 多行文本批量粘贴
+          </div>
+          <div class="p-2 rounded bg-slate-800/80 border border-slate-700">
+            <strong>2. 加扣分动线</strong>：
+            <span class="text-amber-300">必须先手动点击学生卡片 ➔ 再点击右侧加分项</span>
+          </div>
+          <div class="p-2 rounded bg-slate-800/80 border border-slate-700">
+            <strong>3. 反馈</strong>：顶部弹出绿色 Toast + 屏幕中央全屏撒彩花
+          </div>
+        </div>
+        <div class="mt-3 text-[11px] text-red-300 bg-red-500/10 p-2 rounded border border-red-500/20">
+          ❌ 严重阻碍：无小组批量赋分，40人集体奖惩需机械点击40次！
+        </div>
+      </div>
+
+      <!-- 大屏展示 -->
+      <div class="canvas-card theme-old w-[380px]" id="node-old-screen" style="left: 600px; top: 1380px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-sky-500/20 text-sky-300">BIG SCREEN (`/screen`)</span>
+          <span class="text-xs text-slate-400">大屏常态投影</span>
+        </div>
+        <h4 class="text-lg font-bold text-white mb-2">班级大屏展示动线</h4>
+        <div class="text-xs text-slate-300 space-y-2">
+          <div>• <strong>全班网格平铺</strong>：卡片展示蛋/宠物、EXP与心情条</div>
+          <div>• <strong>点击弹窗互动</strong>：弹出模态框，支持喂食、抚摸、陪玩</div>
+          <div>• <strong>AI 悬浮对话</strong>：右下角悬浮窗调用大模型生成宠物回复</div>
+        </div>
+        <div class="mt-3 space-y-1 text-[11px] text-red-300 bg-red-500/10 p-2 rounded border border-red-500/20">
+          <div>❌ 痛点 1：宠物除升级外完全静止，缺乏生命状态机</div>
+          <div>❌ 痛点 2：撒花放屏幕中央，被奖惩学生未被高光聚焦</div>
+          <div>❌ 痛点 3：喂食气泡遮挡弹窗标题文字（实机 Bug）</div>
+        </div>
+      </div>
+
+      <!-- 学生查询 & 仪表盘 -->
+      <div class="canvas-card theme-old w-[360px]" id="node-old-student" style="left: 600px; top: 1780px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-sky-500/20 text-sky-300">STUDENT &amp; DASHBOARD</span>
+          <span class="text-xs text-slate-400">个人端与统计</span>
+        </div>
+        <h4 class="text-lg font-bold text-white mb-2">学生查询与数据大盘</h4>
+        <div class="text-xs text-slate-300 space-y-1.5">
+          <div>• <strong>学生查询 (`/student`)</strong>：选择姓名查看个人单宠与加扣分流水账单</div>
+          <div>• <strong>仪表盘 (`/dashboard`)</strong>：班级总积分统计与 Top 5 排行榜</div>
+        </div>
+        <div class="mt-3 text-[11px] text-amber-300 bg-amber-500/10 p-2 rounded border border-amber-500/20">
+          ⚠️ 局限：单宠单实体绑定，满级后成长激励直接归零；无法带回家跨端查看
+        </div>
+      </div>
+
+      <!-- 存储与单机瓶颈 -->
+      <div class="canvas-card theme-old w-[340px]" id="node-old-storage" style="left: 100px; top: 1150px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-sky-500/20 text-sky-300">STORAGE ARCH</span>
+          <span class="text-xs text-red-400 font-bold">无后端</span>
+        </div>
+        <h4 class="text-base font-bold text-white mb-2">纯客户端 LocalStorage</h4>
+        <ul class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+          <li>存储键：`class_pet_students:${accountKey}`</li>
+          <li>跨标签页同步：`window.storage` 事件</li>
+          <li><strong>致命瓶颈</strong>：数据无法跨设备同步、易被清理丢失</li>
+        </ul>
+      </div>
+
+
+      <!-- ==================== 右侧：甲方真实需求与痛点 (Voice of Customer) ==================== -->
+
+      <!-- 甲方诉求总根 -->
+      <div class="canvas-card theme-demand w-[380px]" id="node-demand-root" style="left: 2300px; top: 1100px;">
+        <div class="flex items-center justify-between mb-2">
+          <span class="tag bg-rose-500/20 text-rose-300 border border-rose-500/30">CLIENT VOICE</span>
+          <span class="text-xs text-rose-400 font-bold">来自一线兰老师录音</span>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">甲方改进诉求全景</h3>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          针对课堂真实摩擦点，提出的 6 大核心改进方向与机制革新。
+        </p>
+      </div>
+
+      <!-- 痛点 1: 批量操作 -->
+      <div class="canvas-card theme-demand w-[380px]" id="node-demand-batch" style="left: 2850px; top: 600px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-rose-500/20 text-rose-300">DEMAND 01 · 生产力</span>
+          <span class="text-xs text-rose-400 font-bold">最高频痛点</span>
+        </div>
+        <h4 class="text-lg font-bold text-white mb-2">批量操作支持</h4>
+        <div class="text-xs text-rose-200/90 italic mb-2">
+          “第一个就是批量操作这个点比较麻烦，不能一个一个点...”
+        </div>
+        <div class="text-xs text-slate-300 bg-slate-800/80 p-2.5 rounded border border-slate-700 space-y-1">
+          <div><strong>核心诉求</strong>：大班教学时，值日生、整组背诵、全班作业优秀需一键批量打分。</div>
+          <div><strong>UX 目标</strong>：支持按小组、按学号段、全选或自定义多选。</div>
+        </div>
+      </div>
+
+      <!-- 痛点 2: 宠物形态单一 -->
+      <div class="canvas-card theme-demand w-[380px]" id="node-demand-evolution" style="left: 2850px; top: 900px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-rose-500/20 text-rose-300">DEMAND 02 · 成长感</span>
+          <span class="text-xs text-rose-400 font-bold">正反馈断层</span>
+        </div>
+        <h4 class="text-lg font-bold text-white mb-2">丰富宠物形态与进化感知</h4>
+        <div class="text-xs text-rose-200/90 italic mb-2">
+          “升了个五六级、七八级、几十级还是那个鬼样子，变化太少了！”
+        </div>
+        <div class="text-xs text-slate-300 bg-slate-800/80 p-2.5 rounded border border-slate-700 space-y-1">
+          <div><strong>核心诉求</strong>：数值升级必须伴随高频、显著的视觉变化与装扮解锁。</div>
+          <div><strong>UX 目标</strong>：微等级积累 + 关键节点外观大变身 + 动态特效装配。</div>
+        </div>
+      </div>
+
+      <!-- 痛点 3: 互动太少 & QQ 宠物生命感 -->
+      <div class="canvas-card theme-demand w-[380px]" id="node-demand-interaction" style="left: 2850px; top: 1240px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-rose-500/20 text-rose-300">DEMAND 03 · 拟真生命</span>
+          <span class="text-xs text-rose-400 font-bold">类 QQ 宠物</span>
+        </div>
+        <h4 class="text-lg font-bold text-white mb-2">引入生理状态机与丰富互动</h4>
+        <div class="text-xs text-rose-200/90 italic mb-2">
+          “类比 QQ 宠物，困了趴地上睡觉，渴了说‘我渴了’伴随动画动作...”
+        </div>
+        <div class="text-xs text-slate-300 bg-slate-800/80 p-2.5 rounded border border-slate-700 space-y-1">
+          <div><strong>核心诉求</strong>：大屏常态挂机时宠物不能是死图，要自发生动表达。</div>
+          <div><strong>UX 目标</strong>：困、渴、饿、兴奋等生理状态机 + 专属帧/骨骼动作反馈。</div>
+        </div>
+      </div>
+
+      <!-- 痛点 4: C位高光与有效 UI -->
+      <div class="canvas-card theme-demand w-[380px]" id="node-demand-spotlight" style="left: 2850px; top: 1580px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-rose-500/20 text-rose-300">DEMAND 04 · 视线引导</span>
+          <span class="text-xs text-rose-400 font-bold">有效 UI vs 无效 UI</span>
+        </div>
+        <h4 class="text-lg font-bold text-white mb-2">升级仪式感与 C 位高光聚焦</h4>
+        <div class="text-xs text-rose-200/90 italic mb-2">
+          “烟花撒给谁看？属于无效UI！应该把其他按平，就剩它在中间，烟花呼应C位！”
+        </div>
+        <div class="text-xs text-slate-300 bg-slate-800/80 p-2.5 rounded border border-slate-700 space-y-1">
+          <div><strong>核心诉求</strong>：消除盲目全屏撒花，升级时做高对比度聚光灯效果。</div>
+          <div><strong>UX 目标</strong>：全屏暗化 + 目标卡片放大居中 Spotlight + 精准呼应庆祝。</div>
+        </div>
+      </div>
+
+      <!-- 机制革新 5: 一人多宠 / 兰老师破局 -->
+      <div class="canvas-card theme-demand w-[380px]" id="node-demand-multipet" style="left: 2850px; top: 1920px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-emerald-500/20 text-emerald-300">BREAKTHROUGH · 机制革新</span>
+          <span class="text-xs text-emerald-400 font-bold">兰老师方案</span>
+        </div>
+        <h4 class="text-lg font-bold text-white mb-2">一人多宠 · 学科宠物博物馆</h4>
+        <div class="text-xs text-emerald-200/90 italic mb-2">
+          “不用卡控分数，满级了再挂物理宠、语文宠、数学宠，最后比谁宠物多！”
+        </div>
+        <div class="text-xs text-slate-300 bg-slate-800/80 p-2.5 rounded border border-slate-700 space-y-1">
+          <div><strong>核心诉求</strong>：打破单宠满级天花板，支持多学科独立激励。</div>
+          <div><strong>UX 目标</strong>：支持单学生挂载多个学科宠物 + 满级荣誉殿堂收集。</div>
+        </div>
+      </div>
+
+      <!-- 进阶需求 6: 宠物带回家 -->
+      <div class="canvas-card theme-demand w-[380px]" id="node-demand-cloud" style="left: 2850px; top: 2260px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-purple-500/20 text-purple-300">FUTURE · 进阶架构</span>
+          <span class="text-xs text-purple-400 font-bold">云端同步</span>
+        </div>
+        <h4 class="text-lg font-bold text-white mb-2">宠物带回家 &amp; QQ 邮箱绑定</h4>
+        <div class="text-xs text-purple-200/90 italic mb-2">
+          “学生带回家...数据库肯定是跑不了的，用 QQ 号码/邮箱随时在家里查看...”
+        </div>
+        <div class="text-xs text-slate-300 bg-slate-800/80 p-2.5 rounded border border-slate-700 space-y-1">
+          <div><strong>核心诉求</strong>：数据脱离单机，支持学生在家端/家长端查看。</div>
+          <div><strong>技术目标</strong>：设计 Cloud-Ready 数据契约与账号鉴权体系。</div>
+        </div>
+      </div>
+
+
+      <!-- ==================== 底部/中间：第四阶段 UX 重构与解法 (To-Be Solutions) ==================== -->
+
+      <div class="canvas-card theme-solution w-[440px]" id="node-sol-batch" style="left: 1690px; top: 620px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-emerald-500/20 text-emerald-300">UX SOLUTION 01</span>
+          <span class="text-xs text-emerald-400 font-bold">批量矩阵操作台</span>
+        </div>
+        <h4 class="text-base font-bold text-white mb-1">教师工作台深度重构</h4>
+        <ul class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+          <li>新增【小组矩阵 (Group Tabs)】与【值日排班预设】</li>
+          <li>支持多选框、反选、按行按列一键批量赋分</li>
+          <li>引入【即时撤销 Undo 浮条】，杜绝手抖误扣分</li>
+        </ul>
+      </div>
+
+      <div class="canvas-card theme-solution w-[440px]" id="node-sol-spotlight" style="left: 1690px; top: 1600px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-emerald-500/20 text-emerald-300">UX SOLUTION 02</span>
+          <span class="text-xs text-emerald-400 font-bold">Spotlight C位聚光灯</span>
+        </div>
+        <h4 class="text-base font-bold text-white mb-1">大屏高光时刻沉浸反馈</h4>
+        <ul class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+          <li>升级/重大加分触发：全屏暗化压低其余卡片</li>
+          <li>主角卡片平滑放大弹射至中央 (C-Spotlight)</li>
+          <li>烟花粒子精准由主角向四周迸发，形成强荣誉感</li>
+        </ul>
+      </div>
+
+      <div class="canvas-card theme-solution w-[440px]" id="node-sol-multipet" style="left: 1690px; top: 1950px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-emerald-500/20 text-emerald-300">UX SOLUTION 03</span>
+          <span class="text-xs text-emerald-400 font-bold">多宠博物馆系统</span>
+        </div>
+        <h4 class="text-base font-bold text-white mb-1">学科宠物与荣誉殿堂架构</h4>
+        <ul class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+          <li>单学生支持绑定多个学科宠物卡槽（语/数/英/德育）</li>
+          <li>满级宠物自动转入【个人博物馆】，解锁永久荣誉勋章</li>
+          <li>排行榜从“单宠等级比拼”扩展为“满级宠物收集榜”</li>
+        </ul>
+      </div>
+
+      <div class="canvas-card theme-arch w-[440px]" id="node-sol-cloud" style="left: 1690px; top: 2280px;">
+        <div class="flex justify-between items-center mb-2">
+          <span class="tag bg-purple-500/20 text-purple-300">ARCH SOLUTION 04</span>
+          <span class="text-xs text-purple-400 font-bold">Cloud-Ready 数据契约</span>
+        </div>
+        <h4 class="text-base font-bold text-white mb-1">云端数据库与跨端同步架构</h4>
+        <ul class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+          <li>前端数据模型升级为 `StudentProfile` + `petMuseum[]`</li>
+          <li>预留 `boundEmail` (QQ邮箱) 字段用于家庭端登录鉴权</li>
+          <li>网络异步状态处理（Loading 骨架屏、提交防重、断网缓存）</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // 画布平移缩放引擎
+  const viewport = document.getElementById('viewport');
+  const world = document.getElementById('world');
+  const svgLayer = document.getElementById('svg-layer');
+  const zoomLabel = document.getElementById('zoom-label');
+
+  let scale = 0.85;
+  let panX = -800;
+  let panY = -400;
+  let isDragging = false;
+  let startX, startY;
+
+  function updateTransform() {
+    world.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    zoomLabel.textContent = `${Math.round(scale * 100)}%`;
+    renderConnections();
+  }
+
+  // 鼠标拖拽平移
+  viewport.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.canvas-card') || e.target.closest('.nav-tabs') || e.target.closest('.control-panel') || e.target.closest('.legend-box')) {
+      return;
+    }
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    updateTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+
+  // 滚轮缩放
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+    const newScale = Math.min(Math.max(0.3, scale * zoomFactor), 2.2);
+
+    // 以鼠标为中心缩放
+    const rect = viewport.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    panX = mouseX - (mouseX - panX) * (newScale / scale);
+    panY = mouseY - (mouseY - panY) * (newScale / scale);
+    scale = newScale;
+
+    updateTransform();
+  }, { passive: false });
+
+  function zoomDelta(delta) {
+    const newScale = Math.min(Math.max(0.3, scale + delta), 2.2);
+    panX += (viewport.clientWidth / 2 - panX) * (1 - newScale / scale);
+    panY += (viewport.clientHeight / 2 - panY) * (1 - newScale / scale);
+    scale = newScale;
+    updateTransform();
+  }
+
+  function resetView() {
+    scale = 0.85;
+    panX = (viewport.clientWidth - 5000 * scale) / 2 + 600;
+    panY = (viewport.clientHeight - 3500 * scale) / 2 + 400;
+    updateTransform();
+  }
+
+  // 视角跳转书签
+  function focusSection(sec) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    if (event && event.target && event.target.classList) {
+      event.target.classList.add('active');
+    }
+
+    if (sec === 'all') {
+      scale = 0.52;
+      panX = (viewport.clientWidth - 3800 * scale) / 2 - 100;
+      panY = (viewport.clientHeight - 2600 * scale) / 2;
+    } else if (sec === 'old') {
+      scale = 0.85;
+      panX = -150;
+      panY = -600;
+    } else if (sec === 'demand') {
+      scale = 0.75;
+      panX = -1600;
+      panY = -400;
+    } else if (sec === 'solution') {
+      scale = 0.8;
+      panX = -1000;
+      panY = -450;
+    } else if (sec === 'cloud') {
+      scale = 0.9;
+      panX = -1200;
+      panY = -1600;
+    }
+    updateTransform();
+  }
+
+  // 绘制曲线连接线
+  function createCurvedPath(x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const cx1 = x1 + dx * 0.5;
+    const cy1 = y1;
+    const cx2 = x1 + dx * 0.5;
+    const cy2 = y2;
+    return `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
+  }
+
+  function getNodeAnchor(id, side) {
+    const el = document.getElementById(id);
+    if (!el) return { x: 0, y: 0 };
+    const left = parseFloat(el.style.left);
+    const top = parseFloat(el.style.top);
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+
+    if (side === 'left') return { x: left, y: top + h / 2 };
+    if (side === 'right') return { x: left + w, y: top + h / 2 };
+    if (side === 'top') return { x: left + w / 2, y: top };
+    if (side === 'bottom') return { x: left + w / 2, y: top + h };
+    return { x: left + w / 2, y: top + h / 2 };
+  }
+
+  const connections = [
+    // 核心到现状
+    { from: 'node-core', fromSide: 'left', to: 'node-old-root', toSide: 'right', color: '#38bdf8', marker: 'arrow-blue', dash: false },
+    { from: 'node-old-root', fromSide: 'left', to: 'node-old-portal', toSide: 'right', color: '#38bdf8', marker: 'arrow-blue' },
+    { from: 'node-old-root', fromSide: 'left', to: 'node-old-teacher', toSide: 'right', color: '#38bdf8', marker: 'arrow-blue' },
+    { from: 'node-old-root', fromSide: 'left', to: 'node-old-screen', toSide: 'right', color: '#38bdf8', marker: 'arrow-blue' },
+    { from: 'node-old-root', fromSide: 'left', to: 'node-old-student', toSide: 'right', color: '#38bdf8', marker: 'arrow-blue' },
+    { from: 'node-old-teacher', fromSide: 'left', to: 'node-old-storage', toSide: 'right', color: '#38bdf8', dash: true },
+
+    // 核心到甲方诉求
+    { from: 'node-core', fromSide: 'right', to: 'node-demand-root', toSide: 'left', color: '#f43f5e', marker: 'arrow-red' },
+    { from: 'node-demand-root', fromSide: 'right', to: 'node-demand-batch', toSide: 'left', color: '#f43f5e', marker: 'arrow-red' },
+    { from: 'node-demand-root', fromSide: 'right', to: 'node-demand-evolution', toSide: 'left', color: '#f43f5e', marker: 'arrow-red' },
+    { from: 'node-demand-root', fromSide: 'right', to: 'node-demand-interaction', toSide: 'left', color: '#f43f5e', marker: 'arrow-red' },
+    { from: 'node-demand-root', fromSide: 'right', to: 'node-demand-spotlight', toSide: 'left', color: '#f43f5e', marker: 'arrow-red' },
+    { from: 'node-demand-root', fromSide: 'right', to: 'node-demand-multipet', toSide: 'left', color: '#10b981', marker: 'arrow-green' },
+    { from: 'node-demand-root', fromSide: 'right', to: 'node-demand-cloud', toSide: 'left', color: '#818cf8', marker: 'arrow-purple' },
+
+    // 诉求与现状映射到具体解法
+    { from: 'node-old-teacher', fromSide: 'right', to: 'node-sol-batch', toSide: 'left', color: '#10b981', dash: true },
+    { from: 'node-demand-batch', fromSide: 'left', to: 'node-sol-batch', toSide: 'right', color: '#10b981', marker: 'arrow-green' },
+
+    { from: 'node-old-screen', fromSide: 'right', to: 'node-sol-spotlight', toSide: 'left', color: '#10b981', dash: true },
+    { from: 'node-demand-spotlight', fromSide: 'left', to: 'node-sol-spotlight', toSide: 'right', color: '#10b981', marker: 'arrow-green' },
+
+    { from: 'node-demand-multipet', fromSide: 'left', to: 'node-sol-multipet', toSide: 'right', color: '#10b981', marker: 'arrow-green' },
+    { from: 'node-old-student', fromSide: 'right', to: 'node-sol-multipet', toSide: 'left', color: '#10b981', dash: true },
+
+    { from: 'node-demand-cloud', fromSide: 'left', to: 'node-sol-cloud', toSide: 'right', color: '#818cf8', marker: 'arrow-purple' },
+    { from: 'node-old-storage', fromSide: 'bottom', to: 'node-sol-cloud', toSide: 'left', color: '#818cf8', dash: true },
+  ];
+
+  function renderConnections() {
+    let html = `
+      <defs>
+        <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
+        </marker>
+        <marker id="arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e" />
+        </marker>
+        <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#10b981" />
+        </marker>
+        <marker id="arrow-purple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#818cf8" />
+        </marker>
+      </defs>
+    `;
+
+    connections.forEach(conn => {
+      const p1 = getNodeAnchor(conn.from, conn.fromSide);
+      const p2 = getNodeAnchor(conn.to, conn.toSide);
+      const d = createCurvedPath(p1.x, p1.y, p2.x, p2.y);
+      const markerAttr = conn.marker ? `marker-end="url(#${conn.marker})"` : '';
+      const dashAttr = conn.dash ? `stroke-dasharray="6,6"` : '';
+      html += `<path d="${d}" stroke="${conn.color}" stroke-width="2.5" fill="none" opacity="0.75" ${dashAttr} ${markerAttr} />`;
+    });
+
+    svgLayer.innerHTML = html;
+  }
+
+  // 初始化
+  window.addEventListener('DOMContentLoaded', () => {
+    focusSection('all');
+    setTimeout(renderConnections, 100);
+  });
+  window.addEventListener('resize', renderConnections);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "id": "tpl-mindmap-tree",
+  "projectTitle": "产品架构与思维导图",
+  "description": "核心产品维度、创作者端、企业级管线、算力中台与增长指标",
+  "updatedAt": "2026-08-28T10:00:00.000Z",
+  "nodes": [
+    { "id": "m-1", "type": "circle", "shape": "circle", "x": 80, "y": 280, "width": 230, "height": 180, "title": "核心产品全景", "content": "战略规划与增长飞轮", "color": "cyan", "zIndex": 10 },
+    { "id": "m-2", "type": "card", "shape": "card", "x": 430, "y": 80, "width": 260, "height": 140, "title": "1. 创作者增长端", "content": "• 零门槛无限画布\n• 社区公式一键复用\n• 创作者激励体系", "color": "purple", "zIndex": 10 },
+    { "id": "m-3", "type": "card", "shape": "card", "x": 430, "y": 270, "width": 260, "height": 140, "title": "2. 企业级多模态管线", "content": "• 影视制作批量分镜\n• 电商广告秒级变体\n• 游戏概念美术资产", "color": "emerald", "zIndex": 10 },
+    { "id": "m-4", "type": "card", "shape": "card", "x": 430, "y": 460, "width": 260, "height": 140, "title": "3. 算力与模型调度", "content": "• 多模型动态负载\n• 本地 / 私有化部署\n• 流式生成反馈", "color": "amber", "zIndex": 10 },
+    { "id": "m-5", "type": "pill", "shape": "pill", "x": 780, "y": 70, "width": 210, "height": 52, "title": "月活突破 100W+", "content": "", "color": "purple", "zIndex": 10 },
+    { "id": "m-6", "type": "pill", "shape": "pill", "x": 780, "y": 150, "width": 210, "height": 52, "title": "商业化转化 +35%", "content": "", "color": "purple", "zIndex": 10 },
+    { "id": "m-7", "type": "pill", "shape": "pill", "x": 780, "y": 310, "width": 210, "height": 52, "title": "制作成本 -70%", "content": "", "color": "emerald", "zIndex": 10 },
+    { "id": "m-8", "type": "rect", "shape": "rect", "x": 780, "y": 480, "width": 220, "height": 100, "title": "私有化部署包", "content": "本地推理 · 权限隔离", "color": "slate", "zIndex": 10 }
+  ],
+  "wires": [
+    { "id": "mw-1", "fromNode": "m-1", "fromPort": "right", "toNode": "m-2", "toPort": "left", "label": "战略支柱", "style": "bezier", "color": "purple", "animated": true },
+    { "id": "mw-2", "fromNode": "m-1", "fromPort": "right", "toNode": "m-3", "toPort": "left", "label": "核心盈利", "style": "bezier", "color": "emerald", "animated": true },
+    { "id": "mw-3", "fromNode": "m-1", "fromPort": "right", "toNode": "m-4", "toPort": "left", "label": "底层基建", "style": "bezier", "color": "amber", "animated": true },
+    { "id": "mw-4", "fromNode": "m-2", "fromPort": "right", "toNode": "m-5", "toPort": "left", "label": "目标", "style": "bezier", "color": "purple", "animated": false },
+    { "id": "mw-5", "fromNode": "m-2", "fromPort": "right", "toNode": "m-6", "toPort": "left", "label": "目标", "style": "bezier", "color": "purple", "animated": false },
+    { "id": "mw-6", "fromNode": "m-3", "fromPort": "right", "toNode": "m-7", "toPort": "left", "label": "价值", "style": "bezier", "color": "emerald", "animated": false },
+    { "id": "mw-7", "fromNode": "m-4", "fromPort": "right", "toNode": "m-8", "toPort": "left", "label": "交付", "style": "orthogonal", "color": "slate", "animated": false }
+  ]
+}

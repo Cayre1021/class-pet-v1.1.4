@@ -1,0 +1,2367 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="classic">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Pet - 班级电子宠物管理系统 (教师控制台)</title>
+    <script src="./assets/vendor/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="classic"] {
+            --bg-primary: #FFFEF9;
+            --bg-secondary: #F5F3EF;
+            --text-primary: #0A0A0A;
+            --text-secondary: #525252;
+            --border: #0A0A0A;
+            --accent: #0066FF;
+            --accent-hover: #0052CC;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #16A34A;
+            --warning: #FFD60A;
+            --error: #FF3B30;
+            --tag-bg: #E8F0FE;
+            --shadow-color: #0A0A0A;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 解决表单输入框点击无法聚焦或光标消失问题 */
+        input, select, textarea {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            cursor: text;
+        }
+
+        /* 方块步进加减按键 (防误触触控友好设计) */
+        .stepper-box {
+            display: inline-flex;
+            align-items: center;
+            border: 2.5px solid var(--border);
+            background: var(--card-bg);
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .stepper-btn {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            font-size: 22px;
+            font-weight: 900;
+            cursor: pointer;
+            border: none;
+            user-select: none;
+            color: var(--text-primary);
+            transition: background 0.1s;
+        }
+        .stepper-btn:hover { background: #E2E8F0; }
+        .stepper-btn:active { background: #CBD5E1; }
+        .stepper-val {
+            width: 70px;
+            height: 42px;
+            border: none;
+            border-left: 2px solid var(--border);
+            border-right: 2px solid var(--border);
+            text-align: center;
+            font-size: 16px;
+            font-weight: 900;
+            outline: none;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        /* 🌟 紧凑版方块步进器 (专为 1~20 级逐级精细微调与阶段里程碑设计) */
+        .stepper-box.mini {
+            height: 36px;
+            border: 2px solid var(--border);
+            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
+            border-radius: 4px;
+        }
+        .stepper-box.mini .stepper-btn {
+            width: 34px;
+            height: 36px;
+            font-size: 18px;
+            font-weight: 900;
+        }
+        .stepper-box.mini .stepper-val {
+            width: 54px;
+            height: 36px;
+            font-size: 14px;
+            font-weight: 900;
+            border-left: 1.5px solid var(--border);
+            border-right: 1.5px solid var(--border);
+            font-family: monospace;
+        }
+
+        /* 逐级微调 1~20 级卡片 (方块加减按键版) */
+        .thresh-level-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            padding: 4px 8px;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: transform 0.08s, box-shadow 0.08s;
+        }
+        .thresh-level-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 3px 3px 0 var(--shadow-color);
+        }
+
+        .thresh-level-tag {
+            font-size: 12px;
+            font-weight: 900;
+            font-family: monospace;
+            color: var(--text-primary);
+            background: var(--tag-bg);
+            border: 1.5px solid var(--border);
+            padding: 2px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+
+        /* 全局轻量教室风格 Toast 提示 */
+        .classroom-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: var(--card-bg);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--shadow-color);
+            padding: 10px 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 900;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .classroom-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+
+        /* 🌟 顶部操作横条强化：高度加倍至 92px，按键高 54px，超大触控靶区，适配教室壁挂一体机 */
+        .top-navbar-pro {
+            background: var(--card-bg);
+            border-bottom: 3.5px solid var(--border);
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 92px;
+            min-height: 92px;
+            z-index: 10;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.08);
+            box-sizing: border-box;
+            overflow: visible;
+        }
+
+        /* 顶部大靶区触控按键 (高度54px，字号15px，不换行) */
+        .btn-header-touch {
+            height: 54px;
+            padding: 0 16px;
+            border: 2.5px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-weight: 900;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            transition: transform 0.08s, box-shadow 0.08s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+        .btn-header-touch:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow-color); }
+
+        .btn-undo-pro {
+            background: var(--warning);
+            color: #0A0A0A;
+            border: 2.5px solid var(--border);
+            height: 54px;
+            padding: 0 16px;
+            font-weight: 900;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+        .btn-undo-pro:disabled { opacity: 0.4; cursor: not-allowed; background: var(--bg-secondary); }
+
+        .btn-mode-pro {
+            height: 54px;
+            padding: 0 16px;
+            border: 2.5px solid var(--border);
+            font-weight: 900;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+        .btn-mode-pro.active {
+            background: #FEE2E2;
+            border-color: var(--error);
+            color: #991B1B;
+            box-shadow: 0 0 0;
+            transform: translate(1.5px, 1.5px);
+        }
+
+        .workspace-layout { flex: 1; display: flex; overflow: hidden; }
+
+        /* 左侧学生列表 (默认加宽至 470px，支持专属独立缩放套件) */
+        .student-column {
+            --stu-scale: 1.0;
+            width: calc(470px * min(1.35, max(0.85, var(--stu-scale, 1.0))));
+            min-width: 410px;
+            max-width: 680px;
+            background: var(--card-bg);
+            border-right: 3.5px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.15s ease-out;
+            box-sizing: border-box;
+        }
+
+        .list-toolbar {
+            padding: 10px 14px;
+            border-bottom: 2.5px solid var(--border);
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .search-input-pro {
+            width: 100%;
+            height: 44px;
+            padding: 0 12px;
+            border: 2.5px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 800;
+            outline: none;
+            box-shadow: 2.5px 2.5px 0 var(--shadow-color);
+            box-sizing: border-box;
+            margin-bottom: 0;
+        }
+
+        /* 🎨 Neo-Brutalism 全局输入框聚焦高亮体系 (覆盖新增学生、行为规则、经验设置、搜索等所有被点击的输入框) */
+        .search-input-pro, input[type="text"], input[type="number"], input[type="password"], select, textarea {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+        }
+
+        .search-input-pro:focus,
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="password"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none !important;
+            border-color: var(--accent) !important;
+            border-width: 3px !important;
+            box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.22), 4px 4px 0 var(--shadow-color) !important;
+            background-color: #FFFFFF !important;
+            transform: translateY(-1px);
+        }
+
+        .student-scroll-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: calc(8px * var(--stu-scale, 1.0));
+        }
+
+        /* 🌟 强化版学生行：基准尺寸加倍 (高度 78px，复选框 34x34px，头像 52x52px，受独立 --stu-scale 驱动) */
+        .student-row-card-pro {
+            display: flex;
+            align-items: center;
+            height: calc(78px * var(--stu-scale, 1.0));
+            min-height: calc(78px * var(--stu-scale, 1.0));
+            padding: 0 calc(12px * var(--stu-scale, 1.0));
+            border: 2.5px solid var(--border);
+            background: var(--bg-primary);
+            cursor: pointer;
+            box-shadow: 2.5px 2.5px 0 var(--shadow-color);
+            transition: transform 0.08s, box-shadow 0.08s;
+            box-sizing: border-box;
+        }
+        .student-row-card-pro:hover { transform: translate(-1.5px, -1.5px); box-shadow: 4px 4px 0 var(--shadow-color); }
+        .student-row-card-pro.selected { border-color: var(--accent); background: var(--tag-bg); box-shadow: 3px 3px 0 var(--accent); }
+        .student-row-card-pro.absent { opacity: 0.4; filter: grayscale(85%); background: #E5E7EB; border-style: dashed; }
+
+        .nb-checkbox-pro {
+            width: calc(34px * var(--stu-scale, 1.0));
+            height: calc(34px * var(--stu-scale, 1.0));
+            border: 2.5px solid var(--border);
+            background: var(--card-bg);
+            margin-right: calc(10px * var(--stu-scale, 1.0));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: calc(20px * var(--stu-scale, 1.0));
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+        .student-row-card-pro.selected .nb-checkbox-pro { background: var(--accent); color: var(--accent-text); }
+
+        .student-avatar-box-pro {
+            width: calc(52px * var(--stu-scale, 1.0));
+            height: calc(52px * var(--stu-scale, 1.0));
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(26px * var(--stu-scale, 1.0));
+            margin-right: calc(12px * var(--stu-scale, 1.0));
+            flex-shrink: 0;
+            border-radius: 4px;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* 右侧操作主面板 */
+        .ops-main-panel {
+            flex: 1;
+            padding: 16px 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .selected-banner-bar-pro {
+            background: var(--tag-bg);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--shadow-color);
+            padding: 12px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nb-section-box {
+            background: var(--card-bg);
+            border: 3.5px solid var(--border);
+            box-shadow: 5px 5px 0 var(--shadow-color);
+            padding: 16px 20px;
+            position: relative;
+        }
+
+        .section-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .section-header-tag-pro {
+            display: inline-block;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            padding: 4px 12px;
+            font-weight: 900;
+            font-size: 13px;
+            font-family: monospace;
+            border: 2.5px solid var(--border);
+        }
+
+        /* 🌟 版本 B 赋分按键高 72px，超大触控靶区 */
+        .score-button-grid-pro {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .btn-score-card-pro {
+            min-height: 72px;
+            padding: 10px 12px;
+            border: 3px solid var(--border);
+            font-weight: 900;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 4px 4px 0 var(--shadow-color);
+            transition: transform 0.08s, box-shadow 0.08s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .btn-score-card-pro:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--shadow-color); }
+        .btn-score-card-pro:active { transform: translate(1.5px, 1.5px); box-shadow: 1.5px 1.5px 0 var(--shadow-color); }
+
+        .btn-score-card-pro.pos { background: #F0FDF4; color: #166534; }
+        .btn-score-card-pro.pos .score-val { font-size: 26px; font-family: monospace; color: #15803D; font-weight: 900; }
+
+        .btn-score-card-pro.neg { background: #FEF2F2; color: #991B1B; }
+        .btn-score-card-pro.neg .score-val { font-size: 26px; font-family: monospace; color: #DC2626; font-weight: 900; }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 800;
+        }
+        .modal-box {
+            background: var(--card-bg);
+            border: 4px solid var(--border);
+            box-shadow: 8px 8px 0 var(--shadow-color);
+            width: 100%;
+            max-width: 640px;
+            padding: 24px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        /* 💡 教师操作指引向导样式 */
+        .tour-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 900;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            cursor: pointer;
+            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
+            transition: transform 0.1s, background 0.1s;
+        }
+        .tour-dot.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 0;
+            transform: scale(1.08);
+        }
+        .tour-step-card {
+            background: var(--bg-secondary);
+            border: 2.5px solid var(--border);
+            box-shadow: 4px 4px 0 var(--shadow-color);
+            padding: 18px 20px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部大靶区操作横条 (高度 92px，触控靶区加倍，单行流线排布) -->
+    <div class="top-navbar-pro">
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;">
+            <button class="btn-header-touch" onclick="goToPortal()">← 门户</button>
+            <h1 style="font-size: 19px; font-weight: 900; white-space: nowrap; margin: 0 4px; display: inline-flex; align-items: center; gap: 6px;">
+                <span>🐾 电子宠物 · 教师控制台</span>
+            </h1>
+            <span id="headerClassBadge" style="font-size: 13px; font-family: monospace; font-weight: 900; background: var(--tag-bg); padding: 4px 10px; border: 2px solid var(--border); white-space: nowrap;">班级加载中...</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap;">
+            <button class="btn-undo-pro" id="btnUndo" disabled onclick="executeUndo()" title="撤销上一笔赋分记录">
+                <span>↩ 撤销</span>
+                <span id="undoDetailTag" style="font-size: 12px; font-weight: 700; color: #444;"></span>
+            </button>
+            <button class="btn-header-touch" id="btnThresholds" style="background: #EEF2FF; color: #4338CA; border-color: #6366F1;" onclick="openLevelThresholdsModal()">⚙️ 经验设置</button>
+            <button class="btn-header-touch" style="background: #FEF3C7; color: #000;" onclick="openBackupModal()">💾 备份/还原</button>
+            <button class="btn-header-touch" style="background: var(--warning); color: #000;" onclick="triggerBigScreenRandomPick()">🎲 抽选</button>
+            <button class="btn-mode-pro" id="btnAttendanceMode" onclick="toggleAttendanceMode()">📋 考勤模式</button>
+            <button class="btn-header-touch" style="background: #16A34A; color: white;" onclick="openExcelModal()">📊 导入Excel</button>
+            <button class="btn-header-touch" onclick="openAuditLogModal()">📄 审计</button>
+            <button class="btn-header-touch" style="background: #FEF9C3; color: #854D0E; border-color: #EAB308;" onclick="openTeacherGuidedTourModal()">💡 指引</button>
+            <button class="btn-header-touch" style="background: var(--accent); color: white;" onclick="openDisplayBigscreen()">🖥️ 大屏</button>
+        </div>
+    </div>
+
+    <div class="workspace-layout">
+
+        <!-- 左侧学生列表 (受专属独立 --stu-scale 驱动，右侧区域完全不影响) -->
+        <div class="student-column">
+            <div class="list-toolbar">
+                <!-- 第一行：搜索框与新增按钮 -->
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" class="search-input-pro" id="searchBox" placeholder="🔍 键入姓名 / 学号快速查找..." oninput="handleSearch()" style="margin-bottom:0; flex:1;">
+                    <button class="btn-header-touch" style="height: 44px; background: var(--accent); color: white; padding: 0 14px; font-size: 14px;" onclick="openAddStudentModal()">➕ 新增</button>
+                </div>
+                <!-- 第二行：四大分组快速过滤 -->
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-header-touch" id="tabGroupAll" style="flex: 1; justify-content: center; height: 40px; font-size: 12px; background: var(--accent); color: white;" onclick="filterGroup('all')">全班</button>
+                    <button class="btn-header-touch" id="tabGroup1" style="flex: 1; justify-content: center; height: 40px; font-size: 12px;" onclick="filterGroup(1)">1组</button>
+                    <button class="btn-header-touch" id="tabGroup2" style="flex: 1; justify-content: center; height: 40px; font-size: 12px;" onclick="filterGroup(2)">2组</button>
+                    <button class="btn-header-touch" id="tabGroup3" style="flex: 1; justify-content: center; height: 40px; font-size: 12px;" onclick="filterGroup(3)">3组</button>
+                    <button class="btn-header-touch" id="tabGroup4" style="flex: 1; justify-content: center; height: 40px; font-size: 12px;" onclick="filterGroup(4)">4组</button>
+                    <button class="btn-header-touch" id="tabGroupArchive" style="flex: 1; justify-content: center; height: 40px; font-size: 12px; background: #E5E7EB;" onclick="filterGroup('archive')">📦 归档</button>
+                </div>
+                <!-- 第三行：左侧学生列表专属独立缩放套件 (严格只缩放左侧学生列表，右侧赋分区完全不动) -->
+                <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); border: 2px solid var(--border); padding: 4px 8px; box-shadow: 2px 2px 0 var(--shadow-color); border-radius: 4px;">
+                    <div style="font-size: 12px; font-weight: 900; display: flex; align-items: center; gap: 4px;">
+                        <span>🔍 列表卡片:</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <button class="btn-header-touch" style="height: 32px; width: 34px; padding: 0; justify-content: center; font-size: 14px;" onclick="changeStudentListZoom(-0.15)" title="缩小学生卡片">➖</button>
+                        <span id="stuZoomLabel" style="font-size: 13px; font-weight: 900; font-family: monospace; min-width: 48px; text-align: center;">100%</span>
+                        <button class="btn-header-touch" style="height: 32px; width: 34px; padding: 0; justify-content: center; font-size: 14px;" onclick="changeStudentListZoom(0.15)" title="放大学生卡片">➕</button>
+                        <button class="btn-header-touch" style="height: 32px; padding: 0 8px; font-size: 11px; background: var(--bg-secondary);" onclick="resetStudentListZoom()" title="重置卡片为默认100%">100%</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 考勤模式提示条 -->
+            <div id="attendanceNoticeBar" style="display: none; background: #FEE2E2; border-bottom: 2px solid var(--error); padding: 8px 14px; font-size: 12px; font-weight: 800; color: #991B1B;">
+                ⚠️ 考勤模式已激活：直接点击学生卡片即可一键标记【请假/出勤】并置灰大屏。
+            </div>
+
+            <!-- 分组管理工具条 -->
+            <div style="padding: 8px 14px; background: var(--bg-primary); border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800;">
+                <span>已勾选：<strong id="selectedNum" style="color: var(--accent); font-size: 14px;">0</strong> 人</span>
+                <div style="display: flex; gap: 10px;">
+                    <span style="color: var(--accent); cursor: pointer;" onclick="toggleSelectGroup()">全选 / 清空当前组</span>
+                    <span style="color: #666; cursor: pointer;" onclick="openGroupMoveModal()">📦 划分大组...</span>
+                </div>
+            </div>
+
+            <div class="student-scroll-list" id="studentListContainer"></div>
+        </div>
+
+        <!-- 右侧操作主面板 -->
+        <div class="ops-main-panel">
+            <div class="selected-banner-bar-pro">
+                <div>
+                    <strong style="font-size: 15px;">✓ 当前已选中 <span id="bannerCount" style="color: var(--accent); font-size: 18px;">0</span> 名学生</strong>
+                    <span style="font-size: 12px; color: var(--text-secondary); margin-left: 10px;">点击下方行为按键即可记录赋分</span>
+                </div>
+                <button class="btn-header-touch" onclick="clearSelection()" style="height: 38px; padding: 0 12px; font-size: 12px;">清空选择</button>
+            </div>
+
+            <!-- 正向表现 -->
+            <div class="nb-section-box">
+                <div class="section-header-row">
+                    <span class="section-header-tag-pro">课堂正向激励表现</span>
+                    <button class="btn-header-touch" style="height: 36px; font-size: 12px;" onclick="openCustomRuleModal('positive')">➕ 新增加分项</button>
+                </div>
+                <div class="score-button-grid-pro" id="posRulesGrid"></div>
+            </div>
+
+            <!-- 负向纪律 -->
+            <div class="nb-section-box">
+                <div class="section-header-row">
+                    <span class="section-header-tag-pro" style="background: var(--error);">课堂规范与纪律关注</span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label style="font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="勾选后扣分仅在后台与审计留档，大屏不播放刺耳提示音">
+                            <input type="checkbox" id="chkProtectDignity" checked style="width: 18px; height: 18px;">
+                            <span style="color: var(--text-secondary);">🔕 静音模式 (大屏不弹窗提示)</span>
+                        </label>
+                        <button class="btn-header-touch" style="height: 36px; font-size: 12px;" onclick="openCustomRuleModal('negative')">➕ 新增扣分项</button>
+                    </div>
+                </div>
+                <div class="score-button-grid-pro" id="negRulesGrid"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 模态框 1：Excel 导入 -->
+    <div class="modal-overlay" id="modalExcelImport">
+        <div class="modal-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">📊 上传 Excel 表格识别花名册与大组</h3>
+                <button class="btn-header-touch" style="height:34px;" onclick="closeExcelModal()">✕</button>
+            </div>
+            <div style="margin: 14px 0;">
+                <button class="btn-header-touch" style="background: #FEF3C7; width: 100%; justify-content: center; margin-bottom: 10px;" onclick="downloadStandardTemplate()">📥 下载标准 Excel 导入模板</button>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: block; width: 100%; padding: 10px; border: 2px dashed #000;">
+            </div>
+            <button class="btn-header-touch" style="width: 100%; justify-content: center;" onclick="closeExcelModal()">关闭</button>
+        </div>
+    </div>
+
+    <!-- 模态框 2：分组移动 -->
+    <div class="modal-overlay" id="modalGroupMove">
+        <div class="modal-box" style="max-width: 440px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">📦 调整学生所属大组</h3>
+                <button class="btn-header-touch" style="height:34px;" onclick="closeGroupMoveModal()">✕</button>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 12px 0;">当前已勾选 <strong id="groupMoveCount" style="color:var(--accent);">0</strong> 名学生：</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn-header-touch" style="justify-content: center;" onclick="applyMoveGroup(1)">移至 第 1 大组</button>
+                <button class="btn-header-touch" style="justify-content: center;" onclick="applyMoveGroup(2)">移至 第 2 大组</button>
+                <button class="btn-header-touch" style="justify-content: center;" onclick="applyMoveGroup(3)">移至 第 3 大组</button>
+                <button class="btn-header-touch" style="justify-content: center;" onclick="applyMoveGroup(4)">移至 第 4 大组</button>
+            </div>
+            <div style="border-top: 2px dashed var(--border); margin-top: 14px; padding-top: 12px;">
+                <button class="btn-header-touch" style="width: 100%; justify-content: center; background: #FEF3C7;" onclick="autoDistribute4Groups()">⚡ 按学号顺序自动均分 4 大组</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 3：审计日志 -->
+    <div class="modal-overlay" id="modalAuditLog">
+        <div class="modal-box" style="max-width: 580px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">📄 课堂赋分与操作审计流水日志</h3>
+                <button class="btn-header-touch" style="height:34px;" onclick="closeAuditLogModal()">✕</button>
+            </div>
+            <div style="margin: 12px 0; max-height: 360px; overflow-y: auto;" id="auditLogList"></div>
+            <button class="btn-header-touch" style="width: 100%; justify-content: center;" onclick="closeAuditLogModal()">关闭</button>
+        </div>
+    </div>
+
+    <!-- 模态框 4：自定义加减分项 -->
+    <div class="modal-overlay" id="modalCustomRule">
+        <div class="modal-box" style="max-width: 480px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">➕ 添加自定义常用加减分项</h3>
+                <button class="btn-header-touch" style="height:34px;" onclick="closeCustomRuleModal()">✕</button>
+            </div>
+            <div style="margin: 14px 0;">
+                <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 6px;">行为名称：</label>
+                <input type="text" class="search-input-pro" id="ruleNameInput" placeholder="输入行为名称...">
+                <label style="font-weight: 900; font-size: 13px; display: block; margin: 10px 0 6px;">分值：</label>
+                <div class="stepper-box">
+                    <button type="button" class="stepper-btn" onclick="stepRulePoints(-1)">−</button>
+                    <input type="text" id="rulePointsInput" class="stepper-val" value="5" readonly>
+                    <button type="button" class="stepper-btn" onclick="stepRulePoints(1)">+</button>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 14px;">
+                    <button class="btn-header-touch" style="flex: 1; background: var(--accent); color: white; justify-content: center;" onclick="saveCustomRule()">保存规则</button>
+                    <button class="btn-header-touch" style="flex: 1; justify-content: center;" onclick="closeCustomRuleModal()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 5：单个新增学生 -->
+    <div class="modal-overlay" id="modalAddStudent" style="display: none;">
+        <div class="modal-box" style="max-width: 480px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">➕ 添加单个新学生</h3>
+                <button class="btn-header-touch" style="height:34px;" onclick="closeAddStudentModal()">✕</button>
+            </div>
+            <div style="margin: 14px 0;">
+                <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 6px;">学生姓名：</label>
+                <input type="text" class="search-input-pro" id="addStuName" placeholder="例如：林小明" autocomplete="off">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div>
+                        <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 6px;">学号 (自增编号)：</label>
+                        <input type="text" class="search-input-pro" id="addStuNo" placeholder="43">
+                    </div>
+                    <div>
+                        <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 6px;">分配大组：</label>
+                        <select class="search-input-pro" id="addStuGroup" style="height:42px;">
+                            <option value="1">第 1 大组</option>
+                            <option value="2">第 2 大组</option>
+                            <option value="3">第 3 大组</option>
+                            <option value="4">第 4 大组</option>
+                        </select>
+                    </div>
+                </div>
+                <label style="font-weight: 900; font-size: 13px; display: block; margin: 10px 0 6px;">初始电子宠物设定：</label>
+                <select class="search-input-pro" id="addStuHatchState" style="height:42px;">
+                    <option value="egg" selected>🐣 阶段 0 · 神秘宠物蛋 (初始0分，达到破壳经验后自主认领)</option>
+                    <option value="cat">🐱 猫咪 (直接认领)</option>
+                    <option value="dog">🐶 柴犬 (直接认领)</option>
+                    <option value="fox">🦊 赤狐 (直接认领)</option>
+                    <option value="bunny">🐰 月兔 (直接认领)</option>
+                    <option value="bird">🐦 青鸟 (直接认领)</option>
+                    <option value="deer">🦌 小鹿 (直接认领)</option>
+                    <option value="hamster">🐹 仓鼠 (直接认领)</option>
+                    <option value="fish">🐟 锦鲤 (直接认领)</option>
+                </select>
+                <div style="display: flex; gap: 8px; margin-top: 16px;">
+                    <button class="btn-header-touch" style="flex: 1; background: var(--accent); color: white; justify-content: center;" onclick="submitAddStudent()">确认新增学生</button>
+                    <button class="btn-header-touch" style="flex: 1; justify-content: center;" onclick="closeAddStudentModal()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 6：编辑学生资料 -->
+    <div class="modal-overlay" id="modalEditStudent" style="display: none;">
+        <div class="modal-box" style="max-width: 480px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">✏️ 编辑学生基本信息</h3>
+                <button class="btn-header-touch" style="height:34px;" onclick="closeEditStudentModal()">✕</button>
+            </div>
+            <div style="margin: 14px 0;">
+                <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 6px;">学生姓名：</label>
+                <input type="text" class="search-input-pro" id="editStuName">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div>
+                        <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 6px;">学号编号：</label>
+                        <input type="text" class="search-input-pro" id="editStuNo">
+                    </div>
+                    <div>
+                        <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 6px;">所属大组：</label>
+                        <select class="search-input-pro" id="editStuGroup" style="height:42px;">
+                            <option value="1">第 1 大组</option>
+                            <option value="2">第 2 大组</option>
+                            <option value="3">第 3 大组</option>
+                            <option value="4">第 4 大组</option>
+                        </select>
+                    </div>
+                </div>
+                <label style="font-weight: 900; font-size: 13px; display: block; margin: 10px 0 6px;">专属电子宠物物种：</label>
+                <select class="search-input-pro" id="editStuSpecies" style="height:42px;">
+                    <option value="cat">🐱 猫咪</option>
+                    <option value="dog">🐶 柴犬</option>
+                    <option value="fox">🦊 赤狐</option>
+                    <option value="bunny">🐰 月兔</option>
+                    <option value="bird">🐦 青鸟</option>
+                    <option value="deer">🦌 小鹿</option>
+                    <option value="hamster">🐹 仓鼠</option>
+                    <option value="fish">🐟 锦鲤</option>
+                </select>
+                <div style="display: flex; gap: 8px; margin-top: 16px;">
+                    <button class="btn-header-touch" style="flex: 1; background: var(--accent); color: white; justify-content: center;" onclick="submitEditStudent()">保存修改</button>
+                    <button class="btn-header-touch" style="flex: 1; justify-content: center;" onclick="closeEditStudentModal()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 7：班级数据一键备份与恢复 (.json) -->
+    <div class="modal-overlay" id="modalBackupRestore" style="display: none;">
+        <div class="modal-box" style="max-width: 540px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">💾 班级数据一键备份与还原中心</h3>
+                <button class="btn-header-touch" style="height:34px;" onclick="closeBackupModal()">✕</button>
+            </div>
+            <div style="margin: 14px 0;">
+                <div style="background: var(--bg-secondary); border: 2px solid var(--border); padding: 12px; margin-bottom: 14px;">
+                    <strong style="font-size: 14px; display: block; margin-bottom: 4px;">📦 导出班级档案 (.json)</strong>
+                    <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px;">
+                        包含全班 42+ 名学生姓名、学号、分组、电子宠物种类、已解锁等级形态、成长经验与自定义加减分规则，生成标准的离线 JSON 备份包。
+                    </p>
+                    <button class="btn-header-touch" style="width: 100%; justify-content: center; background: #DCFCE7; color: #15803D; height: 44px;" onclick="handleExportBackup()">
+                        📥 立即导出班级全量备份包 (.json)
+                    </button>
+                </div>
+
+                <div style="background: var(--bg-secondary); border: 2px solid var(--border); padding: 12px;">
+                    <strong style="font-size: 14px; display: block; margin-bottom: 4px;">📥 导入还原班级档案 (.json)</strong>
+                    <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 8px;">
+                        选择之前导出的 ClassPet JSON 档案包进行全量还原（纯本地处理，绝不上传任何云端服务器）。
+                    </p>
+                    <input type="file" id="jsonFileInput" accept=".json" style="display: block; width: 100%; padding: 8px; border: 2px dashed var(--border); background: var(--bg-primary); margin-bottom: 8px;" onchange="handleImportBackupFile(event)">
+                    <div style="font-size: 11px; color: var(--error); font-weight: 800;">⚠️ 提示：导入将覆盖当前班级数据，建议在导入前先导出一份当前备份。</div>
+                </div>
+            </div>
+            <button class="btn-header-touch" style="width: 100%; justify-content: center;" onclick="closeBackupModal()">关闭</button>
+        </div>
+    </div>
+
+    <!-- 模态框 8：电子宠物升级经验值与阶段进阶设置 (教师友好精简版) -->
+    <div class="modal-overlay" id="modalLevelThresholds" style="display: none;">
+        <div class="modal-box" style="max-width: 660px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900; display: flex; align-items: center; gap: 8px;">
+                    <span>⚙️ 电子宠物升级经验阈值与进阶节奏</span>
+                </h3>
+                <button class="btn-header-touch" style="height:34px;" onclick="closeLevelThresholdsModal()">✕</button>
+            </div>
+            
+            <div style="margin: 12px 0;">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+                    💡 <strong>老师请选择适合本班的升级节奏</strong>：您只需点击下方常用模式，或微调破壳分与每级递增分，全班学生和萌宠形象将即刻智能重算并同步至大屏！
+                </p>
+
+                <!-- 1. 常用教学节奏卡片 (一键套用) -->
+                <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 12px; margin-bottom: 12px;">
+                    <div style="font-size: 13px; font-weight: 900; margin-bottom: 8px;">
+                        ⚡ 常用教学模式 (点击直接生效)：
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                        <button type="button" class="btn-header-touch" style="justify-content: flex-start; flex-direction: column; text-align: left; padding: 10px; height: auto; border: 2.5px solid var(--border);" onclick="applyThresholdPreset('fast')">
+                            <strong style="display: block; font-size: 13px; color: #DC2626;">⚡ 极速示范档</strong>
+                            <span style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">10分破壳 · 10分/级</span>
+                            <span style="font-size: 10px; color: #DC2626; margin-top: 2px;">适合公开课 / 单周竞速</span>
+                        </button>
+                        <button type="button" class="btn-header-touch" style="justify-content: flex-start; flex-direction: column; text-align: left; padding: 10px; height: auto; border: 2.5px solid var(--accent); background: #EFF6FF;" onclick="applyThresholdPreset('regular')">
+                            <strong style="display: block; font-size: 13px; color: var(--accent);">🎯 学期平稳档 (推荐)</strong>
+                            <span style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">15分破壳 · 20分/级</span>
+                            <span style="font-size: 10px; color: var(--accent); margin-top: 2px;">日常最常用 · 持续动力</span>
+                        </button>
+                        <button type="button" class="btn-header-touch" style="justify-content: flex-start; flex-direction: column; text-align: left; padding: 10px; height: auto; border: 2.5px solid var(--border);" onclick="applyThresholdPreset('long')">
+                            <strong style="display: block; font-size: 13px; color: #059669;">🏔️ 学年长跑档</strong>
+                            <span style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">20分破壳 · 50分/级</span>
+                            <span style="font-size: 10px; color: #059669; margin-top: 2px;">整学年慢慢养成</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. 简明 2 核心参数微调 (方块加减按键) -->
+                <div style="background: var(--card-bg); border: 2.5px solid var(--border); padding: 14px; margin-bottom: 12px; box-shadow: 2px 2px 0 var(--shadow-color);">
+                    <div style="font-size: 13px; font-weight: 900; margin-bottom: 10px;">
+                        🛠️ 或自主设定加分节奏 (使用大方块按钮加减，防止误触)：
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div>
+                            <label style="font-size: 12px; font-weight: 900; display: block; margin-bottom: 6px;">🐣 萌宠破壳所需经验：</label>
+                            <div class="stepper-box">
+                                <button type="button" class="stepper-btn" onclick="stepHatchExp(-5)">−</button>
+                                <input type="text" id="quickHatchExp" class="stepper-val" value="15" readonly />
+                                <button type="button" class="stepper-btn" onclick="stepHatchExp(+5)">+</button>
+                            </div>
+                            <span style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 4px;">满此分数即可自选神兽破壳</span>
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; font-weight: 900; display: block; margin-bottom: 6px;">📈 之后每升一级所需经验：</label>
+                            <div class="stepper-box">
+                                <button type="button" class="stepper-btn" onclick="stepStepExp(-5)">−</button>
+                                <input type="text" id="quickStepExp" class="stepper-val" value="20" readonly />
+                                <button type="button" class="stepper-btn" onclick="stepStepExp(+5)">+</button>
+                            </div>
+                            <span style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 4px;">每积攒此分数自动升一级</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-header-touch" style="width: 100%; justify-content: center; background: #FEF3C7; color: #000; height: 38px; margin-top: 12px; font-size: 13px;" onclick="generateLinearThresholds()">
+                        ⚡ 按上方参数生成整套升级规则
+                    </button>
+                </div>
+
+                <!-- 3. 直观演化时间线预览 (老师一眼看懂) -->
+                <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 12px; margin-bottom: 12px;">
+                    <div style="font-size: 12px; font-weight: 900; margin-bottom: 6px;">🐾 萌宠形态阶段演化预览：</div>
+                    <div id="timelinePreviewBar" style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 800; background: var(--card-bg); border: 2px solid var(--border); padding: 8px 10px; border-radius: 4px; gap: 4px; overflow-x: auto;">
+                        <span>🐣 破壳 (<span id="prevHatchExp">15</span>分)</span>
+                        <span>➔</span>
+                        <span>🐾 少年期 (<span id="prevStage2Text">Lv.4</span>)</span>
+                        <span>➔</span>
+                        <span>🦊 进阶期 (<span id="prevStage3Text">Lv.8</span>)</span>
+                        <span>➔</span>
+                        <span>🦄 青年期 (<span id="prevStage4Text">Lv.13</span>)</span>
+                        <span>➔</span>
+                        <span style="color: #DC2626;">👑 究极神兽 (<span id="prevStage5Text">Lv.20</span>)</span>
+                    </div>
+                </div>
+
+                <!-- 4. 高级逐级微调折叠面板 (默认折叠，不打扰老师) -->
+                <details style="border: 2px dashed var(--border); padding: 8px 12px; background: var(--card-bg); margin-bottom: 12px; border-radius: 4px;">
+                    <summary style="cursor: pointer; font-size: 12px; font-weight: 900; color: var(--text-secondary);">
+                        🔧 高级自定义 (逐级精细微调 1~20 级数值，选填)
+                    </summary>
+                    <div style="margin-top: 10px;">
+                        <!-- 阶段里程碑等级设定：2行x2列宽幅网格 (阶段4和阶段5移至阶段2和阶段3下方，Stage 5解封，触控友好) -->
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px;">
+                            <!-- 第一行左：Stage 2 少年期 -->
+                            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 10px 12px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <strong style="font-size: 13px; display: flex; align-items: center; gap: 4px;">🐾 Stage 2 (少年期)</strong>
+                                    <span style="font-size: 11px; color: var(--accent); font-weight: 800;" id="stage2ExpHint">约需 75 分</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">变身等级：</span>
+                                    <div class="stepper-box mini" style="flex: 1; max-width: 140px; justify-content: space-between;">
+                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(2, -1)" title="减少 1 级">−</button>
+                                        <input type="text" id="stageMinLevel2" class="stepper-val" style="flex:1; width:auto;" value="4" readonly />
+                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(2, 1)" title="增加 1 级">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 第一行右：Stage 3 进阶形态 -->
+                            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 10px 12px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <strong style="font-size: 13px; display: flex; align-items: center; gap: 4px;">🦊 Stage 3 (进阶形态)</strong>
+                                    <span style="font-size: 11px; color: var(--accent); font-weight: 800;" id="stage3ExpHint">约需 155 分</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">变身等级：</span>
+                                    <div class="stepper-box mini" style="flex: 1; max-width: 140px; justify-content: space-between;">
+                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(3, -1)" title="减少 1 级">−</button>
+                                        <input type="text" id="stageMinLevel3" class="stepper-val" style="flex:1; width:auto;" value="8" readonly />
+                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(3, 1)" title="增加 1 级">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 第二行左：Stage 4 青年进阶 -->
+                            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 10px 12px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <strong style="font-size: 13px; display: flex; align-items: center; gap: 4px;">🦄 Stage 4 (青年进阶)</strong>
+                                    <span style="font-size: 11px; color: var(--accent); font-weight: 800;" id="stage4ExpHint">约需 255 分</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">变身等级：</span>
+                                    <div class="stepper-box mini" style="flex: 1; max-width: 140px; justify-content: space-between;">
+                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(4, -1)" title="减少 1 级">−</button>
+                                        <input type="text" id="stageMinLevel4" class="stepper-val" style="flex:1; width:auto;" value="13" readonly />
+                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(4, 1)" title="增加 1 级">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 第二行右：Stage 5 究极神兽 (彻底解封，支持自由设定变身门槛) -->
+                            <div style="background: #FEF2F2; border: 2.5px solid #DC2626; padding: 10px 12px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <strong style="font-size: 13px; display: flex; align-items: center; gap: 4px; color: #B91C1C;">👑 Stage 5 (究极神兽)</strong>
+                                    <span style="font-size: 11px; color: #DC2626; font-weight: 800;" id="stage5ExpHint">约需 395 分</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                    <span style="font-size: 11px; color: #991B1B; font-weight: 700;">变身等级 (最高20)：</span>
+                                    <div class="stepper-box mini" style="flex: 1; max-width: 140px; justify-content: space-between; border-color: #DC2626;">
+                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(5, -1)" title="减少 1 级">−</button>
+                                        <input type="text" id="stageMinLevel5" class="stepper-val" style="flex:1; width:auto; color:#DC2626; border-color: #DC2626;" value="20" readonly />
+                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(5, 1)" title="增加 1 级">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 20 级累积阈值精细表格 (全量实装大方块加减按键) -->
+                        <div style="border: 2.5px solid var(--border); padding: 10px 12px; background: var(--bg-primary); max-height: 280px; overflow-y: auto; box-shadow: 3px 3px 0 var(--shadow-color); border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 2px solid var(--border); padding-bottom: 6px;">
+                                <div style="font-size: 12px; font-weight: 900; display: flex; align-items: center; gap: 4px;">
+                                    <span>📋 各等级累计所需经验值清单 (Lv.1 ~ Lv.20 方块加减步进)：</span>
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">
+                                    💡 点击 [−][+] 按键按 5 分步进，也可点击中间数值直接修改
+                                </div>
+                            </div>
+                            <div id="thresholdInputsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 8px;"></div>
+                        </div>
+                    </div>
+                </details>
+
+                <div style="display: flex; gap: 8px; margin-top: 14px;">
+                    <button class="btn-header-touch" style="flex: 2; background: var(--accent); color: white; justify-content: center; height: 44px; font-size: 14px;" onclick="saveCustomThresholds()">
+                        💾 保存并应用到全班
+                    </button>
+                    <button class="btn-header-touch" style="flex: 1; justify-content: center; height: 44px; font-size: 13px;" onclick="resetToDefaultThresholds()">
+                        ↺ 恢复官方默认
+                    </button>
+                    <button class="btn-header-touch" style="flex: 1; justify-content: center; height: 44px; font-size: 13px;" onclick="closeLevelThresholdsModal()">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：教师控制台全套操作指引与按键实战向导 -->
+    <div class="modal-overlay" id="modalTeacherGuidedTour">
+        <div class="modal-box" style="max-width: 780px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--border); padding-bottom: 12px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 24px;">💡</span>
+                    <div>
+                        <h2 style="font-size: 18px; font-weight: 900; margin: 0;">教师控制台 · 课堂赋分与操作入门指导</h2>
+                        <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">依次了解各项按键功能、批量赋分技巧与学期个性化设置</p>
+                    </div>
+                </div>
+                <button class="btn-header-touch" style="height: 36px; padding: 0 12px;" onclick="closeTeacherGuidedTourModal()">✕ 关闭</button>
+            </div>
+
+            <!-- 模式切换：分步向导 VS 功能速查 -->
+            <div style="display: flex; gap: 6px; margin-bottom: 14px;">
+                <button class="btn-header-touch active" id="btnTeacherTourTabStep" style="flex: 1; justify-content: center; height: 38px; background: var(--accent); color: white;" onclick="switchTeacherTourTab('step')">🚀 6步实战入门向导</button>
+                <button class="btn-header-touch" id="btnTeacherTourTabOverview" style="flex: 1; justify-content: center; height: 38px; background: var(--bg-secondary);" onclick="switchTeacherTourTab('overview')">📋 教师全按键功能速查表</button>
+            </div>
+
+            <!-- 视图 1：分步向导 -->
+            <div id="teacherTourStepView">
+                <!-- 步进进度条指示器 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; background: var(--bg-secondary); border: 2px solid var(--border); padding: 8px 14px;">
+                    <div style="font-size: 13px; font-weight: 900;" id="teacherTourStepIndicator">步骤 1 / 6</div>
+                    <div style="display: flex; gap: 6px;" id="teacherTourStepDots">
+                        <span class="tour-dot active" onclick="goToTeacherTourStep(1)">1</span>
+                        <span class="tour-dot" onclick="goToTeacherTourStep(2)">2</span>
+                        <span class="tour-dot" onclick="goToTeacherTourStep(3)">3</span>
+                        <span class="tour-dot" onclick="goToTeacherTourStep(4)">4</span>
+                        <span class="tour-dot" onclick="goToTeacherTourStep(5)">5</span>
+                        <span class="tour-dot" onclick="goToTeacherTourStep(6)">6</span>
+                    </div>
+                </div>
+
+                <!-- 步骤动态容器 -->
+                <div id="teacherTourStepContent" style="min-height: 280px;"></div>
+
+                <!-- 底部步进控制条 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 2.5px solid var(--border); padding-top: 14px;">
+                    <button class="btn-header-touch" id="btnTeacherTourPrev" style="height: 42px; padding: 0 18px;" onclick="prevTeacherTourStep()">← 上一步</button>
+                    <button class="btn-header-touch" style="height: 42px; padding: 0 16px; background: #F3F4F6;" onclick="closeTeacherGuidedTourModal()">已了解 / 关闭向导</button>
+                    <button class="btn-header-touch" id="btnTeacherTourNext" style="height: 42px; padding: 0 24px; background: var(--accent); color: white;" onclick="nextTeacherTourStep()">下一步 →</button>
+                </div>
+            </div>
+
+            <!-- 视图 2：全按键功能速查表 -->
+            <div id="teacherTourOverviewView" style="display: none; max-height: 420px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 2px solid var(--border);">
+                    <thead>
+                        <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border); text-align: left;">
+                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border); width: 130px;">按键 / 操作功能</th>
+                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border); width: 110px;">所在区域</th>
+                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border);">核心作用说明</th>
+                            <th style="padding: 8px 10px;">课堂高效实战技巧</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teacherTourOverviewTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    <!-- 全局统一教室风 Toast 浮动提示 -->
+    <div id="classroomToast" class="classroom-toast" style="display: none;">
+        <span id="classroomToastIcon">✅</span>
+        <span id="classroomToastMsg">操作成功</span>
+    </div>
+
+    <!-- 全局统一教室风 Alert 弹窗 -->
+    <div class="modal-overlay" id="classroomModalAlert" style="display: none; z-index: 1000;">
+        <div class="modal-box" style="max-width: 440px; text-align: center; border-width: 3.5px;">
+            <div id="customAlertIcon" style="font-size: 46px; margin-bottom: 8px;">💡</div>
+            <h3 id="customAlertTitle" style="font-weight: 900; font-size: 18px; margin-bottom: 8px;">温馨提示</h3>
+            <p id="customAlertMsg" style="font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 18px; white-space: pre-wrap;"></p>
+            <button class="btn-header-touch" id="customAlertBtnOk" style="width: 100%; height: 44px; justify-content: center; background: var(--accent); color: white; font-size: 14px;">好的，知道了</button>
+        </div>
+    </div>
+
+    <!-- 全局统一教室风 Confirm 确认弹窗 -->
+    <div class="modal-overlay" id="classroomModalConfirm" style="display: none; z-index: 1000;">
+        <div class="modal-box" style="max-width: 460px; text-align: center; border-width: 3.5px;">
+            <div id="customConfirmIcon" style="font-size: 46px; margin-bottom: 8px;">❓</div>
+            <h3 id="customConfirmTitle" style="font-weight: 900; font-size: 18px; margin-bottom: 8px;">操作确认</h3>
+            <p id="customConfirmMsg" style="font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 18px; white-space: pre-wrap;"></p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-header-touch" id="customConfirmBtnCancel" style="flex: 1; height: 44px; justify-content: center;">取消</button>
+                <button class="btn-header-touch" id="customConfirmBtnOk" style="flex: 1; height: 44px; justify-content: center; background: var(--accent); color: white;">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./classpet_core.js"></script>
+
+    <script>
+        const store = window.classPetRuntime;
+        let selectedIds = new Set();
+        let currentGroup = 'all';
+        let searchQuery = '';
+        let lastUndoRecord = null;
+        let isAttendanceMode = false;
+        let auditLogs = [];
+
+        // 统一教师端 Toast 提示
+        let __toastTimer = null;
+        function showClassroomToast(msg, icon = '✅', duration = 2500) {
+            const toast = document.getElementById('classroomToast');
+            if (!toast) return;
+            document.getElementById('classroomToastIcon').textContent = icon;
+            document.getElementById('classroomToastMsg').textContent = msg;
+            toast.style.display = 'flex';
+            toast.classList.remove('hide');
+            toast.classList.add('show');
+            clearTimeout(__toastTimer);
+            __toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+                toast.classList.add('hide');
+                setTimeout(() => { toast.style.display = 'none'; }, 250);
+            }, duration);
+        }
+
+        // 统一教师端自定义 Alert 弹窗
+        function showClassroomAlert(msg, title = '温馨提示', icon = '💡', onOk = null) {
+            const modal = document.getElementById('classroomModalAlert');
+            if (!modal) { alert(msg); return; }
+            document.getElementById('customAlertIcon').textContent = icon;
+            document.getElementById('customAlertTitle').textContent = title;
+            document.getElementById('customAlertMsg').textContent = msg;
+            modal.style.display = 'flex';
+            const btn = document.getElementById('customAlertBtnOk');
+            btn.onclick = () => {
+                modal.style.display = 'none';
+                if (typeof onOk === 'function') onOk();
+            };
+        }
+
+        // 统一教师端自定义 Confirm 确认弹窗
+        function showClassroomConfirm(msg, title = '操作确认', onConfirm, onCancel = null, icon = '❓', confirmText = '确认', confirmBg = 'var(--accent)') {
+            const modal = document.getElementById('classroomModalConfirm');
+            if (!modal) {
+                if (window.confirm(msg)) onConfirm && onConfirm();
+                else onCancel && onCancel();
+                return;
+            }
+            document.getElementById('customConfirmIcon').textContent = icon;
+            document.getElementById('customConfirmTitle').textContent = title;
+            document.getElementById('customConfirmMsg').textContent = msg;
+            modal.style.display = 'flex';
+            const btnOk = document.getElementById('customConfirmBtnOk');
+            const btnCancel = document.getElementById('customConfirmBtnCancel');
+            btnOk.textContent = confirmText;
+            btnOk.style.background = confirmBg;
+            btnOk.style.color = 'white';
+            btnOk.onclick = () => {
+                modal.style.display = 'none';
+                if (typeof onConfirm === 'function') onConfirm();
+            };
+            btnCancel.onclick = () => {
+                modal.style.display = 'none';
+                if (typeof onCancel === 'function') onCancel();
+            };
+        }
+
+        // 覆写 window.alert，彻底杜绝操作系统自带丑陋弹窗
+        window.__nativeAlert = window.alert;
+        window.alert = function(msg) {
+            showClassroomAlert(msg);
+        };
+
+        // 步进按钮增减辅助器
+        function stepHatchExp(delta) {
+            const input = document.getElementById('quickHatchExp');
+            if (!input) return;
+            let val = parseInt(input.value, 10) || 15;
+            val = Math.max(5, Math.min(200, val + delta));
+            input.value = val;
+            const prev = document.getElementById('prevHatchExp');
+            if (prev) prev.textContent = val;
+
+            // 🌟 实时联动：同步更新 Lv.1 输入框与演化预览，杜绝数据割裂
+            const lv1Inp = document.getElementById('thresh_input_1');
+            if (lv1Inp) {
+                lv1Inp.value = val;
+                if (typeof updateStageEvolutionPreview === 'function') {
+                    updateStageEvolutionPreview();
+                }
+            }
+        }
+
+        function stepStepExp(delta) {
+            const input = document.getElementById('quickStepExp');
+            if (!input) return;
+            let val = parseInt(input.value, 10) || 20;
+            val = Math.max(5, Math.min(200, val + delta));
+            input.value = val;
+
+            // 🌟 实时联动：自动按新节奏重新计算各级并刷新列表
+            if (typeof generateLinearThresholds === 'function') {
+                generateLinearThresholds(false); // 不弹 toast，平滑刷新
+            }
+        }
+
+        function stepRulePoints(delta) {
+            const input = document.getElementById('rulePointsInput');
+            if (!input) return;
+            let val = parseInt(input.value, 10) || 5;
+            val = Math.max(1, Math.min(50, val + delta));
+            input.value = val;
+        }
+
+        store.subscribe((event) => {
+            if (event === 'SYNC' || event === 'STORAGE_UPDATE' || event === 'THRESHOLDS_UPDATE') renderStudentList();
+            if (event === 'RULES_UPDATE') renderRules();
+        });
+
+        function getFilteredStudents() {
+            return store.students.filter(s => {
+                if (currentGroup === 'archive') {
+                    if (!s.isArchived) return false;
+                } else {
+                    if (s.isArchived) return false;
+                    if (currentGroup !== 'all' && s.group !== currentGroup) return false;
+                }
+                const matchQ = !searchQuery || s.name.includes(searchQuery) || s.no.includes(searchQuery);
+                return matchQ;
+            });
+        }
+
+        function filterGroup(g) {
+            currentGroup = g;
+            ['All', '1', '2', '3', '4', 'Archive'].forEach(k => {
+                const btn = document.getElementById('tabGroup' + k);
+                if (btn) {
+                    const isTarget = k.toLowerCase() === String(g).toLowerCase();
+                    btn.style.background = isTarget ? 'var(--accent)' : 'var(--bg-secondary)';
+                    btn.style.color = isTarget ? 'white' : 'var(--text-primary)';
+                }
+            });
+            renderStudentList();
+        }
+
+        function updateHeaderClassInfo() {
+            const acc = store.getCurrentAccount ? store.getCurrentAccount() : { className: '三年级二班', teacherName: '刘老师', subject: '语文' };
+            const badge = document.getElementById('headerClassBadge');
+            if (badge) {
+                const isPreset = acc.id === 'acc_demo_302' || acc.id === 'acc_demo_401' || acc.isPreset;
+                const tag = isPreset ? ' [演示示例]' : '';
+                badge.textContent = `${acc.className || '新班级'} (${acc.teacherName || '教师'} · ${acc.subject || '综合'})${tag}`;
+            }
+        }
+
+        function renderStudentList() {
+            const list = getFilteredStudents();
+            const container = document.getElementById('studentListContainer');
+            updateHeaderClassInfo();
+
+            if (list.length === 0) {
+                if (store.students.length === 0) {
+                    const curAcc = store.getCurrentAccount ? store.getCurrentAccount() : {};
+                    container.innerHTML = `
+                        <div style="padding: 24px 14px; text-align: center; background: var(--bg-primary); border: 2.5px dashed var(--border); margin: 6px;">
+                            <div style="font-size: 40px; margin-bottom: 8px;">🌱</div>
+                            <h4 style="font-size: 15px; font-weight: 900; margin-bottom: 6px;">【${curAcc.className || '新班级'}】花名册为空</h4>
+                            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+                                该班级为全新创建的独立班级，还没有录入学生。请选择录入方式开始配置：
+                            </p>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <button class="btn-header-touch" style="background: #16A34A; color: white; justify-content: center; height: 42px;" onclick="openExcelModal()">
+                                    📊 批量导入 Excel 花名册
+                                </button>
+                                <button class="btn-header-touch" style="background: var(--accent); color: white; justify-content: center; height: 42px;" onclick="openAddStudentModal()">
+                                    ➕ 手动添加第一个学生
+                                </button>
+                                <button class="btn-header-touch" style="background: #FEF9C3; color: #854D0E; border-color: #EAB308; justify-content: center; height: 42px;" onclick="openTeacherGuidedTourModal()">
+                                    💡 查看新手操作入门指导
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div style="padding: 36px 16px; text-align: center; color: var(--text-secondary); font-size: 13px; font-weight: 800;">
+                            🔍 没有匹配到符合条件的学生
+                        </div>
+                    `;
+                }
+                document.getElementById('selectedNum').textContent = selectedIds.size;
+                document.getElementById('bannerCount').textContent = selectedIds.size;
+                return;
+            }
+
+            container.innerHTML = list.map(s => {
+                const isSelected = selectedIds.has(s.id);
+                const pet = s.pets[s.activeSubject] || s.pets.chinese;
+                const petImgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(pet.species, pet.visualStage) : './assets/pets/shared/egg.png');
+
+                return `
+                    <div class="student-row-card-pro ${isSelected ? 'selected' : ''} ${s.isAbsent ? 'absent' : ''}" onclick="handleStudentRowClick('${s.id}')">
+                        <div class="nb-checkbox-pro">${isSelected ? '✓' : (s.isAbsent ? '假' : '')}</div>
+                        <div class="student-avatar-box-pro">
+                            <img src="${petImgSrc}" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+                            <span style="display:none;">${pet.icon}</span>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="font-size: calc(16px * var(--stu-scale, 1.0)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${s.name} <span style="font-family: monospace; font-size: calc(12px * var(--stu-scale, 1.0)); color: var(--text-secondary);">#${s.no} (${s.group}组)</span>
+                                </strong>
+                                <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
+                                    ${s.isArchived ? `<span style="font-size: calc(11px * var(--stu-scale, 1.0)); background: #6B7280; color: white; padding: 2px 6px; border: 1px solid #000;">已归档</span>` : ''}
+                                    ${s.isAbsent ? `<span style="font-size: calc(12px * var(--stu-scale, 1.0)); color: var(--error); font-weight: 800;">[请假]</span>` : ''}
+                                    ${s.isArchived ? 
+                                        `<button class="btn-header-touch" style="height:calc(32px * var(--stu-scale, 1.0));padding:0 calc(10px * var(--stu-scale, 1.0));font-size:calc(12px * var(--stu-scale, 1.0));background:#DCFCE7;color:#15803D;" onclick="event.stopPropagation(); restoreArchivedStudent('${s.id}')">还原</button>` :
+                                        `<button class="btn-header-touch" style="height:calc(32px * var(--stu-scale, 1.0));padding:0 calc(10px * var(--stu-scale, 1.0));font-size:calc(13px * var(--stu-scale, 1.0));" title="编辑学生信息" onclick="event.stopPropagation(); openEditStudentModal('${s.id}')">✏️</button>
+                                         <button class="btn-header-touch" style="height:calc(32px * var(--stu-scale, 1.0));padding:0 calc(10px * var(--stu-scale, 1.0));font-size:calc(13px * var(--stu-scale, 1.0));background:#F3F4F6;" title="移入归档库" onclick="event.stopPropagation(); archiveStudentDirect('${s.id}')">📦</button>`
+                                    }
+                                </div>
+                            </div>
+                            <div style="font-size: calc(13px * var(--stu-scale, 1.0)); font-weight: 800; color: var(--accent); margin-top: calc(3px * var(--stu-scale, 1.0));">
+                                ${!s.isHatched ? '🐣 蛋形态' : (pet.name + ' Lv.' + s.level)} · EXP ${s.exp}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('selectedNum').textContent = selectedIds.size;
+            document.getElementById('bannerCount').textContent = selectedIds.size;
+        }
+
+        function renderRules() {
+            const posContainer = document.getElementById('posRulesGrid');
+            const negContainer = document.getElementById('negRulesGrid');
+
+            const posRules = store.behaviorRules.filter(r => r.type === 'positive');
+            const negRules = store.behaviorRules.filter(r => r.type === 'negative');
+
+            posContainer.innerHTML = posRules.map(r => `
+                <div class="btn-score-card-pro pos" onclick="triggerScore(${r.points}, '${r.name}')">
+                    <span class="score-val">+${Math.abs(r.points)}</span>
+                    <span style="font-size: 13px; margin-top: 3px;">${r.name}</span>
+                </div>
+            `).join('');
+
+            negContainer.innerHTML = negRules.map(r => `
+                <div class="btn-score-card-pro neg" onclick="triggerScore(${r.points}, '${r.name}')">
+                    <span class="score-val">${r.points}</span>
+                    <span style="font-size: 13px; margin-top: 3px;">${r.name}</span>
+                </div>
+            `).join('');
+        }
+
+        function handleStudentRowClick(id) {
+            if (isAttendanceMode) {
+                store.toggleAttendance(id);
+                renderStudentList();
+            } else {
+                toggleSelect(id);
+            }
+        }
+
+        function toggleSelect(id) {
+            if (selectedIds.has(id)) selectedIds.delete(id);
+            else selectedIds.add(id);
+            renderStudentList();
+        }
+
+        function toggleSelectGroup() {
+            const list = getFilteredStudents();
+            const allSelected = list.every(s => selectedIds.has(s.id));
+            if (allSelected) list.forEach(s => selectedIds.delete(s.id));
+            else list.forEach(s => selectedIds.add(s.id));
+            renderStudentList();
+        }
+
+        function clearSelection() {
+            selectedIds.clear();
+            renderStudentList();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('searchBox').value.trim();
+            renderStudentList();
+        }
+
+        function filterGroup(g) {
+            currentGroup = g;
+            renderStudentList();
+        }
+
+        function toggleAttendanceMode() {
+            isAttendanceMode = !isAttendanceMode;
+            const btn = document.getElementById('btnAttendanceMode');
+            btn.classList.toggle('active', isAttendanceMode);
+            document.getElementById('attendanceNoticeBar').style.display = isAttendanceMode ? 'block' : 'none';
+        }
+
+        function triggerScore(delta, label) {
+            if (selectedIds.size === 0) {
+                showClassroomToast('⚠️ 请先在左侧列表中勾选至少一名学生！', '⚠️');
+                return;
+            }
+
+            const targetIds = Array.from(selectedIds);
+            const targetNames = store.students.filter(s => targetIds.includes(s.id)).map(s => s.name).join('、');
+            const isDignityProtected = delta < 0 && document.getElementById('chkProtectDignity').checked;
+
+            store.batchScore(targetIds, delta, label, isDignityProtected);
+
+            const record = {
+                time: new Date().toLocaleTimeString(),
+                names: targetNames,
+                targetIds,
+                delta,
+                label,
+                isDignityProtected
+            };
+            lastUndoRecord = record;
+            auditLogs.unshift(record);
+
+            const btnUndo = document.getElementById('btnUndo');
+            btnUndo.disabled = false;
+            document.getElementById('undoDetailTag').textContent = `(${targetNames} ${delta>0?'+':''}${delta}分)`;
+
+            renderStudentList();
+            showClassroomToast(`✨ 已为 [${targetNames}] 记录 [${label}] ${delta > 0 ? '+' : ''}${delta}分！`);
+        }
+
+        function executeUndo() {
+            if (!lastUndoRecord) return;
+            const undoneNames = lastUndoRecord.names;
+            store.batchScore(lastUndoRecord.targetIds, -lastUndoRecord.delta, '撤销操作');
+            auditLogs.unshift({
+                time: new Date().toLocaleTimeString(),
+                names: lastUndoRecord.names,
+                delta: -lastUndoRecord.delta,
+                label: '【撤销操作】',
+                isDignityProtected: false
+            });
+
+            lastUndoRecord = null;
+            document.getElementById('btnUndo').disabled = true;
+            document.getElementById('undoDetailTag').textContent = '(已撤销)';
+            renderStudentList();
+            showClassroomToast(`↺ 已撤销对 [${undoneNames}] 的上一笔赋分变更！`);
+        }
+
+        function triggerBigScreenRandomPick() {
+            const chosen = store.startRandomPick();
+            if (chosen) {
+                selectedIds.clear();
+                selectedIds.add(chosen.id);
+                renderStudentList();
+                showClassroomToast(`🎲 随机抽选指令已发送！大屏正在聚焦抽中学生：${chosen.name} (#${chosen.no})`);
+            } else {
+                showClassroomToast('⚠️ 暂无可选学生（班级为空或全部请假）！', '⚠️');
+            }
+        }
+
+        function openGroupMoveModal() {
+            if (selectedIds.size === 0) {
+                showClassroomToast('⚠️ 请先在左侧勾选学生！', '⚠️');
+                return;
+            }
+            document.getElementById('groupMoveCount').textContent = selectedIds.size;
+            document.getElementById('modalGroupMove').style.display = 'flex';
+        }
+
+        function closeGroupMoveModal() { document.getElementById('modalGroupMove').style.display = 'none'; }
+
+        function applyMoveGroup(g) {
+            store.students.forEach(s => {
+                if (selectedIds.has(s.id)) s.group = g;
+            });
+            store.save();
+            store.broadcast('STATE_SYNC', { students: store.students });
+            closeGroupMoveModal();
+            renderStudentList();
+            showClassroomToast(`✅ 已将选中的 ${selectedIds.size} 名学生划分至 [第 ${g} 大组]！`);
+        }
+
+        function autoDistribute4Groups() {
+            store.students.forEach((s, i) => s.group = (i % 4) + 1);
+            store.save();
+            store.broadcast('STATE_SYNC', { students: store.students });
+            closeGroupMoveModal();
+            renderStudentList();
+            showClassroomToast('✅ 全班已按学号均分为 4 大组！');
+        }
+
+        function openAuditLogModal() {
+            const list = document.getElementById('auditLogList');
+            if (auditLogs.length === 0) {
+                list.innerHTML = `<div style="text-align:center;color:#888;padding:20px;">本节课暂无赋分记录</div>`;
+            } else {
+                list.innerHTML = auditLogs.map(l => `
+                    <div style="border-bottom:1px solid #ddd;padding:8px 0;font-size:13px;">
+                        <span style="color:#666;font-family:monospace;">[${l.time}]</span>
+                        <strong>${l.names}</strong>
+                        <span style="font-weight:900;color:${l.delta>0?'#15803D':'#DC2626'};">${l.delta>0?'+':''}${l.delta}分</span>
+                        <span>(${l.label})</span>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('modalAuditLog').style.display = 'flex';
+        }
+
+        function closeAuditLogModal() { document.getElementById('modalAuditLog').style.display = 'none'; }
+
+        function openExcelModal() { document.getElementById('modalExcelImport').style.display = 'flex'; }
+        function closeExcelModal() { document.getElementById('modalExcelImport').style.display = 'none'; }
+
+        function downloadStandardTemplate() {
+            const csvContent = "学号,姓名,组别\n01,张三,第1组\n02,李四,第2组\n03,王五,第3组\n04,赵六,第4组\n05,孙七,第1组";
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "班级花名册标准导入模板.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Excel / CSV 导入监听与解析
+        const excelInputElem = document.getElementById('excelFileInput');
+        if (excelInputElem) {
+            excelInputElem.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    try {
+                        const data = evt.target.result;
+                        let rows = [];
+                        if (typeof XLSX !== 'undefined') {
+                            const workbook = XLSX.read(data, { type: 'binary' });
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+                            rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        } else {
+                            const text = new TextDecoder('utf-8').decode(new Uint8Array(data));
+                            rows = text.split('\n').map(r => r.split(','));
+                        }
+                        processImportedStudentRows(rows);
+                    } catch (err) {
+                        alert('❌ 表格解析失败，请确保格式正确：' + err.message);
+                    }
+                };
+                reader.readAsBinaryString ? reader.readAsBinaryString(file) : reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function processImportedStudentRows(rows) {
+            if (!rows || rows.length < 2) {
+                alert('⚠️ 未能读取到有效学生数据，请确认表格首行为表头！');
+                return;
+            }
+
+            const speciesKeys = ['cat', 'dog', 'fox', 'bunny', 'bird', 'deer', 'hamster', 'fish'];
+            const catalog = window.PET_SPECIES_CATALOG || {};
+            const newStudents = [];
+
+            for (let i = 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (!r || r.length === 0 || !r[1]) continue;
+                const no = String(r[0] || i).trim().padStart(2, '0');
+                const name = String(r[1]).trim();
+                if (!name) continue;
+
+                let group = ((i - 1) % 4) + 1;
+                if (r[2]) {
+                    const gMatch = String(r[2]).match(/\d+/);
+                    if (gMatch) group = Math.min(4, Math.max(1, parseInt(gMatch[0], 10)));
+                }
+
+                const spCode = speciesKeys[(i - 1) % speciesKeys.length];
+                const spInfo = catalog[spCode] || { name: '灵猫', icon: '🐱' };
+                const petImg = window.getPetImagePath ? window.getPetImagePath(spCode, 1) : './assets/pets/shared/egg.png';
+
+                newStudents.push({
+                    id: 'stu_' + i,
+                    no,
+                    name,
+                    group,
+                    level: 0,
+                    exp: 0,
+                    visualStage: 0,
+                    stamp: null,
+                    isAbsent: false,
+                    isArchived: false,
+                    isHatched: false,
+                    minExpForCurrentLevel: 0,
+                    nextLevelExp: store.getNextLevelThreshold ? store.getNextLevelThreshold(0) : 15,
+                    activeSubject: 'chinese',
+                    pets: {
+                        chinese: {
+                            id: `pet_c_${i}`,
+                            species: 'egg',
+                            subject: '语文',
+                            name: '神秘宠物蛋',
+                            icon: '🐣',
+                            image: './assets/pets/shared/egg.png',
+                            level: 0,
+                            exp: 0,
+                            visualStage: 0
+                        },
+                        math: {
+                            id: `pet_m_${i}`,
+                            species: 'egg',
+                            subject: '数学',
+                            name: '神秘宠物蛋',
+                            icon: '🐣',
+                            image: './assets/pets/shared/egg.png',
+                            level: 0,
+                            exp: 0,
+                            visualStage: 0
+                        },
+                        english: {
+                            id: `pet_e_${i}`,
+                            species: 'egg',
+                            subject: '英语',
+                            name: '神秘宠物蛋',
+                            icon: '🐣',
+                            image: './assets/pets/shared/egg.png',
+                            level: 0,
+                            exp: 0,
+                            visualStage: 0
+                        }
+                    }
+                });
+            }
+
+            if (newStudents.length > 0) {
+                store.students = newStudents;
+                store.save();
+                store.broadcast('STATE_SYNC', { students: store.students });
+                closeExcelModal();
+                renderStudentList();
+                showClassroomToast(`🎉 成功导入 ${newStudents.length} 名学生名单！全员初始为神秘宠物蛋，大屏已同步！`);
+            } else {
+                showClassroomAlert('表格中未找到有效姓名行，请使用标准模板重试！', '导入提醒', '⚠️');
+            }
+        }
+
+        // ==========================================
+        // 💡 教师控制台全套操作指引向导与速查表
+        // ==========================================
+        const TEACHER_TOUR_STEPS = [
+            {
+                step: 1,
+                title: '👥 学生快速检索与批量勾选机制',
+                targetBadge: '左侧搜索栏 & 组别筛选 Tab & [全选/清空]',
+                icon: '👥',
+                position: '控制台左侧学生管理列表栏',
+                feature: '【关键词秒搜】支持在顶部输入框键入姓名（如“张三”）或学号（如“05”）实时过滤；【组别与归档】点击上方【全班 / 1组 / 2组 / 3组 / 4组 / 归档】一键过滤目标组别；【批量框选】点击单行卡片勾选，点击【全选 / 清空当前组】可瞬间选中全班或当前小组所有学生！',
+                classroomTip: '小组合作汇报或小组竞赛加分时，先点击【2组】，再点【全选当前组】，3秒钟圈定全组同学进行批量赋分！'
+            },
+            {
+                step: 2,
+                title: '✨ 批量正负向行为秒级快速赋分',
+                targetBadge: '右侧 8 项绿色加分卡片 & 5 项红色规范关注',
+                icon: '✨',
+                position: '控制台右侧操作主面板',
+                feature: '【一键批量赋分】先在左侧勾选 1 名或多名学生，然后直接轻触右侧加分按钮（如“作业优秀 +5”、“主动回答 +3”），全量学生即时增减经验，并伴随原生 Web Audio 悦耳音效实时同步至大屏！【🔕 静音模式】勾选后，负向扣分仅在教师控制台和审计日志记录，大屏保持静音免打扰且不弹窗提示！',
+                classroomTip: '日常教学多使用正向激励；课上出现讲话或走神时，建议开启“静音模式”记录留档，课后单独沟通。'
+            },
+            {
+                step: 3,
+                title: '↩️ 3分钟防手滑一键撤销机制',
+                targetBadge: '顶部操作横条 [↩ 撤销] 按钮',
+                icon: '↩️',
+                position: '顶部操作横条左侧偏中',
+                feature: '【防手滑误操作安全网】当您加错分数或手滑扣分时，顶部【↩ 撤销】按钮会实时显示上一笔记录（例如：“撤销：全选 +5分”）。只要在 3 分钟内点击撤销，系统将把所有涉及学生的经验值、等级和形态完全回退至操作前，大屏同步刷新！',
+                classroomTip: '课堂节奏快时如果点错了行为项，不必慌张也不用手工算分，直接点击【↩ 撤销】立刻复原！'
+            },
+            {
+                step: 4,
+                title: '⚙️ 20级升级经验曲线与成长节奏自定义',
+                targetBadge: '顶部操作横条 [⚙️ 经验设置] 按钮',
+                icon: '⚙️',
+                position: '顶部操作横条右侧',
+                feature: '【成长节奏由您掌控】点击打开经验设置面板，支持自定义 0~20 级每级所需的累计经验值。您可以设置破壳经验（默认15 EXP）以及每级递增梯度，点击【💾 保存并应用到全班】后，系统会自动重新计算全班所有学生的等级与进阶形态；随时可点击【↺ 恢复官方默认】。',
+                classroomTip: '公开课或展示课可调低每级经验（如每级 5 EXP），让学生快速看到升级；一学期常规教学推荐使用官方标准 1250 EXP 曲线。'
+            },
+            {
+                step: 5,
+                title: '📊 Excel 花名册一键导入与班级组别调动',
+                targetBadge: '顶部 [📊 导入Excel] 与 [📦 划分大组...]',
+                icon: '📊',
+                position: '顶部横条 [导入Excel] / 左侧列表工具条',
+                feature: '【零成本极速建班】点击【📊 导入Excel】可一键下载标准 Excel 导入模板，将教务处学生名单填入后上传，系统自动建立全班名单并均分 4 大组；若没有 Excel 表格，也可随时点击左侧【➕ 新增】手动添加单个学生；勾选学生后点击【📦 划分大组...】可随意调组或一键按学号均分！',
+                classroomTip: '新学期建班时使用 Excel 导入，3 秒完成全班 40~50 人建档与宠物分配；座位调整后使用【划分大组】快速调配。'
+            },
+            {
+                step: 6,
+                title: '📋 考勤请假置灰与本地完整备份还原',
+                targetBadge: '顶部 [📋 考勤模式] 与 [💾 备份/还原]',
+                icon: '📋',
+                position: '顶部横条右侧功能区',
+                feature: '【考勤请假免打扰】点击【📋 考勤模式】后，直接点击学生卡片即可快速标记“请假/在校”，请假学生在大屏呈半透明置灰，且随堂随机抽选会自动跳过该学生；【本地数据安全保障】点击【💾 备份/还原】可一键将当前班级所有学生数据导出为 JSON 文件，换电脑或重装时一键导入恢复，班级数据永不丢失！',
+                classroomTip: '课前 10 秒开启考勤模式快速标记请假学生；建议每周五放学后点击一次【备份】，下载数据备份文件保存。'
+            }
+        ];
+
+        const TEACHER_OVERVIEW_LIST = [
+            { key: '← 门户', pos: '顶部最左', desc: '返回多账号管理主控台，切换或创建新班级', scene: '跨班授课或放学退出系统' },
+            { key: '班级徽标', pos: '顶部标题右侧', desc: '显示当前班级、任教老师与任教学科', scene: '核对正在操作的班级是否正确' },
+            { key: '↩ 撤销', pos: '顶部导航条', desc: '3分钟内撤销上一笔赋分操作并全量回退经验', scene: '手滑误加或点错分时' },
+            { key: '⚙️ 经验设置', pos: '顶部导航条', desc: '自定义 0~20 级经验升级阈值并重新计算全班', scene: '根据教学周期快慢调整成长节奏' },
+            { key: '💾 备份/还原', pos: '顶部导航条', desc: '一键导出班级完整数据 JSON，或导入历史备份', scene: '每周定期数据存档、换教室/电脑迁移' },
+            { key: '🎲 抽选', pos: '顶部导航条', desc: '向学生大屏发送随机抽选指令，大屏同步点名', scene: '课堂提问、抽背课文、选人演板' },
+            { key: '📋 考勤模式', pos: '顶部导航条', desc: '切换考勤状态，点击学生标记请假/在校并免打扰', scene: '上课前清点人数、标记请假学生' },
+            { key: '📊 导入Excel', pos: '顶部导航条', desc: '下载标准模板，上传 Excel/CSV 花名册一键建班', scene: '新学期开学快速录入全班 40~50 人名单' },
+            { key: '📄 审计日志', pos: '顶部导航条', desc: '查看本堂课完整的加减分流水账单与操作记录', scene: '课后查验赋分明细与家校沟通' },
+            { key: '💡 操作指引', pos: '顶部导航条', desc: '打开本份教师控制台入门指导向导与速查表', scene: '新手老师随时查阅操作技巧与按键' },
+            { key: '🖥️ 学生大屏', pos: '顶部最右', desc: '一键原地切换到常驻教室投影的学生大屏视图', scene: '准备上课投屏展示全班宠物' },
+            { key: '🔍 搜索框', pos: '左侧列表顶部', desc: '键入姓名或学号即时筛选学生', scene: '快速定位单个学生赋分' },
+            { key: '➕ 新增学生', pos: '左侧列表顶部', desc: '手动添加单个学生，输入姓名学号即可建档', scene: '转学生插班或无表格临时加人' },
+            { key: '组别筛选 Tab', pos: '左侧工具栏', desc: '切换全班、1组、2组、3组、4组或归档库', scene: '按小组进行批量赋分' },
+            { key: '全选 / 清空', pos: '左侧列表统计右', desc: '一键全选或清空当前视图内的所有学生', scene: '全班奖励或整组激励' },
+            { key: '📦 划分大组', pos: '左侧列表统计右', desc: '将勾选学生移至指定大组，或一键按学号均分', scene: '排座位调组、开学均分 4 大组' },
+            { key: '加分/扣分卡片', pos: '右侧操作主区', desc: '8项正向激励与5项规范关注，点击即时批量记录', scene: '课堂实时激励评价与纪律记录' }
+        ];
+
+        let currentTeacherTourStep = 1;
+
+        function openTeacherGuidedTourModal() {
+            currentTeacherTourStep = 1;
+            renderTeacherTourStep();
+            document.getElementById('modalTeacherGuidedTour').style.display = 'flex';
+        }
+
+        function closeTeacherGuidedTourModal() {
+            document.getElementById('modalTeacherGuidedTour').style.display = 'none';
+        }
+
+        function switchTeacherTourTab(tab) {
+            document.getElementById('btnTeacherTourTabStep').classList.toggle('active', tab === 'step');
+            document.getElementById('btnTeacherTourTabStep').style.background = tab === 'step' ? 'var(--accent)' : 'var(--bg-secondary)';
+            document.getElementById('btnTeacherTourTabStep').style.color = tab === 'step' ? 'white' : 'var(--text-primary)';
+
+            document.getElementById('btnTeacherTourTabOverview').classList.toggle('active', tab === 'overview');
+            document.getElementById('btnTeacherTourTabOverview').style.background = tab === 'overview' ? 'var(--accent)' : 'var(--bg-secondary)';
+            document.getElementById('btnTeacherTourTabOverview').style.color = tab === 'overview' ? 'white' : 'var(--text-primary)';
+
+            document.getElementById('teacherTourStepView').style.display = tab === 'step' ? 'block' : 'none';
+            document.getElementById('teacherTourOverviewView').style.display = tab === 'overview' ? 'block' : 'none';
+
+            if (tab === 'overview') renderTeacherTourOverview();
+        }
+
+        function goToTeacherTourStep(step) {
+            currentTeacherTourStep = Math.max(1, Math.min(step, TEACHER_TOUR_STEPS.length));
+            renderTeacherTourStep();
+        }
+
+        function nextTeacherTourStep() {
+            if (currentTeacherTourStep >= TEACHER_TOUR_STEPS.length) {
+                closeTeacherGuidedTourModal();
+                return;
+            }
+            currentTeacherTourStep++;
+            renderTeacherTourStep();
+        }
+
+        function prevTeacherTourStep() {
+            if (currentTeacherTourStep <= 1) return;
+            currentTeacherTourStep--;
+            renderTeacherTourStep();
+        }
+
+        function renderTeacherTourStep() {
+            const data = TEACHER_TOUR_STEPS[currentTeacherTourStep - 1];
+            document.getElementById('teacherTourStepIndicator').textContent = `步骤 ${currentTeacherTourStep} / ${TEACHER_TOUR_STEPS.length}`;
+            
+            document.querySelectorAll('#teacherTourStepDots .tour-dot').forEach((dot, idx) => {
+                dot.classList.toggle('active', idx + 1 === currentTeacherTourStep);
+            });
+
+            document.getElementById('btnTeacherTourPrev').disabled = currentTeacherTourStep === 1;
+            document.getElementById('btnTeacherTourPrev').style.opacity = currentTeacherTourStep === 1 ? '0.4' : '1';
+            document.getElementById('btnTeacherTourNext').textContent = currentTeacherTourStep === TEACHER_TOUR_STEPS.length ? '完成并开始体验 ✓' : '下一步 →';
+
+            const container = document.getElementById('teacherTourStepContent');
+            container.innerHTML = `
+                <div class="tour-step-card">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; border-bottom: 2px solid var(--border); padding-bottom: 8px;">
+                        <span style="font-size: 32px;">${data.icon}</span>
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: 900; margin: 0;">${data.title}</h3>
+                            <span style="font-size: 11px; background: var(--warning); border: 1px solid var(--border); padding: 1px 6px; font-family: monospace; font-weight: 800;">
+                                🎯 操作对象：${data.targetBadge}
+                            </span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-secondary);">
+                        📍 <strong>所在区域：</strong> ${data.position}
+                    </div>
+                    <div style="background: var(--card-bg); border: 2px solid var(--border); padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.6; font-weight: 700;">
+                        ${data.feature}
+                    </div>
+                    <div style="background: #FEF9C3; border: 1.5px solid #CA8A04; padding: 10px 12px; font-size: 12px; color: #854D0E; font-weight: 800;">
+                        🏫 <strong>实战教学技巧：</strong> ${data.classroomTip}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTeacherTourOverview() {
+            const tbody = document.getElementById('teacherTourOverviewTableBody');
+            tbody.innerHTML = TEACHER_OVERVIEW_LIST.map(item => `
+                <tr style="border-bottom: 1px solid var(--border); background: var(--card-bg);">
+                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-weight: 900; color: var(--accent);">${item.key}</td>
+                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-family: monospace; font-size: 11px;">${item.pos}</td>
+                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-weight: 700;">${item.desc}</td>
+                    <td style="padding: 8px 10px; color: #854D0E; font-weight: 700;">${item.scene}</td>
+                </tr>
+            `).join('');
+        }
+
+        let currentCustomRuleType = 'positive';
+
+        function openCustomRuleModal(type = 'positive') {
+            currentCustomRuleType = type;
+            document.getElementById('ruleNameInput').value = '';
+            document.getElementById('rulePointsInput').value = type === 'positive' ? '5' : '3';
+            const title = document.querySelector('#modalCustomRule h3');
+            if (title) title.textContent = type === 'positive' ? '➕ 添加自定义课堂加分项' : '➖ 添加自定义课堂扣分项';
+            document.getElementById('modalCustomRule').style.display = 'flex';
+        }
+
+        function closeCustomRuleModal() { document.getElementById('modalCustomRule').style.display = 'none'; }
+
+        function saveCustomRule() {
+            const name = document.getElementById('ruleNameInput').value.trim();
+            const points = parseInt(document.getElementById('rulePointsInput').value, 10);
+            if (!name || isNaN(points)) {
+                alert('⚠️ 请输入行为名称与有效分值！');
+                return;
+            }
+            store.addCustomRule(name, points, currentCustomRuleType);
+            closeCustomRuleModal();
+            renderRules();
+        }
+
+        function openDisplayBigscreen() {
+            if (window.electronAPI && typeof window.electronAPI.openDisplayWindow === 'function') {
+                window.electronAPI.openDisplayWindow();
+            } else {
+                window.location.href = './display_bigscreen_touch_pro.html';
+            }
+        }
+
+        function goToPortal() {
+            if (window.electronAPI && typeof window.electronAPI.openPortalWindow === 'function') {
+                window.electronAPI.openPortalWindow();
+            } else {
+                window.location.href = './portal_auth.html';
+            }
+        }
+
+        // ==========================================
+        // 学生日常管理：单个新增、编辑、软归档
+        // ==========================================
+        function openAddStudentModal() {
+            const nextNo = (store.students.length + 1).toString().padStart(2, '0');
+            document.getElementById('addStuNo').value = nextNo;
+            const nameInp = document.getElementById('addStuName');
+            nameInp.value = '';
+            document.getElementById('addStuGroup').value = '1';
+            document.getElementById('addStuHatchState').value = 'egg';
+            document.getElementById('modalAddStudent').style.display = 'flex';
+            setTimeout(() => {
+                nameInp.focus();
+                nameInp.select();
+            }, 60);
+        }
+
+        function closeAddStudentModal() {
+            document.getElementById('modalAddStudent').style.display = 'none';
+        }
+
+        function submitAddStudent() {
+            const name = document.getElementById('addStuName').value.trim();
+            if (!name) { showClassroomAlert('请输入学生姓名！', '添加学生提示', '⚠️'); return; }
+            const group = parseInt(document.getElementById('addStuGroup').value, 10) || 1;
+            const hatchState = document.getElementById('addStuHatchState').value;
+            const initialHatched = hatchState !== 'egg';
+            const species = initialHatched ? hatchState : 'egg';
+
+            store.addStudent({ name, group, species, initialHatched });
+            closeAddStudentModal();
+            renderStudentList();
+            showClassroomToast(`🎉 已成功添加新学生【${name}】！`);
+        }
+
+        let editingStudentId = null;
+        function openEditStudentModal(id) {
+            const s = store.students.find(x => x.id === id);
+            if (!s) return;
+            editingStudentId = id;
+            document.getElementById('editStuName').value = s.name;
+            document.getElementById('editStuNo').value = s.no;
+            document.getElementById('editStuGroup').value = s.group;
+            const pet = s.pets[s.activeSubject] || s.pets.chinese;
+            document.getElementById('editStuSpecies').value = pet.species || 'cat';
+            document.getElementById('modalEditStudent').style.display = 'flex';
+        }
+
+        function closeEditStudentModal() {
+            document.getElementById('modalEditStudent').style.display = 'none';
+        }
+
+        function submitEditStudent() {
+            if (!editingStudentId) return;
+            const name = document.getElementById('editStuName').value.trim();
+            const no = document.getElementById('editStuNo').value.trim();
+            const group = document.getElementById('editStuGroup').value;
+            const species = document.getElementById('editStuSpecies').value;
+
+            store.updateStudent(editingStudentId, { name, no, group, species });
+            closeEditStudentModal();
+            renderStudentList();
+            showClassroomToast('✅ 学生资料修改成功！');
+        }
+
+        function archiveStudentDirect(id) {
+            const s = store.students.find(x => x.id === id);
+            if (!s) return;
+            showClassroomConfirm(
+                `确定要归档学生【${s.name}】吗？\n归档后该学生将从大屏活跃名单中移除，但历史成长记录依然完整保留在归档库中，随时可一键还原。`,
+                '归档学生确认',
+                () => {
+                    store.archiveStudent(id);
+                    renderStudentList();
+                    showClassroomToast(`📦 已将学生【${s.name}】移入归档库`);
+                },
+                null,
+                '📦',
+                '确认归档',
+                '#DC2626'
+            );
+        }
+
+        function restoreArchivedStudent(id) {
+            store.restoreStudent(id);
+            renderStudentList();
+            showClassroomToast('✅ 已成功还原该学生至活跃班级！');
+        }
+
+        // ==========================================
+        // 班级数据一键备份与恢复 (.json)
+        // ==========================================
+        function openBackupModal() {
+            document.getElementById('modalBackupRestore').style.display = 'flex';
+        }
+
+        function closeBackupModal() {
+            document.getElementById('modalBackupRestore').style.display = 'none';
+        }
+
+        function handleExportBackup() {
+            const jsonStr = store.exportClassData();
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const now = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            a.href = url;
+            a.download = `ClassPet_三年级二班_全量备份_${now}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showClassroomToast('✅ 班级备份包导出成功！已保存为 .json 离线文件。');
+        }
+
+        function handleImportBackupFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const res = store.importClassData(event.target.result);
+                    if (res.success) {
+                        showClassroomToast(`✅ 成功还原班级数据！已恢复 ${res.count} 名学生完整记录。`);
+                        closeBackupModal();
+                        renderStudentList();
+                        renderRules();
+                    } else {
+                        showClassroomAlert('导入失败：' + res.error, '还原提醒', '⚠️');
+                    }
+                } catch (err) {
+                    showClassroomAlert('文件解析错误：' + err.message, '还原失败', '❌');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ==========================================
+        // 电子宠物升级经验阈值与阶段进阶设置控制器
+        // ==========================================
+        function openLevelThresholdsModal() {
+            const curThresholds = store.getLevelThresholds();
+            const curStages = store.getStageMinLevels();
+            
+            const hatchVal = curThresholds[1] || 15;
+            const stepVal = (curThresholds[2] && curThresholds[1]) ? Math.max(5, curThresholds[2] - curThresholds[1]) : 20;
+            const qH = document.getElementById('quickHatchExp');
+            if (qH) qH.value = hatchVal;
+            const qS = document.getElementById('quickStepExp');
+            if (qS) qS.value = stepVal;
+            const prevH = document.getElementById('prevHatchExp');
+            if (prevH) prevH.textContent = hatchVal;
+
+            document.getElementById('stageMinLevel2').value = curStages[2]?.minLevel || 4;
+            document.getElementById('stageMinLevel3').value = curStages[3]?.minLevel || 8;
+            document.getElementById('stageMinLevel4').value = curStages[4]?.minLevel || 13;
+            document.getElementById('stageMinLevel5').value = curStages[5]?.minLevel || 20;
+
+            renderThresholdInputs(curThresholds);
+            updateStageEvolutionPreview();
+            document.getElementById('modalLevelThresholds').style.display = 'flex';
+        }
+
+        function closeLevelThresholdsModal() {
+            document.getElementById('modalLevelThresholds').style.display = 'none';
+        }
+
+        // 🌟 动态三方联动更新器：实时同步时间线（含等级与经验分）、阶段卡片经验预估与 20 级变身标签
+        function updateStageEvolutionPreview() {
+            const s2 = parseInt(document.getElementById('stageMinLevel2')?.value, 10) || 4;
+            const s3 = parseInt(document.getElementById('stageMinLevel3')?.value, 10) || 8;
+            const s4 = parseInt(document.getElementById('stageMinLevel4')?.value, 10) || 13;
+            const s5 = parseInt(document.getElementById('stageMinLevel5')?.value, 10) || 20;
+
+            // 1. 读取 20 级输入框数值以展示对应阶段所需累计经验分
+            const getExpAtLevel = (lvl) => {
+                const inp = document.getElementById(`thresh_input_${lvl}`);
+                if (inp) return parseInt(inp.value, 10) || 0;
+                return 0;
+            };
+
+            // 2. 实时更新顶部演化时间线：展示等级与对应累计经验分
+            const p2 = document.getElementById('prevStage2Text');
+            const p3 = document.getElementById('prevStage3Text');
+            const p4 = document.getElementById('prevStage4Text');
+            const p5 = document.getElementById('prevStage5Text');
+            if (p2) p2.textContent = `Lv.${s2} (${getExpAtLevel(s2)}分)`;
+            if (p3) p3.textContent = `Lv.${s3} (${getExpAtLevel(s3)}分)`;
+            if (p4) p4.textContent = `Lv.${s4} (${getExpAtLevel(s4)}分)`;
+            if (p5) p5.textContent = `Lv.${s5} (${getExpAtLevel(s5)}分)`;
+
+            const h2 = document.getElementById('stage2ExpHint');
+            const h3 = document.getElementById('stage3ExpHint');
+            const h4 = document.getElementById('stage4ExpHint');
+            const h5 = document.getElementById('stage5ExpHint');
+            if (h2) h2.textContent = `达到 Lv.${s2} (约需 ${getExpAtLevel(s2)} 分)`;
+            if (h3) h3.textContent = `达到 Lv.${s3} (约需 ${getExpAtLevel(s3)} 分)`;
+            if (h4) h4.textContent = `达到 Lv.${s4} (约需 ${getExpAtLevel(s4)} 分)`;
+            if (h5) h5.textContent = `达到 Lv.${s5} (约需 ${getExpAtLevel(s5)} 分)`;
+
+            // 3. 实时高亮下方 20 级卡片中的变身阶段彩色标签
+            for (let l = 1; l <= 20; l++) {
+                const tag = document.getElementById(`thresh_tag_${l}`);
+                if (tag) {
+                    if (l === 1) {
+                        tag.innerHTML = `Lv.1 <span style="color:#D97706; font-size:10px; font-weight:900;">🐣破壳</span>`;
+                    } else if (l === s2) {
+                        tag.innerHTML = `Lv.${l} <span style="color:#2563EB; font-size:10px; font-weight:900;">🐾少年</span>`;
+                    } else if (l === s3) {
+                        tag.innerHTML = `Lv.${l} <span style="color:#7C3AED; font-size:10px; font-weight:900;">🦊进阶</span>`;
+                    } else if (l === s4) {
+                        tag.innerHTML = `Lv.${l} <span style="color:#059669; font-size:10px; font-weight:900;">🦄青年</span>`;
+                    } else if (l === s5) {
+                        tag.innerHTML = `Lv.${l} <span style="color:#DC2626; font-size:10px; font-weight:900;">👑神兽</span>`;
+                    } else {
+                        tag.textContent = `Lv.${l}`;
+                    }
+                }
+            }
+        }
+
+        // 🌟 核心级联推挤算法 (Cascade Adjustment)：
+        // 确保 1 < s2 < s3 < s4 < s5 <= 20，调整前置阶段时自动同步后推后置阶段，绝不发生阶段倒挂
+        function stepStageLevel(stageNum, delta) {
+            let s2 = parseInt(document.getElementById('stageMinLevel2')?.value, 10) || 4;
+            let s3 = parseInt(document.getElementById('stageMinLevel3')?.value, 10) || 8;
+            let s4 = parseInt(document.getElementById('stageMinLevel4')?.value, 10) || 13;
+            let s5 = parseInt(document.getElementById('stageMinLevel5')?.value, 10) || 20;
+
+            if (delta > 0) {
+                // 正向推挤：撞击到后置阶段时，连锁推动后置阶段
+                if (stageNum === 2) {
+                    s2++;
+                    if (s2 >= s3) s3 = s2 + 1;
+                    if (s3 >= s4) s4 = s3 + 1;
+                    if (s4 >= s5) s5 = s4 + 1;
+                    if (s5 > 20) {
+                        showClassroomToast('⚠️ 各阶段无法继续后移 (满级上限为 Lv.20)');
+                        return;
+                    }
+                } else if (stageNum === 3) {
+                    s3++;
+                    if (s3 >= s4) s4 = s3 + 1;
+                    if (s4 >= s5) s5 = s4 + 1;
+                    if (s5 > 20) {
+                        showClassroomToast('⚠️ 阶段 3 无法继续后移 (已触及神兽上限)');
+                        return;
+                    }
+                } else if (stageNum === 4) {
+                    s4++;
+                    if (s4 >= s5) s5 = s4 + 1;
+                    if (s5 > 20) {
+                        showClassroomToast('⚠️ 青年期无法继续后移 (已触及神兽上限)');
+                        return;
+                    }
+                } else if (stageNum === 5) {
+                    if (s5 < 20) s5++;
+                    else {
+                        showClassroomToast('💡 满级神兽最高设定为 Lv.20');
+                        return;
+                    }
+                }
+            } else if (delta < 0) {
+                // 逆向递减：保证单调性，绝不小于前置门槛
+                if (stageNum === 2) {
+                    if (s2 > 2) s2--;
+                    else {
+                        showClassroomToast('💡 少年期门槛最低为 Lv.2 (Lv.1固定为幼宠破壳)');
+                        return;
+                    }
+                } else if (stageNum === 3) {
+                    if (s3 > s2 + 1) s3--;
+                    else {
+                        showClassroomToast(`💡 进阶形态不能低于少年期 (Lv.${s2}) + 1 级`);
+                        return;
+                    }
+                } else if (stageNum === 4) {
+                    if (s4 > s3 + 1) s4--;
+                    else {
+                        showClassroomToast(`💡 青年期不能低于进阶形态 (Lv.${s3}) + 1 级`);
+                        return;
+                    }
+                } else if (stageNum === 5) {
+                    if (s5 > s4 + 1) s5--;
+                    else {
+                        showClassroomToast(`💡 究极神兽不能低于青年进阶 (Lv.${s4}) + 1 级`);
+                        return;
+                    }
+                }
+            }
+
+            document.getElementById('stageMinLevel2').value = s2;
+            document.getElementById('stageMinLevel3').value = s3;
+            document.getElementById('stageMinLevel4').value = s4;
+            document.getElementById('stageMinLevel5').value = s5;
+            updateStageEvolutionPreview();
+        }
+
+        function stepThreshLevel(l, delta) {
+            const input = document.getElementById(`thresh_input_${l}`);
+            if (!input) return;
+            let val = parseInt(input.value, 10) || 0;
+            val = Math.max(1, Math.min(99999, val + delta));
+            input.value = val;
+            if (l === 1) {
+                const prevH = document.getElementById('prevHatchExp');
+                if (prevH) prevH.textContent = val;
+                const quickH = document.getElementById('quickHatchExp');
+                if (quickH) quickH.value = val;
+            }
+            updateStageEvolutionPreview();
+        }
+
+        function handleThreshManualInput(l) {
+            const input = document.getElementById(`thresh_input_${l}`);
+            if (!input) return;
+            let val = parseInt(input.value, 10);
+            if (isNaN(val) || val < 1) val = 1;
+            input.value = val;
+            if (l === 1) {
+                const prevH = document.getElementById('prevHatchExp');
+                if (prevH) prevH.textContent = val;
+                const quickH = document.getElementById('quickHatchExp');
+                if (quickH) quickH.value = val;
+            }
+            updateStageEvolutionPreview();
+        }
+
+        function renderThresholdInputs(thresholds) {
+            const grid = document.getElementById('thresholdInputsGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            for (let l = 1; l <= 20; l++) {
+                const val = thresholds[l] !== undefined ? thresholds[l] : (l * 20);
+                const card = document.createElement('div');
+                card.className = 'thresh-level-card';
+                card.innerHTML = `
+                    <span class="thresh-level-tag" id="thresh_tag_${l}">Lv.${l}</span>
+                    <div class="stepper-box mini">
+                        <button type="button" class="stepper-btn" onclick="stepThreshLevel(${l}, -5)" title="经验减少 5 分">−</button>
+                        <input type="text" id="thresh_input_${l}" value="${val}" class="stepper-val" onchange="handleThreshManualInput(${l})" />
+                        <button type="button" class="stepper-btn" onclick="stepThreshLevel(${l}, 5)" title="经验增加 5 分">+</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+            updateStageEvolutionPreview();
+        }
+
+        function applyThresholdPreset(type) {
+            let t = [0];
+            let hatch = 15;
+            let step = 20;
+            let s2 = 4, s3 = 8, s4 = 13, s5 = 20;
+
+            if (type === 'fast') {
+                hatch = 10;
+                step = 10;
+                for (let i = 1; i <= 20; i++) t.push(i * 10);
+                s2 = 3; s3 = 6; s4 = 10; s5 = 15; // 极速示范档 15 级提前封顶神兽
+            } else if (type === 'standard') {
+                hatch = 15;
+                step = 25;
+                t = [0, 15, 35, 60, 90, 125, 165, 210, 260, 315, 375, 440, 510, 585, 665, 750, 840, 935, 1035, 1140, 1250];
+                s2 = 4; s3 = 8; s4 = 13; s5 = 20;
+            } else if (type === 'regular') {
+                hatch = 15;
+                step = 20;
+                t.push(15);
+                for (let i = 2; i <= 20; i++) t.push(15 + (i - 1) * 20);
+                s2 = 4; s3 = 8; s4 = 13; s5 = 20;
+            } else if (type === 'long') {
+                hatch = 20;
+                step = 50;
+                t.push(20);
+                for (let i = 2; i <= 20; i++) t.push(20 + (i - 1) * 50);
+                s2 = 4; s3 = 8; s4 = 14; s5 = 20;
+            }
+
+            const qHatch = document.getElementById('quickHatchExp');
+            const qStep = document.getElementById('quickStepExp');
+            if (qHatch) qHatch.value = hatch;
+            if (qStep) qStep.value = step;
+            const prevH = document.getElementById('prevHatchExp');
+            if (prevH) prevH.textContent = hatch;
+
+            document.getElementById('stageMinLevel2').value = s2;
+            document.getElementById('stageMinLevel3').value = s3;
+            document.getElementById('stageMinLevel4').value = s4;
+            document.getElementById('stageMinLevel5').value = s5;
+
+            renderThresholdInputs(t);
+            updateStageEvolutionPreview();
+            showClassroomToast(`⚡ 已套用 [${type === 'fast' ? '极速示范档' : (type === 'long' ? '学年长跑档' : '学期平稳档')}] 升级规则！`);
+        }
+
+        function generateLinearThresholds(showToast = true) {
+            const hatchExp = parseInt(document.getElementById('quickHatchExp').value, 10) || 15;
+            const stepExp = parseInt(document.getElementById('quickStepExp').value, 10) || 20;
+            const t = [0, hatchExp];
+            for (let i = 2; i <= 20; i++) {
+                t.push(hatchExp + (i - 1) * stepExp);
+            }
+            const prevH = document.getElementById('prevHatchExp');
+            if (prevH) prevH.textContent = hatchExp;
+            renderThresholdInputs(t);
+            updateStageEvolutionPreview();
+            if (showToast) {
+                showClassroomToast(`⚡ 已生成：破壳 ${hatchExp} 分，每级递增 ${stepExp} 分`);
+            }
+        }
+
+        function saveCustomThresholds() {
+            const t = [0];
+            for (let l = 1; l <= 20; l++) {
+                const inp = document.getElementById(`thresh_input_${l}`);
+                const val = parseInt(inp ? inp.value : '0', 10) || 0;
+
+                // 🌟 前置单调性合法性校验：严禁经验数值倒挂或零经验跨级
+                if (val <= t[l - 1]) {
+                    showClassroomAlert(
+                        `⚠️ 经验值设置不合法：\n\nLv.${l} 的经验值 (${val}分) 必须严格大于上一级 Lv.${l - 1} (${t[l - 1]}分)！\n\n请检查并修正各等级经验的递增顺序后再保存。`,
+                        '输入验证提示',
+                        '⚠️'
+                    );
+                    if (inp) {
+                        inp.focus();
+                        inp.select();
+                        // 如果在折叠面板内，确保展开
+                        const details = document.querySelector('#modalLevelThresholds details');
+                        if (details) details.open = true;
+                    }
+                    return;
+                }
+                t.push(val);
+            }
+            const s2 = parseInt(document.getElementById('stageMinLevel2').value, 10) || 4;
+            const s3 = parseInt(document.getElementById('stageMinLevel3').value, 10) || 8;
+            const s4 = parseInt(document.getElementById('stageMinLevel4').value, 10) || 13;
+            const s5 = parseInt(document.getElementById('stageMinLevel5').value, 10) || 20;
+
+            if (!(1 < s2 && s2 < s3 && s3 < s4 && s4 < s5 && s5 <= 20)) {
+                showClassroomAlert('⚠️ 阶段门槛等级设置不合法，各阶段必须满足严格单调递增关系！', '阶段验证提示', '⚠️');
+                return;
+            }
+
+            const stages = [
+                { stage: 0, minLevel: 0, code: 'egg', name: '初始宠物蛋' },
+                { stage: 1, minLevel: 1, code: 'form1', name: '幼宠期' },
+                { stage: 2, minLevel: s2, code: 'form2', name: '少年期' },
+                { stage: 3, minLevel: s3, code: 'form3', name: '进阶形态' },
+                { stage: 4, minLevel: s4, code: 'form4', name: '青年进阶' },
+                { stage: 5, minLevel: s5, code: 'form5', name: '究极神兽' }
+            ];
+
+            const res = store.saveLevelThresholds(t, stages);
+            if (res.success) {
+                closeLevelThresholdsModal();
+                renderStudentList();
+                showClassroomToast('✅ 升级经验阈值与阶段进阶已成功更新并应用至全班！');
+            } else {
+                showClassroomAlert('保存失败: ' + res.error, '保存提示', '❌');
+            }
+        }
+
+        function resetToDefaultThresholds() {
+            showClassroomConfirm(
+                '确定要恢复为官方标准的 20 级经验阈值吗？\n恢复后全班学生将根据官方平滑进阶梯度重新计算等级。',
+                '恢复官方默认阈值',
+                () => {
+                    store.resetLevelThresholds();
+                    closeLevelThresholdsModal();
+                    renderStudentList();
+                    showClassroomToast('↺ 已恢复为官方标准等级阈值！');
+                },
+                null,
+                '↺',
+                '确认恢复',
+                'var(--accent)'
+            );
+        }
+
+        // ==========================================
+        // 🔍 左侧学生列表专属独立缩放控制器 (Strictly Scoped Zoom Controller)
+        // 严格只缩放左侧学生列表，右侧赋分面板与行为按钮保持完全独立稳定
+        // ==========================================
+        let currentStuZoom = parseFloat(localStorage.getItem('teacher_stu_list_zoom') || '1.0');
+
+        function setStudentListZoom(scale) {
+            currentStuZoom = Math.min(1.8, Math.max(0.8, Math.round(scale * 100) / 100));
+            const stuCol = document.querySelector('.student-column');
+            if (stuCol) {
+                stuCol.style.setProperty('--stu-scale', currentStuZoom);
+            }
+            const label = document.getElementById('stuZoomLabel');
+            if (label) {
+                label.textContent = `${Math.round(currentStuZoom * 100)}%`;
+            }
+            localStorage.setItem('teacher_stu_list_zoom', currentStuZoom.toString());
+        }
+
+        function changeStudentListZoom(delta) {
+            setStudentListZoom(currentStuZoom + delta);
+        }
+
+        function resetStudentListZoom() {
+            setStudentListZoom(1.0);
+        }
+
+        updateHeaderClassInfo();
+        setStudentListZoom(currentStuZoom);
+        renderStudentList();
+        renderRules();
+    </script>
+</body>
+</html>

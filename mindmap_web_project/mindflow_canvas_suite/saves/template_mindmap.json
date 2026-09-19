@@ -1,0 +1,23 @@
+{
+  "id": "tpl-mindmap-tree",
+  "projectTitle": "商业产品矩阵与思维导图",
+  "description": "核心产品维度、创作者端、企业级管线、算力中台与增长指标",
+  "updatedAt": "2026-08-28T10:00:00.000Z",
+  "nodes": [
+    { "id": "m-1", "type": "circle", "shape": "circle", "x": 100, "y": 300, "width": 230, "height": 180, "title": "🚀 核心商业产品全景", "content": "2026 战略规划与增长飞轮", "color": "cyan", "zIndex": 10 },
+    { "id": "m-2", "type": "card", "shape": "card", "x": 440, "y": 120, "width": 260, "height": 140, "title": "1. 创作者增长端", "content": "• 零门槛无限画布创作\n• TapTV 社区公式一键复用\n• 创作者激励体系", "color": "purple", "zIndex": 10 },
+    { "id": "m-3", "type": "card", "shape": "card", "x": 440, "y": 300, "width": 260, "height": 140, "title": "2. 企业级多模态管线", "content": "• 影视制作公司批量分镜\n• 电商广告秒级批量变体\n• 游戏概念美术资产库", "color": "emerald", "zIndex": 10 },
+    { "id": "m-4", "type": "card", "shape": "card", "x": 440, "y": 480, "width": 260, "height": 140, "title": "3. 算力与模型调度中台", "content": "• 多模型智能动态负载\n• 本地/私有化部署支持\n• 极速流式生成反馈", "color": "amber", "zIndex": 10 },
+    { "id": "m-5", "type": "pill", "shape": "pill", "x": 790, "y": 100, "width": 200, "height": 60, "title": "月活用户突破 100W+", "content": "", "color": "purple", "zIndex": 10 },
+    { "id": "m-6", "type": "pill", "shape": "pill", "x": 790, "y": 180, "width": 200, "height": 60, "title": "商业化转化率 +35%", "content": "", "color": "purple", "zIndex": 10 },
+    { "id": "m-7", "type": "pill", "shape": "pill", "x": 790, "y": 310, "width": 200, "height": 60, "title": "降低制作成本 70%", "content": "", "color": "emerald", "zIndex": 10 }
+  ],
+  "wires": [
+    { "id": "mw-1", "fromNode": "m-1", "fromPort": "right", "toNode": "m-2", "toPort": "left", "label": "战略支柱", "style": "bezier", "color": "purple", "animated": true },
+    { "id": "mw-2", "fromNode": "m-1", "fromPort": "right", "toNode": "m-3", "toPort": "left", "label": "核心盈利", "style": "bezier", "color": "emerald", "animated": true },
+    { "id": "mw-3", "fromNode": "m-1", "fromPort": "right", "toNode": "m-4", "toPort": "left", "label": "底层基建", "style": "bezier", "color": "amber", "animated": true },
+    { "id": "mw-4", "fromNode": "m-2", "fromPort": "right", "toNode": "m-5", "toPort": "left", "label": "目标", "style": "bezier", "color": "purple", "animated": false },
+    { "id": "mw-5", "fromNode": "m-2", "fromPort": "right", "toNode": "m-6", "toPort": "left", "label": "目标", "style": "bezier", "color": "purple", "animated": false },
+    { "id": "mw-6", "fromNode": "m-3", "fromPort": "right", "toNode": "m-7", "toPort": "left", "label": "价值", "style": "bezier", "color": "emerald", "animated": false }
+  ]
+}

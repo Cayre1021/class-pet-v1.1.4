@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="classic">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Pet V1-Lite - 全套原型与设计体系总览导航 Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root[data-theme="classic"] {
+            --bg-primary: #FFFEF9;
+            --bg-secondary: #F5F3EF;
+            --text-primary: #0A0A0A;
+            --text-secondary: #525252;
+            --border: #0A0A0A;
+            --accent: #0066FF;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #34C759;
+            --warning: #FFD60A;
+            --error: #FF3B30;
+            --tag-bg: #E8F0FE;
+            --shadow-color: #0A0A0A;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #121212;
+            --bg-secondary: #1E1E1E;
+            --text-primary: #F0F0F0;
+            --text-secondary: #A0A0A0;
+            --border: #333333;
+            --accent: #00D9FF;
+            --accent-text: #0A0A0A;
+            --card-bg: #1A1A1A;
+            --success: #00FF88;
+            --warning: #FFE500;
+            --error: #FF0055;
+            --tag-bg: #222222;
+            --shadow-color: #000000;
+        }
+
+        :root[data-theme="orange"] {
+            --bg-primary: #FFF9F5;
+            --bg-secondary: #FFE8DC;
+            --text-primary: #1A0A00;
+            --text-secondary: #664433;
+            --border: #1A0A00;
+            --accent: #FF5722;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #4CAF50;
+            --warning: #FFC107;
+            --error: #D32F2F;
+            --tag-bg: #FFECE2;
+            --shadow-color: #1A0A00;
+        }
+
+        :root[data-theme="forest"] {
+            --bg-primary: #F5F9F5;
+            --bg-secondary: #E8F5E9;
+            --text-primary: #0D3B0D;
+            --text-secondary: #2E5A2E;
+            --border: #0D3B0D;
+            --accent: #2E7D32;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #66BB6A;
+            --warning: #FFA726;
+            --error: #E53935;
+            --tag-bg: #E8F5E9;
+            --shadow-color: #0D3B0D;
+        }
+
+        :root[data-theme="ocean"] {
+            --bg-primary: #F5F9FF;
+            --bg-secondary: #E3F2FD;
+            --text-primary: #0A1A3B;
+            --text-secondary: #2C4A7A;
+            --border: #0A1A3B;
+            --accent: #1976D2;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #43A047;
+            --warning: #FFB300;
+            --error: #E53935;
+            --tag-bg: #E3F2FD;
+            --shadow-color: #0A1A3B;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 32px 24px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero-banner {
+            border: 4px solid var(--border);
+            background: var(--card-bg);
+            padding: 28px 32px;
+            box-shadow: 10px 10px 0 var(--shadow-color);
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .hero-badge {
+            position: absolute;
+            top: -14px;
+            right: 32px;
+            background: var(--warning);
+            color: #0A0A0A;
+            border: 2px solid var(--border);
+            padding: 3px 12px;
+            font-weight: 900;
+            font-size: 12px;
+            font-family: monospace;
+            transform: rotate(2deg);
+        }
+
+        .hero-title {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+        }
+
+        .hero-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            font-family: monospace;
+        }
+
+        .section-header-tag {
+            font-size: 16px;
+            font-weight: 900;
+            margin: 28px 0 16px;
+            font-family: monospace;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            padding: 4px 14px;
+            display: inline-block;
+            border: 2px solid var(--border);
+        }
+
+        .hub-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+        }
+
+        .hub-card {
+            border: 3.5px solid var(--border);
+            background: var(--card-bg);
+            padding: 22px;
+            box-shadow: 6px 6px 0 var(--shadow-color);
+            text-decoration: none;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.12s, box-shadow 0.12s;
+            position: relative;
+        }
+
+        .hub-card:hover {
+            transform: translate(-3px, -3px);
+            box-shadow: 10px 10px 0 var(--shadow-color);
+        }
+
+        .hub-card.special {
+            background: var(--tag-bg);
+            border-color: var(--accent);
+        }
+
+        .card-tag {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 900;
+            font-family: monospace;
+            padding: 2px 6px;
+            border: 1.5px solid var(--border);
+            margin-bottom: 8px;
+            background: var(--bg-secondary);
+        }
+
+        .card-heading {
+            font-size: 18px;
+            font-weight: 900;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        .card-link-text {
+            font-weight: 900;
+            font-size: 13px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .doc-list-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+        }
+
+        .doc-item-box {
+            border: 2.5px solid var(--border);
+            background: var(--card-bg);
+            padding: 12px 14px;
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.1s;
+        }
+
+        .doc-item-box:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0 var(--shadow-color);
+            background: var(--tag-bg);
+        }
+
+        .theme-select {
+            padding: 6px 12px;
+            border: 2.5px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-weight: 900;
+            font-size: 13px;
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            outline: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- 顶部总览 Banner -->
+        <div class="hero-banner">
+            <div class="hero-badge">V1-LITE MASTER INDEX</div>
+            <div>
+                <h1 class="hero-title">班级电子宠物 V1-Lite 设计与原型总控台</h1>
+                <p class="hero-subtitle">MASTER HUB · 涵盖 5 大交互原型、5 种一体机方案、8 份架构规范与历史归档</p>
+            </div>
+            <div>
+                <label style="font-size: 12px; font-weight: 900; margin-right: 6px;">🎨 全局换肤：</label>
+                <select class="theme-select" id="themeSelect" onchange="setGlobalTheme(this.value)">
+                    <option value="classic">经典档案 (默认)</option>
+                    <option value="dark">暗夜实验室 (护眼)</option>
+                    <option value="orange">活力橙红 (低年级)</option>
+                    <option value="forest">森林绿野 (自然)</option>
+                    <option value="ocean">海洋蓝调 (理科)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 模块 1：可交互高保真原型套件 -->
+        <div class="section-header-tag">01. 🚀 INTERACTIVE PROTOTYPES (可交互高保真原型库)</div>
+        <div class="hub-grid">
+
+            <!-- 1. 一体机 5 大方案实验室 -->
+            <a href="./prototype_interactive_whiteboard_solutions.html" class="hub-card special">
+                <div>
+                    <span class="card-tag" style="background: var(--warning); color: #0A0A0A;">⭐ 核心主推实验室</span>
+                    <h3 class="card-heading">🏫 75"/86" 教室一体机 5 大方案实验室</h3>
+                    <p class="card-desc">针对教师“够不着大屏顶部”痛点，实装并内置【底部操作坞】、【双侧折叠栏】、【就地环形轮盘】、【一键屏幕下沉】与【手机遥控联动】5 种可切换体验方案。</p>
+                </div>
+                <div class="card-link-text">打开一体机方案实验室 ➔</div>
+            </a>
+
+            <!-- 2. 学生大屏展示 -->
+            <a href="./prototype_neo_brutalism_display.html" class="hub-card">
+                <div>
+                    <span class="card-tag">42人满屏网格</span>
+                    <h3 class="card-heading">🖥️ 学生大屏展示 (42人全班全景)</h3>
+                    <p class="card-desc">7×6 精密满屏黄金比例卡片，全屏沉浸展示。包含 C 位聚光升级动效、终极满级烟花暗化特效、学科宠物切换与 6 项互动冷却。</p>
+                </div>
+                <div class="card-link-text">打开学生大屏原型 ➔</div>
+            </a>
+
+            <!-- 3. 教师操作台 -->
+            <a href="./prototype_neo_brutalism_teacher.html" class="hub-card">
+                <div>
+                    <span class="card-tag">批量赋分 + 3分钟UNDO</span>
+                    <h3 class="card-heading">⚡ 教师赋分工作台 (42人标准版)</h3>
+                    <p class="card-desc">42 人列表搜索与多选、正负向快捷批量赋分、3 分钟浮动倒计时撤销、操作审计日志抽屉、花名册导入与备份弹窗。</p>
+                </div>
+                <div class="card-link-text">打开教师操作台原型 ➔</div>
+            </a>
+
+            <!-- 4. 登录认证与 Portal -->
+            <a href="./prototype_portal_and_auth.html" class="hub-card">
+                <div>
+                    <span class="card-tag">LOCAL AUTH & PORTAL</span>
+                    <h3 class="card-heading">🌐 登录认证与主控制台 (Portal)</h3>
+                    <p class="card-desc">本地教师多账号管理、创建新班级账号、密码重置（应急码 123456）与进入主页双核心导航。</p>
+                </div>
+                <div class="card-link-text">打开登录与主页原型 ➔</div>
+            </a>
+
+            <!-- 5. 状态规范库 -->
+            <a href="./prototype_states_gallery.html" class="hub-card">
+                <div>
+                    <span class="card-tag">SYSTEM STATES</span>
+                    <h3 class="card-heading">📭 系统状态与异常规范库 (States)</h3>
+                    <p class="card-desc">无学生/无宠物空状态 (Empty)、条纹骨架屏加载 (Loading)、学号冲突与数据库锁定等异常拦截 (Error)。</p>
+                </div>
+                <div class="card-link-text">打开状态库原型 ➔</div>
+            </a>
+
+        </div>
+
+        <!-- 模块 2：架构设计与生产规范文档 -->
+        <div class="section-header-tag">02. 📚 DESIGN SPECS & GUIDELINES (规范与指引文档)</div>
+        <div class="doc-list-grid">
+            <a href="./08_pet_gif_assets_specification.md" class="doc-item-box">
+                <span>🐾 宠物 GIF 动态素材规范与生产指引</span>
+                <span style="color: var(--accent);">.md ➔</span>
+            </a>
+            <a href="./07_color_themes.md" class="doc-item-box">
+                <span>🎨 5 套 Neo-Brutalism 主题配色规范</span>
+                <span style="color: var(--accent);">.md ➔</span>
+            </a>
+            <a href="./06_neo_brutalism_design_system.md" class="doc-item-box">
+                <span>📐 新粗野主义设计系统核心规范</span>
+                <span style="color: var(--accent);">.md ➔</span>
+            </a>
+            <a href="./03_display_and_celebration.md" class="doc-item-box">
+                <span>🎆 大屏展示与 C 位庆祝动效规范</span>
+                <span style="color: var(--accent);">.md ➔</span>
+            </a>
+            <a href="./02_teacher_core_flows.md" class="doc-item-box">
+                <span>🔄 教师核心流程与撤销机制设计</span>
+                <span style="color: var(--accent);">.md ➔</span>
+            </a>
+            <a href="./01_information_architecture.md" class="doc-item-box">
+                <span>🏗️ 信息架构与导航层级结构</span>
+                <span style="color: var(--accent);">.md ➔</span>
+            </a>
+            <a href="./04_design_tokens.md" class="doc-item-box">
+                <span>🏷️ 设计令牌 (Design Tokens) 规范</span>
+                <span style="color: var(--accent);">.md ➔</span>
+            </a>
+            <a href="./REVIEW_SUMMARY.md" class="doc-item-box">
+                <span>📋 UI 探索全量交付报告 (Final)</span>
+                <span style="color: var(--accent);">.md ➔</span>
+            </a>
+        </div>
+
+        <!-- 模块 3：历史归档与截图验证 -->
+        <div class="section-header-tag">03. 🗄️ ARCHIVE & SCREENSHOTS (历史归档与核验截图)</div>
+        <div class="doc-list-grid">
+            <a href="../../codex_dialogue_archive/README_MASTER_ARCHIVE_INDEX.md" class="doc-item-box" style="background: #FFFBEB;">
+                <span>📑 Codex 8 大历史会话转录总库</span>
+                <span style="color: #B45309;">Archive ➔</span>
+            </a>
+            <a href="./screenshots_verified/01_whiteboard_lab_dock.png" class="doc-item-box">
+                <span>📸 01_一体机实验室 1080P 快照</span>
+                <span style="color: var(--text-secondary);">.png ➔</span>
+            </a>
+            <a href="./screenshots_verified/02_student_bigscreen_42cards.png" class="doc-item-box">
+                <span>📸 02_42人满屏大屏 1080P 快照</span>
+                <span style="color: var(--text-secondary);">.png ➔</span>
+            </a>
+            <a href="./screenshots_verified/03_teacher_panel.png" class="doc-item-box">
+                <span>📸 03_教师工作台 1080P 快照</span>
+                <span style="color: var(--text-secondary);">.png ➔</span>
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+        function setGlobalTheme(t) {
+            document.documentElement.setAttribute('data-theme', t);
+            localStorage.setItem('nb_selected_theme', t);
+        }
+
+        const saved = localStorage.getItem('nb_selected_theme') || 'classic';
+        document.documentElement.setAttribute('data-theme', saved);
+        document.getElementById('themeSelect').value = saved;
+    </script>
+</body>
+</html>

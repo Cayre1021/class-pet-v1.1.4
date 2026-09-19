@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="classic">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Pet V1-Lite - 课堂实战高保真原型总控台 (一体机触控版本对比专区)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="classic"] {
+            --bg-primary: #FFFEF9;
+            --bg-secondary: #F5F3EF;
+            --text-primary: #0A0A0A;
+            --text-secondary: #525252;
+            --border: #0A0A0A;
+            --accent: #0066FF;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #16A34A;
+            --warning: #FFD60A;
+            --error: #FF3B30;
+            --tag-bg: #E8F0FE;
+            --shadow-color: #0A0A0A;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 30px 24px;
+            user-select: none;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .hero-banner {
+            border: 3.5px solid var(--border);
+            background: var(--card-bg);
+            padding: 24px 30px;
+            box-shadow: 8px 8px 0 var(--shadow-color);
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .hero-badge {
+            position: absolute;
+            top: -12px;
+            right: 24px;
+            background: var(--warning);
+            color: #0A0A0A;
+            border: 2px solid var(--border);
+            padding: 2px 12px;
+            font-weight: 900;
+            font-size: 11px;
+            font-family: monospace;
+        }
+
+        .dual-screen-guide-card {
+            background: #EFF6FF;
+            border: 3px solid var(--accent);
+            box-shadow: 6px 6px 0 var(--shadow-color);
+            padding: 18px 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-tag {
+            font-size: 14px;
+            font-weight: 900;
+            margin: 26px 0 12px;
+            font-family: monospace;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            padding: 4px 14px;
+            display: inline-block;
+            border: 2px solid var(--border);
+        }
+
+        .hub-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 16px;
+        }
+
+        .hub-card {
+            border: 3px solid var(--border);
+            background: var(--card-bg);
+            padding: 20px;
+            box-shadow: 5px 5px 0 var(--shadow-color);
+            text-decoration: none;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.1s;
+        }
+        .hub-card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--shadow-color); }
+        .hub-card.star { background: var(--tag-bg); border-color: var(--accent); }
+        .hub-card.version-b { background: #FEF3C7; border-color: #B45309; }
+        .hub-card.version-a { background: #F0FDF4; border-color: #166534; }
+
+        .card-tag {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 900;
+            font-family: monospace;
+            padding: 2px 8px;
+            border: 1.5px solid var(--border);
+            margin-bottom: 8px;
+            background: var(--bg-secondary);
+        }
+
+        .card-heading { font-size: 17px; font-weight: 900; margin-bottom: 6px; }
+        .card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px; }
+        .card-link { font-weight: 900; font-size: 13px; color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- 顶部主标题 -->
+        <div class="hero-banner">
+            <div class="hero-badge">V2 CLASSROOM FULL SUITE</div>
+            <div>
+                <h1 style="font-size: 26px; font-weight: 900;">Class Pet 课堂实战高保真原型总控台</h1>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-top: 5px; font-family: monospace;">
+                    5套主题完备修复 · 丝滑圆形扩散转场 · 针对教室一体机大白板触控的人体工学双版本实测
+                </p>
+            </div>
+        </div>
+
+        <!-- 双版本设计决策指引 -->
+        <div class="dual-screen-guide-card">
+            <h3 style="font-size: 16px; font-weight: 900; color: #1E40AF; margin-bottom: 6px;">
+                🎯 教室一体机“按钮在顶部够不着 / 触控靶区小”的两种解决方案实测：
+            </h3>
+            <p style="font-size: 13px; color: #1E3A8A; line-height: 1.7;">
+                • <strong>版本 A (整体放大 1.5 倍)</strong>：整个大屏和教师操作台等比拉大 150%，字体与卡片更醒目，适合远距离观看；<br>
+                • <strong>版本 B (顶部横条与高频操作区针对性大靶区强化) [强烈推荐]</strong>：保持 42 名学生一览无余无需滚屏，将顶部操作横条加高至 64~68px、按键加大至 48px 大靶区，配合右下角 38% 沉降与中央底部操作坞，一体机点按百发百中！
+            </p>
+        </div>
+
+        <!-- 模块 1：🌟 版本 B (顶部横条与触控大靶区强化版) -->
+        <div class="section-tag">01. 🌟 版本 B：顶部操作横条与高频按键大靶区强化版 [推荐]</div>
+        <div class="hub-grid">
+            <a href="./display_bigscreen_touch_pro.html" class="hub-card version-b">
+                <div>
+                    <span class="card-tag" style="background: #F59E0B; color: #000;">⭐ 顶部横条64px + 触控大靶区44px + 沉降 + 5套主题</span>
+                    <h3 class="card-heading">🖥️ 学生大屏 (版本B: 触控大靶区强化版)</h3>
+                    <p class="card-desc">顶部横条加高至 64px，升级/抽选/模式切换按键加高至 44px，底部 Touch Dock 强化至 60px，右下角一键沉降，42 人全屏竖版卡片一览无余。</p>
+                </div>
+                <div class="card-link" style="color: #B45309;">打开版本 B 学生大屏 ➔</div>
+            </a>
+
+            <a href="./teacher_panel_touch_pro.html" class="hub-card version-b">
+                <div>
+                    <span class="card-tag" style="background: #F59E0B; color: #000;">⭐ 顶部横条68px + 72px赋分卡片 + 考勤置灰 + 审计</span>
+                    <h3 class="card-heading">⚡ 教师操作台 (版本B: 触控大靶区强化版)</h3>
+                    <p class="card-desc">顶部横条加高至 68px，撤销/抽选/考勤/Excel按键全部加高至 48px；右侧加减分卡片加高至 72px，超大触控靶区，手指点按毫不费力。</p>
+                </div>
+                <div class="card-link" style="color: #B45309;">打开版本 B 教师工作台 ➔</div>
+            </a>
+        </div>
+
+        <!-- 模块 2：📐 版本 A (整体等比放大 1.5 倍版) -->
+        <div class="section-tag">02. 📐 版本 A：整体等比放大 1.5 倍版</div>
+        <div class="hub-grid">
+            <a href="./display_bigscreen_zoom150.html" class="hub-card version-a">
+                <div>
+                    <span class="card-tag" style="background: #16A34A; color: white;">整体 150% 等比放大</span>
+                    <h3 class="card-heading">🖥️ 学生大屏 (版本A: 整体1.5x放大版)</h3>
+                    <p class="card-desc">画面全局缩放 1.5 倍，学生宠物大卡片、文字与经验条更大，适合阶梯教室远距离观察。</p>
+                </div>
+                <div class="card-link" style="color: #166534;">打开版本 A 学生大屏 ➔</div>
+            </a>
+
+            <a href="./teacher_panel_zoom150.html" class="hub-card version-a">
+                <div>
+                    <span class="card-tag" style="background: #16A34A; color: white;">整体 150% 等比放大</span>
+                    <h3 class="card-heading">⚡ 教师操作台 (版本A: 整体1.5x放大版)</h3>
+                    <p class="card-desc">操作台全局缩放 1.5 倍，左侧名册与右侧赋分按钮等比放大，触控更直观。</p>
+                </div>
+                <div class="card-link" style="color: #166534;">打开版本 A 教师工作台 ➔</div>
+            </a>
+        </div>
+
+        <!-- 模块 3：标准版与基础核心页面 -->
+        <div class="section-tag">03. 🚀 标准核心原型页面 (已修复5套主题与圆形扩散转场)</div>
+        <div class="hub-grid">
+            <a href="./display_bigscreen.html" class="hub-card star">
+                <div>
+                    <span class="card-tag" style="background: var(--accent); color: white;">标准基准版 · 5套主题修复 · 丝滑圆形扩散</span>
+                    <h3 class="card-heading">🖥️ 学生大屏展示 (标准高保真版)</h3>
+                    <p class="card-desc">已彻底修复活力橙红/森林绿野/海洋蓝调丢失边框Bug，搭载原生 View Transitions 丝滑圆形扩散全屏遮罩转场，含全屏烟花与沉降。</p>
+                </div>
+                <div class="card-link">打开标准学生大屏 ➔</div>
+            </a>
+
+            <a href="./teacher_panel.html" class="hub-card star">
+                <div>
+                    <span class="card-tag" style="background: #16A34A; color: white;">Excel表头智能解析 · 考勤模式 · 静音免打扰</span>
+                    <h3 class="card-title">教师赋分工作台 (全功能完备旗舰版)</h3>
+                    <p class="card-desc">支持 Excel 表格表头模糊识别与导入、标准模板下载、考勤请假置灰、常驻撤销、静音模式扣分免打扰与 4 大组划分。</p>
+                </div>
+                <div class="card-link">打开标准教师工作台 ➔</div>
+            </a>
+
+            <a href="./portal_auth.html" class="hub-card">
+                <div>
+                    <span class="card-tag">LOCAL AUTH & HUB (保持锁定)</span>
+                    <h3 class="card-heading">🌐 教师登录认证与班级管理门户</h3>
+                    <p class="card-desc">本地多教师独立账号隔离、创建新班级两步向导、123456 应急密码重置与离线控制台。</p>
+                </div>
+                <div class="card-link">打开登录门户 ➔</div>
+            </a>
+
+            <a href="./system_states.html" class="hub-card">
+                <div>
+                    <span class="card-tag">SYSTEM STATES (已按要求锁定)</span>
+                    <h3 class="card-heading">📭 系统状态与异常规范库</h3>
+                    <p class="card-desc">已按要求锁定：包含空状态、骨架屏加载、网络离线警告、学号冲突报错与 SQLite 锁定拦截规范。</p>
+                </div>
+                <div class="card-link">打开状态规范库 ➔</div>
+            </a>
+        </div>
+
+    </div>
+
+</body>
+</html>

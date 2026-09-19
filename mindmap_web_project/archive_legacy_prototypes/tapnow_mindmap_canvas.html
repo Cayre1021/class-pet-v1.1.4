@@ -1,0 +1,2458 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>TapNow Canvas · 智能节点式思维导图与无限画布</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- html2canvas for high-res snapshot export -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans SC', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['Fira Code', 'monospace']
+          },
+          colors: {
+            canvas: {
+              base: '#08090d',
+              grid: '#1a1d27',
+              panel: '#12141c',
+              card: '#161922',
+              cardHover: '#1c202c',
+              border: '#262a38',
+              borderHover: '#3b4259',
+              accent: '#38bdf8',
+              glow: 'rgba(56, 189, 248, 0.15)',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    input, textarea, [contenteditable="true"] {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a2f42; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3b425b; }
+
+    /* Canvas Grid background */
+    #canvas-container {
+      background-color: #08090d;
+      background-image: 
+        radial-gradient(circle at 1.5px 1.5px, rgba(255, 255, 255, 0.12) 1.2px, transparent 0);
+      background-size: 32px 32px;
+      cursor: crosshair;
+    }
+    #canvas-container.tool-select { cursor: default; }
+    #canvas-container.tool-pan { cursor: grab; }
+    #canvas-container.tool-pan:active { cursor: grabbing; }
+    #canvas-container.connecting { cursor: crosshair; }
+
+    /* Floating UI Glassmorphism */
+    .glass-panel {
+      background: rgba(18, 20, 28, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+    }
+    .glass-panel-subtle {
+      background: rgba(22, 25, 34, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    /* Node glow & themes */
+    .node-theme-cyan { --node-accent: #38bdf8; --node-glow: rgba(56, 189, 248, 0.25); --node-bg: rgba(15, 23, 42, 0.92); }
+    .node-theme-purple { --node-accent: #a855f7; --node-glow: rgba(168, 85, 247, 0.25); --node-bg: rgba(24, 16, 44, 0.92); }
+    .node-theme-emerald { --node-accent: #10b981; --node-glow: rgba(16, 185, 129, 0.25); --node-bg: rgba(6, 30, 24, 0.92); }
+    .node-theme-amber { --node-accent: #f59e0b; --node-glow: rgba(245, 158, 11, 0.25); --node-bg: rgba(36, 25, 8, 0.92); }
+    .node-theme-rose { --node-accent: #f43f5e; --node-glow: rgba(244, 63, 94, 0.25); --node-bg: rgba(38, 12, 22, 0.92); }
+    .node-theme-blue { --node-accent: #6366f1; --node-glow: rgba(99, 102, 241, 0.25); --node-bg: rgba(20, 20, 50, 0.92); }
+    .node-theme-slate { --node-accent: #94a3b8; --node-glow: rgba(148, 163, 184, 0.15); --node-bg: rgba(24, 28, 38, 0.92); }
+
+    /* Node Box Base */
+    .canvas-node {
+      position: absolute;
+      transform-origin: 0 0;
+      transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.05s ease;
+    }
+    .canvas-node:hover {
+      box-shadow: 0 12px 35px -8px rgba(0, 0, 0, 0.7), 0 0 20px var(--node-glow, rgba(56, 189, 248, 0.15));
+      border-color: rgba(255, 255, 255, 0.25) !important;
+    }
+    .canvas-node.is-selected {
+      box-shadow: 0 15px 40px -5px rgba(0, 0, 0, 0.8), 0 0 0 2px var(--node-accent, #38bdf8), 0 0 28px var(--node-glow, rgba(56, 189, 248, 0.4)) !important;
+      border-color: var(--node-accent, #38bdf8) !important;
+    }
+
+    /* Connection Ports (Handles) */
+    .port-handle {
+      position: absolute;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #1e2330;
+      border: 2px solid #64748b;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: opacity 0.15s ease, transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+      cursor: crosshair;
+      z-index: 20;
+    }
+    .canvas-node:hover .port-handle,
+    .canvas-node.is-selected .port-handle,
+    #canvas-container.connecting .port-handle {
+      opacity: 0.85;
+    }
+    .port-handle:hover {
+      opacity: 1 !important;
+      transform: translate(-50%, -50%) scale(1.45);
+      background: #38bdf8;
+      border-color: #ffffff;
+      box-shadow: 0 0 12px #38bdf8;
+    }
+
+    /* Animated Wire Stroke */
+    @keyframes wireFlow {
+      from { stroke-dashoffset: 24; }
+      to { stroke-dashoffset: 0; }
+    }
+    .wire-flow-anim {
+      stroke-dasharray: 6 6;
+      animation: wireFlow 0.8s linear infinite;
+    }
+
+    /* Sticky Note folded corner */
+    .sticky-note-corner::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 18px;
+      height: 18px;
+      background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.3) 50%);
+      pointer-events: none;
+    }
+
+    /* Marquee Selection Box */
+    #selection-marquee {
+      position: absolute;
+      border: 1px solid #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+      pointer-events: none;
+      z-index: 900;
+      display: none;
+    }
+
+    /* Inline Edit */
+    .inline-editor {
+      outline: none;
+      background: transparent;
+      word-break: break-word;
+    }
+  </style>
+</head>
+
+<body class="bg-canvas-base text-slate-200 overflow-hidden w-screen h-screen m-0 p-0 font-sans select-none">
+
+  <!-- ================= TOP HEADER BAR ================= -->
+  <header class="fixed top-3 left-4 right-4 z-50 flex items-center justify-between pointer-events-none">
+    
+    <!-- Left: App Brand & Project Title -->
+    <div class="flex items-center space-x-3 pointer-events-auto">
+      <div class="glass-panel px-3.5 py-2 rounded-xl flex items-center space-x-3">
+        <!-- Logo -->
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 via-indigo-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+            <i data-lucide="sparkles" class="w-4 h-4 text-white"></i>
+          </div>
+          <div class="flex flex-col">
+            <div class="flex items-center space-x-1.5">
+              <span class="font-bold text-sm tracking-wide text-white">TapNow Canvas</span>
+              <span class="text-[10px] px-1.5 py-0.2 font-mono uppercase rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">MindFlow</span>
+            </div>
+            <span class="text-[10px] text-slate-400">Agentic Node & Mindmap</span>
+          </div>
+        </div>
+
+        <div class="h-5 w-px bg-white/10"></div>
+
+        <!-- Editable Project Title -->
+        <div class="flex items-center space-x-1.5">
+          <input id="project-title-input" type="text" value="新创意思维导图 · 无限画布" 
+            class="bg-transparent border-b border-transparent hover:border-slate-600 focus:border-cyan-400 focus:bg-white/5 rounded px-1.5 py-0.5 text-xs text-slate-200 font-medium outline-none transition w-44">
+        </div>
+      </div>
+
+      <!-- History & Quick Ops -->
+      <div class="glass-panel px-2 py-1.5 rounded-xl flex items-center space-x-1">
+        <button id="btn-undo" title="撤销 (Ctrl+Z)" class="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition disabled:opacity-30">
+          <i data-lucide="undo-2" class="w-4 h-4"></i>
+        </button>
+        <button id="btn-redo" title="重做 (Ctrl+Y / Shift+Ctrl+Z)" class="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition disabled:opacity-30">
+          <i data-lucide="redo-2" class="w-4 h-4"></i>
+        </button>
+        <div class="h-4 w-px bg-white/10 mx-0.5"></div>
+        <button id="btn-auto-layout" title="智能自动排版 (整理为树状导图)" class="flex items-center space-x-1 px-2.5 py-1 text-xs text-cyan-300 hover:bg-cyan-500/15 rounded-lg border border-cyan-500/20 transition">
+          <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
+          <span>一键整理</span>
+        </button>
+        <button id="btn-snap-grid" title="切换网格对齐吸附" class="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition">
+          <i data-lucide="grid" class="w-4 h-4 text-cyan-400"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: Templates, Export, Zoom & Actions -->
+    <div class="flex items-center space-x-3 pointer-events-auto">
+      
+      <!-- Preset Templates Menu -->
+      <div class="relative">
+        <button id="btn-templates-toggle" class="glass-panel px-3 py-2 rounded-xl flex items-center space-x-2 text-xs text-slate-300 hover:text-white hover:border-white/20 transition">
+          <i data-lucide="layout-template" class="w-4 h-4 text-indigo-400"></i>
+          <span>预置模板</span>
+          <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+        </button>
+
+        <!-- Template dropdown -->
+        <div id="templates-dropdown" class="hidden absolute right-0 mt-2 w-64 glass-panel p-2 rounded-2xl shadow-2xl border border-white/10 flex flex-col space-y-1 z-50">
+          <div class="px-2 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">选择画布模板</div>
+          <button data-template="tapnow_ai" class="flex items-start space-x-2.5 p-2 rounded-xl hover:bg-white/10 text-left transition">
+            <div class="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-400"><i data-lucide="cpu" class="w-4 h-4"></i></div>
+            <div>
+              <div class="text-xs font-semibold text-white">TapNow AI 创意流</div>
+              <div class="text-[10px] text-slate-400">Script -> Camera -> AI Video 节点编排</div>
+            </div>
+          </button>
+          <button data-template="mindmap_tree" class="flex items-start space-x-2.5 p-2 rounded-xl hover:bg-white/10 text-left transition">
+            <div class="p-1.5 rounded-lg bg-purple-500/20 text-purple-400"><i data-lucide="network" class="w-4 h-4"></i></div>
+            <div>
+              <div class="text-xs font-semibold text-white">产品商业思维导图</div>
+              <div class="text-[10px] text-slate-400">核心论点、发散分支与多级脉络</div>
+            </div>
+          </button>
+          <button data-template="decision_arch" class="flex items-start space-x-2.5 p-2 rounded-xl hover:bg-white/10 text-left transition">
+            <div class="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400"><i data-lucide="git-fork" class="w-4 h-4"></i></div>
+            <div>
+              <div class="text-xs font-semibold text-white">系统架构与决策树</div>
+              <div class="text-[10px] text-slate-400">条件判断、方块服务与正交流向</div>
+            </div>
+          </button>
+          <button data-template="blank" class="flex items-start space-x-2.5 p-2 rounded-xl hover:bg-white/10 text-left transition">
+            <div class="p-1.5 rounded-lg bg-slate-700 text-slate-300"><i data-lucide="file-plus" class="w-4 h-4"></i></div>
+            <div>
+              <div class="text-xs font-semibold text-white">清空为纯净空白画布</div>
+              <div class="text-[10px] text-slate-400">从零自由创作</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Zoom & Viewport Controls -->
+      <div class="glass-panel px-2.5 py-1.5 rounded-xl flex items-center space-x-1.5 text-xs">
+        <button id="btn-zoom-out" title="缩小" class="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded transition">
+          <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+        </button>
+        <span id="zoom-level-label" class="font-mono text-slate-300 min-w-[42px] text-center font-medium">100%</span>
+        <button id="btn-zoom-in" title="放大" class="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded transition">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+        </button>
+        <div class="h-4 w-px bg-white/10 mx-0.5"></div>
+        <button id="btn-fit-view" title="适应屏幕 (居中全部节点)" class="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded transition">
+          <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <!-- Export Action Button -->
+      <button id="btn-open-export" class="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-cyan-500/25 transition transform active:scale-95">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        <span>导出图片 / 数据</span>
+      </button>
+
+      <!-- Quick Help -->
+      <button id="btn-toggle-help" title="快捷键与使用指南" class="glass-panel p-2 rounded-xl text-slate-400 hover:text-white hover:border-white/20 transition">
+        <i data-lucide="help-circle" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+
+  <!-- ================= MAIN VIEWPORT & INFINITE CANVAS ================= -->
+  <main id="canvas-viewport" class="relative w-screen h-screen overflow-hidden select-none">
+    
+    <!-- Coordinate Transform Canvas Layer -->
+    <div id="canvas-container" class="absolute top-0 left-0 w-full h-full transform-origin-0-0">
+      
+      <!-- Canvas World Container (Pan & Zoom applied here) -->
+      <div id="canvas-world" class="absolute top-0 left-0" style="transform: translate(0px, 0px) scale(1);">
+        
+        <!-- SVG Connections Layer -->
+        <svg id="svg-connections-layer" class="absolute top-0 left-0 overflow-visible pointer-events-none z-10" style="width: 1px; height: 1px;">
+          <defs>
+            <!-- Arrow markers -->
+            <marker id="arrow-cyan" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8" />
+            </marker>
+            <marker id="arrow-purple" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#a855f7" />
+            </marker>
+            <marker id="arrow-emerald" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#10b981" />
+            </marker>
+            <marker id="arrow-amber" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f59e0b" />
+            </marker>
+            <marker id="arrow-rose" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f43f5e" />
+            </marker>
+            <marker id="arrow-slate" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#64748b" />
+            </marker>
+          </defs>
+
+          <!-- Group for rendered wire paths & labels -->
+          <g id="wires-group" class="pointer-events-auto"></g>
+
+          <!-- Interactive Live Dragging Wire -->
+          <path id="temp-drag-wire" class="wire-flow-anim" d="" fill="none" stroke="#38bdf8" stroke-width="2.5" opacity="0" marker-end="url(#arrow-cyan)"></path>
+        </svg>
+
+        <!-- HTML Nodes Layer -->
+        <div id="nodes-layer" class="absolute top-0 left-0 z-20"></div>
+
+        <!-- Frame / Groups Layer (Lower z-index) -->
+        <div id="frames-layer" class="absolute top-0 left-0 z-0"></div>
+
+      </div>
+
+      <!-- Marquee Multi-Select Box -->
+      <div id="selection-marquee"></div>
+
+    </div>
+
+  </main>
+
+
+  <!-- ================= FLOATING BOTTOM DOCK / TOOLBAR ================= -->
+  <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center space-x-1.5 p-1.5 rounded-2xl glass-panel shadow-2xl border border-white/10">
+    
+    <!-- Tool: Select / Cursor -->
+    <button data-tool="select" title="选择与拖拽模式 (V)" class="dock-tool-btn active flex flex-col items-center justify-center w-11 h-11 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="mouse-pointer" class="w-5 h-5"></i>
+      <span class="text-[9px] mt-0.5 opacity-70">选择</span>
+    </button>
+
+    <!-- Tool: Hand / Pan -->
+    <button data-tool="pan" title="画布平移抓手 (H / 空格拖拽)" class="dock-tool-btn flex flex-col items-center justify-center w-11 h-11 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="hand" class="w-5 h-5"></i>
+      <span class="text-[9px] mt-0.5 opacity-70">抓手</span>
+    </button>
+
+    <div class="h-6 w-px bg-white/10 mx-1"></div>
+
+    <!-- Create: Card Node (Standard Topic) -->
+    <button data-create="card" title="新建圆角主题卡片 (C)" class="dock-tool-btn flex flex-col items-center justify-center w-11 h-11 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="square" class="w-5 h-5 text-cyan-400"></i>
+      <span class="text-[9px] mt-0.5 opacity-70">卡片</span>
+    </button>
+
+    <!-- Create: Circle / Ellipse (Mind Idea Bubble) -->
+    <button data-create="circle" title="新建圆形/椭圆思维节点 (O)" class="dock-tool-btn flex flex-col items-center justify-center w-11 h-11 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="circle" class="w-5 h-5 text-purple-400"></i>
+      <span class="text-[9px] mt-0.5 opacity-70">椭圆</span>
+    </button>
+
+    <!-- Create: Rectangle (Module Block) -->
+    <button data-create="rect" title="新建矩形方格 (R)" class="dock-tool-btn flex flex-col items-center justify-center w-11 h-11 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="box" class="w-5 h-5 text-emerald-400"></i>
+      <span class="text-[9px] mt-0.5 opacity-70">方格</span>
+    </button>
+
+    <!-- Create: Diamond (Decision / Logic) -->
+    <button data-create="diamond" title="新建菱形逻辑/分支 (D)" class="dock-tool-btn flex flex-col items-center justify-center w-11 h-11 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="diamond" class="w-5 h-5 text-amber-400"></i>
+      <span class="text-[9px] mt-0.5 opacity-70">菱形</span>
+    </button>
+
+    <!-- Create: Sticky Note (Tactile Note) -->
+    <button data-create="sticky" title="新建便签贴纸 (N)" class="dock-tool-btn flex flex-col items-center justify-center w-11 h-11 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="sticky-note" class="w-5 h-5 text-yellow-300"></i>
+      <span class="text-[9px] mt-0.5 opacity-70">便签</span>
+    </button>
+
+    <!-- Create: Pill Capsule (Tags) -->
+    <button data-create="pill" title="新建胶囊标签 (P)" class="dock-tool-btn flex flex-col items-center justify-center w-11 h-11 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="tag" class="w-5 h-5 text-rose-400"></i>
+      <span class="text-[9px] mt-0.5 opacity-70">胶囊</span>
+    </button>
+
+    <!-- Create: Section / Frame Group -->
+    <button data-create="frame" title="新建分组框架 / Chapter Group (F)" class="dock-tool-btn flex flex-col items-center justify-center w-11 h-11 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="boxes" class="w-5 h-5 text-indigo-400"></i>
+      <span class="text-[9px] mt-0.5 opacity-70">分组框</span>
+    </button>
+
+    <!-- Create: TapNow AI Flow Node -->
+    <button data-create="ai_prompt" title="新建 TapNow AI 节点 (A)" class="dock-tool-btn flex flex-col items-center justify-center w-11 h-11 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="bot" class="w-5 h-5 text-fuchsia-400"></i>
+      <span class="text-[9px] mt-0.5 opacity-70">AI节点</span>
+    </button>
+
+    <div class="h-6 w-px bg-white/10 mx-1"></div>
+
+    <!-- Quick Mindmap Branch Button -->
+    <button id="btn-add-mind-branch" title="一键为当前选中节点新建连接分支 (Tab)" class="flex items-center space-x-1 px-3 h-11 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 transition">
+      <i data-lucide="plus-circle" class="w-4 h-4"></i>
+      <span class="text-xs font-medium">扩展分支</span>
+      <kbd class="text-[9px] px-1 bg-black/40 rounded border border-cyan-500/20 text-cyan-400 font-mono">Tab</kbd>
+    </button>
+
+  </nav>
+
+
+  <!-- ================= FLOATING NODE QUICK ACTION BAR ================= -->
+  <div id="node-quick-bar" class="hidden fixed z-50 glass-panel px-2 py-1.5 rounded-2xl flex items-center space-x-1.5 shadow-2xl transition-all duration-150">
+    
+    <!-- Color Swatches -->
+    <div class="flex items-center space-x-1 px-1">
+      <button data-node-color="cyan" title="霓虹青" class="w-5 h-5 rounded-full bg-cyan-400 hover:scale-125 transition ring-1 ring-white/20"></button>
+      <button data-node-color="purple" title="电光紫" class="w-5 h-5 rounded-full bg-purple-500 hover:scale-125 transition ring-1 ring-white/20"></button>
+      <button data-node-color="emerald" title="翡翠绿" class="w-5 h-5 rounded-full bg-emerald-400 hover:scale-125 transition ring-1 ring-white/20"></button>
+      <button data-node-color="amber" title="琥珀金" class="w-5 h-5 rounded-full bg-amber-400 hover:scale-125 transition ring-1 ring-white/20"></button>
+      <button data-node-color="rose" title="赤霞红" class="w-5 h-5 rounded-full bg-rose-500 hover:scale-125 transition ring-1 ring-white/20"></button>
+      <button data-node-color="slate" title="深空灰" class="w-5 h-5 rounded-full bg-slate-400 hover:scale-125 transition ring-1 ring-white/20"></button>
+    </div>
+
+    <div class="h-4 w-px bg-white/10"></div>
+
+    <!-- Add Child Node (Tab) -->
+    <button id="quick-btn-add-child" title="添加子节点 (Tab)" class="p-1.5 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition">
+      <i data-lucide="plus" class="w-4 h-4 text-cyan-400"></i>
+    </button>
+
+    <!-- Duplicate Node -->
+    <button id="quick-btn-duplicate" title="复制节点 (Ctrl+D)" class="p-1.5 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition">
+      <i data-lucide="copy" class="w-4 h-4"></i>
+    </button>
+
+    <!-- Delete Node -->
+    <button id="quick-btn-delete" title="删除 (Delete / Backspace)" class="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 rounded-lg transition">
+      <i data-lucide="trash-2" class="w-4 h-4"></i>
+    </button>
+  </div>
+
+
+  <!-- ================= FLOATING WIRE QUICK ACTION BAR ================= -->
+  <div id="wire-quick-bar" class="hidden fixed z-50 glass-panel px-3 py-2 rounded-2xl flex items-center space-x-2 shadow-2xl">
+    <div class="text-[11px] text-slate-400 font-medium">连线样式:</div>
+    <button data-wire-style="bezier" title="平滑贝塞尔曲线 (TapNow风格)" class="p-1.5 text-cyan-400 bg-white/10 rounded-lg"><i data-lucide="spline" class="w-4 h-4"></i></button>
+    <button data-wire-style="orthogonal" title="正交折线" class="p-1.5 text-slate-400 hover:text-white rounded-lg"><i data-lucide="corner-down-right" class="w-4 h-4"></i></button>
+    <button data-wire-style="straight" title="直线" class="p-1.5 text-slate-400 hover:text-white rounded-lg"><i data-lucide="move-diagonal-2" class="w-4 h-4"></i></button>
+
+    <div class="h-4 w-px bg-white/10"></div>
+
+    <button id="wire-btn-edit-label" class="flex items-center space-x-1 px-2 py-1 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition">
+      <i data-lucide="type" class="w-3.5 h-3.5"></i>
+      <span>编辑关系文字</span>
+    </button>
+
+    <button id="wire-btn-toggle-anim" title="切换粒子流光动画" class="p-1.5 text-slate-400 hover:text-cyan-400 rounded-lg transition">
+      <i data-lucide="activity" class="w-4 h-4"></i>
+    </button>
+
+    <button id="wire-btn-delete" title="删除连线" class="p-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg transition">
+      <i data-lucide="trash-2" class="w-4 h-4"></i>
+    </button>
+  </div>
+
+
+  <!-- ================= MINIMAP (BOTTOM RIGHT) ================= -->
+  <div id="minimap-container" class="fixed bottom-6 right-6 z-40 glass-panel p-2 rounded-2xl shadow-2xl border border-white/10 hidden md:block">
+    <div class="flex items-center justify-between pb-1.5 px-1">
+      <span class="text-[10px] font-semibold text-slate-400 tracking-wider uppercase">全局导航</span>
+      <span id="minimap-node-count" class="text-[10px] text-cyan-400 font-mono">0 个节点</span>
+    </div>
+    <div class="relative w-40 h-28 bg-canvas-base/90 rounded-xl overflow-hidden border border-white/5 cursor-pointer">
+      <canvas id="minimap-canvas" width="160" height="112" class="w-full h-full"></canvas>
+      <div id="minimap-viewport-box" class="absolute border border-cyan-400/80 bg-cyan-400/10 rounded pointer-events-none"></div>
+    </div>
+  </div>
+
+
+  <!-- ================= EXPORT MODAL ================= -->
+  <div id="export-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
+    <div class="glass-panel w-[520px] p-6 rounded-3xl border border-white/15 shadow-2xl flex flex-col space-y-5">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
+            <i data-lucide="download" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">导出思维导图与画布</h3>
+            <p class="text-xs text-slate-400">支持超清 PNG 图片、矢量 SVG 与 JSON 工程文件</p>
+          </div>
+        </div>
+        <button id="btn-close-export" class="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Export Options -->
+      <div class="space-y-4 text-xs">
+        
+        <!-- Format Selector -->
+        <div>
+          <label class="block text-slate-300 font-medium mb-1.5">导出格式：</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button data-export-format="png" class="export-format-btn active p-2.5 rounded-xl border border-cyan-500/40 bg-cyan-500/15 text-cyan-300 flex flex-col items-center space-y-1">
+              <i data-lucide="image" class="w-4 h-4"></i>
+              <span class="font-semibold">PNG 图片</span>
+              <span class="text-[10px] opacity-70">高清位图 (可缩放)</span>
+            </button>
+            <button data-export-format="svg" class="export-format-btn p-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 flex flex-col items-center space-y-1">
+              <i data-lucide="file-code" class="w-4 h-4"></i>
+              <span class="font-semibold">SVG 矢量</span>
+              <span class="text-[10px] opacity-70">无损矢量绘图</span>
+            </button>
+            <button data-export-format="json" class="export-format-btn p-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 flex flex-col items-center space-y-1">
+              <i data-lucide="database" class="w-4 h-4"></i>
+              <span class="font-semibold">JSON 工程</span>
+              <span class="text-[10px] opacity-70">完整可编辑备份</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PNG Specific Options -->
+        <div id="png-options-group" class="space-y-3 p-3.5 rounded-2xl bg-white/5 border border-white/5">
+          <!-- Resolution Scale -->
+          <div class="flex items-center justify-between">
+            <span class="text-slate-300">分辨率清晰度：</span>
+            <div class="flex items-center space-x-1.5">
+              <button data-png-scale="1" class="png-scale-btn px-2.5 py-1 rounded-lg border border-white/10 hover:bg-white/10 text-slate-300">1x 标清</button>
+              <button data-png-scale="2" class="png-scale-btn active px-2.5 py-1 rounded-lg border border-cyan-500/40 bg-cyan-500/20 text-cyan-300 font-semibold">2x 高清 (推荐)</button>
+              <button data-png-scale="3" class="png-scale-btn px-2.5 py-1 rounded-lg border border-white/10 hover:bg-white/10 text-slate-300">3x 超清 Retina</button>
+            </div>
+          </div>
+
+          <!-- Background Choice -->
+          <div class="flex items-center justify-between">
+            <span class="text-slate-300">背景模式：</span>
+            <div class="flex items-center space-x-1.5">
+              <button data-png-bg="dark" class="png-bg-btn active px-2.5 py-1 rounded-lg border border-cyan-500/40 bg-cyan-500/20 text-cyan-300">TapNow 暗黑</button>
+              <button data-png-bg="transparent" class="png-bg-btn px-2.5 py-1 rounded-lg border border-white/10 hover:bg-white/10 text-slate-300">透明背景</button>
+              <button data-png-bg="white" class="png-bg-btn px-2.5 py-1 rounded-lg border border-white/10 hover:bg-white/10 text-slate-300">纯白背景</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- JSON Import option -->
+        <div class="pt-2 border-t border-white/10 flex items-center justify-between">
+          <span class="text-slate-400">需要恢复之前的工程？</span>
+          <label class="px-3 py-1.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-slate-300 cursor-pointer flex items-center space-x-1.5 transition">
+            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+            <span>导入 JSON 文件</span>
+            <input id="json-file-input" type="file" accept=".json" class="hidden">
+          </label>
+        </div>
+
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-end space-x-3 pt-2">
+        <button id="btn-cancel-export" class="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 text-xs transition">取消</button>
+        <button id="btn-execute-export" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-cyan-500/30 flex items-center space-x-2 transition">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span id="export-btn-label">立即下载 PNG 图片</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ================= HELP & SHORTCUTS MODAL ================= -->
+  <div id="help-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
+    <div class="glass-panel w-[560px] p-6 rounded-3xl border border-white/15 shadow-2xl flex flex-col space-y-4">
+      
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="keyboard" class="w-5 h-5 text-cyan-400"></i>
+          <h3 class="text-base font-bold text-white">快捷键与操作指南</h3>
+        </div>
+        <button id="btn-close-help" class="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div class="space-y-2 p-3 rounded-2xl bg-white/5 border border-white/5">
+          <div class="font-semibold text-cyan-300 mb-1">⚡ 思维导图与节点创作</div>
+          <div class="flex justify-between items-center"><span class="text-slate-300">添加子级分支</span><kbd class="px-1.5 py-0.5 rounded bg-black/40 border border-white/10 font-mono text-cyan-400">Tab</kbd></div>
+          <div class="flex justify-between items-center"><span class="text-slate-300">添加同级节点</span><kbd class="px-1.5 py-0.5 rounded bg-black/40 border border-white/10 font-mono text-cyan-400">Enter</kbd></div>
+          <div class="flex justify-between items-center"><span class="text-slate-300">编辑文本内容</span><span class="text-slate-400">双击节点</span></div>
+          <div class="flex justify-between items-center"><span class="text-slate-300">快速复制节点</span><kbd class="px-1.5 py-0.5 rounded bg-black/40 border border-white/10 font-mono text-slate-300">Ctrl + D</kbd></div>
+          <div class="flex justify-between items-center"><span class="text-slate-300">删除选中元素</span><kbd class="px-1.5 py-0.5 rounded bg-black/40 border border-white/10 font-mono text-rose-400">Delete</kbd></div>
+        </div>
+
+        <div class="space-y-2 p-3 rounded-2xl bg-white/5 border border-white/5">
+          <div class="font-semibold text-indigo-300 mb-1">🌐 画布浏览与连线</div>
+          <div class="flex justify-between items-center"><span class="text-slate-300">自由平移画布</span><span class="text-slate-400">按住空格或中键拖拽</span></div>
+          <div class="flex justify-between items-center"><span class="text-slate-300">缩放视口</span><span class="text-slate-400">滚轮 / 触控板捏合</span></div>
+          <div class="flex justify-between items-center"><span class="text-slate-300">节点连线</span><span class="text-slate-400">悬停边缘圆点拖出引线</span></div>
+          <div class="flex justify-between items-center"><span class="text-slate-300">编辑连线关系文字</span><span class="text-slate-400">双击连线或文字标签</span></div>
+          <div class="flex justify-between items-center"><span class="text-slate-300">框选多个节点</span><span class="text-slate-400">空白区域按住鼠标拖拽</span></div>
+        </div>
+      </div>
+
+      <div class="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-200">
+        💡 <b>提示：</b>从任意节点边缘的圆点拖拽引线到空白处松开，会弹出快捷创建气泡，直接生成相连的新节点！
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ================= JAVASCRIPT CANVAS & MINDMAP ENGINE ================= -->
+  <script>
+    /**
+     * TapNow Canvas & MindFlow Engine
+     * Architecture:
+     * - Reactive State Management
+     * - Vector SVG Wire Path Generator (Cubic Bezier, Orthogonal, Straight)
+     * - Full DOM Node Renderer with Rich Shapes
+     * - Keyboard Navigation & Tree Mindmap Expansion
+     * - Multi-resolution PNG & Vector SVG Export
+     */
+
+    // --- APPLICATION STATE ---
+    const state = {
+      projectTitle: "新创意思维导图 · 无限画布",
+      tool: 'select', // 'select' | 'pan'
+      panX: 80,
+      panY: 80,
+      zoom: 1,
+      isPanning: false,
+      panStartX: 0,
+      panStartY: 0,
+      spacePressed: false,
+      snapToGrid: true,
+      gridSize: 20,
+
+      // Selected items
+      selectedNodeIds: new Set(),
+      selectedWireId: null,
+      
+      // Dragging nodes
+      isDraggingNode: false,
+      dragStartPos: { x: 0, y: 0 },
+      nodesDragInitialPos: new Map(),
+
+      // Connecting wire state
+      isConnecting: false,
+      connectSourceNodeId: null,
+      connectSourcePort: 'right',
+      connectMousePos: { x: 0, y: 0 },
+
+      // Marquee selection
+      isMarquee: false,
+      marqueeStart: { x: 0, y: 0 },
+
+      // History
+      history: [],
+      historyIndex: -1,
+
+      // Graph Data
+      nodes: [],
+      wires: []
+    };
+
+    // DOM Elements
+    const dom = {
+      viewport: document.getElementById('canvas-viewport'),
+      container: document.getElementById('canvas-container'),
+      world: document.getElementById('canvas-world'),
+      nodesLayer: document.getElementById('nodes-layer'),
+      framesLayer: document.getElementById('frames-layer'),
+      wiresGroup: document.getElementById('wires-group'),
+      tempDragWire: document.getElementById('temp-drag-wire'),
+      selectionMarquee: document.getElementById('selection-marquee'),
+      zoomLabel: document.getElementById('zoom-level-label'),
+      nodeQuickBar: document.getElementById('node-quick-bar'),
+      wireQuickBar: document.getElementById('wire-quick-bar'),
+      minimapCanvas: document.getElementById('minimap-canvas'),
+      minimapViewportBox: document.getElementById('minimap-viewport-box'),
+      minimapNodeCount: document.getElementById('minimap-node-count'),
+      projectTitleInput: document.getElementById('project-title-input'),
+      exportModal: document.getElementById('export-modal'),
+      helpModal: document.getElementById('help-modal')
+    };
+
+    // --- TEMPLATES DEFINITIONS ---
+    const TEMPLATES = {
+      tapnow_ai: {
+        title: "TapNow AI 创意影视创作管线",
+        nodes: [
+          {
+            id: "t-1",
+            type: "ai_prompt",
+            shape: "ai_prompt",
+            x: 100,
+            y: 180,
+            width: 320,
+            height: 190,
+            title: "TapFlow · 故事剧本生成",
+            content: "赛博朋克雨夜街道，霓虹倒影，电影级质感，8K 分辨率，失焦光斑与光追倒影...",
+            color: "cyan",
+            tag: "GPT-4o Script",
+            icon: "sparkles",
+            zIndex: 10
+          },
+          {
+            id: "t-2",
+            type: "card",
+            shape: "card",
+            x: 520,
+            y: 120,
+            width: 280,
+            height: 150,
+            title: "多角度分镜设定 (Camera Lab)",
+            content: "镜头 A：广角仰拍街景\n镜头 B：特写主角微表情\n镜头 C：无人机航拍俯瞰",
+            color: "purple",
+            tag: "Multi-Angle",
+            icon: "camera",
+            zIndex: 10
+          },
+          {
+            id: "t-3",
+            type: "card",
+            shape: "card",
+            x: 520,
+            y: 310,
+            width: 280,
+            height: 150,
+            title: "影视级调色与质感 (Lens Combo)",
+            content: "模拟 Arri Alexa 传感器色彩\nCooke S4/i 电影镜头色散与眩光模拟",
+            color: "amber",
+            tag: "Color Grade",
+            icon: "palette",
+            zIndex: 10
+          },
+          {
+            id: "t-4",
+            type: "diamond",
+            shape: "diamond",
+            x: 890,
+            y: 190,
+            width: 220,
+            height: 180,
+            title: "生成质量检验",
+            content: "光影连贯性与动态一致性通过？",
+            color: "rose",
+            tag: "QC Gate",
+            icon: "check-circle-2",
+            zIndex: 10
+          },
+          {
+            id: "t-5",
+            type: "circle",
+            shape: "circle",
+            x: 1200,
+            y: 140,
+            width: 220,
+            height: 170,
+            title: "最终 4K 视频渲染输出",
+            content: "TapTV 社区发布与高清剪辑导出",
+            color: "emerald",
+            tag: "Output",
+            icon: "film",
+            zIndex: 10
+          },
+          {
+            id: "t-6",
+            type: "sticky",
+            shape: "sticky",
+            x: 900,
+            y: 420,
+            width: 200,
+            height: 160,
+            title: "创作灵感笔记",
+            content: "可以结合音频生成模块同步生成雨声与电子合成器配乐！",
+            color: "amber",
+            tag: "Note",
+            icon: "sticky-note",
+            zIndex: 10
+          }
+        ],
+        wires: [
+          { id: "w-1", fromNode: "t-1", fromPort: "right", toNode: "t-2", toPort: "left", label: "输入分镜描述", style: "bezier", color: "cyan", animated: true },
+          { id: "w-2", fromNode: "t-1", fromPort: "right", toNode: "t-3", toPort: "left", label: "设定画面光感", style: "bezier", color: "cyan", animated: true },
+          { id: "w-3", fromNode: "t-2", fromPort: "right", toNode: "t-4", toPort: "left", label: "送检渲染", style: "bezier", color: "purple", animated: true },
+          { id: "w-4", fromNode: "t-3", fromPort: "right", toNode: "t-4", toPort: "left", label: "叠加滤镜", style: "bezier", color: "amber", animated: true },
+          { id: "w-5", fromNode: "t-4", fromPort: "right", toNode: "t-5", toPort: "left", label: "通过质检", style: "bezier", color: "emerald", animated: true },
+          { id: "w-6", fromNode: "t-4", fromPort: "bottom", toNode: "t-6", toPort: "top", label: "记录要点", style: "bezier", color: "amber", animated: false }
+        ]
+      },
+
+      mindmap_tree: {
+        title: "商业产品矩阵与思维导图",
+        nodes: [
+          { id: "m-1", type: "circle", shape: "circle", x: 100, y: 300, width: 230, height: 180, title: "🚀 核心商业产品全景", content: "2026 战略规划与增长飞轮", color: "cyan", zIndex: 10 },
+          { id: "m-2", type: "card", shape: "card", x: 440, y: 120, width: 260, height: 140, title: "1. 创作者增长端", content: "• 零门槛无限画布创作\n• TapTV 社区公式一键复用\n• 创作者激励体系", color: "purple", zIndex: 10 },
+          { id: "m-3", type: "card", shape: "card", x: 440, y: 300, width: 260, height: 140, title: "2. 企业级多模态管线", content: "• 影视制作公司批量分镜\n• 电商广告秒级批量变体\n• 游戏概念美术资产库", color: "emerald", zIndex: 10 },
+          { id: "m-4", type: "card", shape: "card", x: 440, y: 480, width: 260, height: 140, title: "3. 算力与模型调度中台", content: "• 多模型智能动态负载\n• 本地/私有化部署支持\n• 极速流式生成反馈", color: "amber", zIndex: 10 },
+          { id: "m-5", type: "pill", shape: "pill", x: 790, y: 100, width: 200, height: 60, title: "月活用户突破 100W+", content: "", color: "purple", zIndex: 10 },
+          { id: "m-6", type: "pill", shape: "pill", x: 790, y: 180, width: 200, height: 60, title: "商业化转化率 +35%", content: "", color: "purple", zIndex: 10 },
+          { id: "m-7", type: "pill", shape: "pill", x: 790, y: 310, width: 200, height: 60, title: "降低制作成本 70%", content: "", color: "emerald", zIndex: 10 }
+        ],
+        wires: [
+          { id: "mw-1", fromNode: "m-1", fromPort: "right", toNode: "m-2", toPort: "left", label: "战略支柱", style: "bezier", color: "purple", animated: true },
+          { id: "mw-2", fromNode: "m-1", fromPort: "right", toNode: "m-3", toPort: "left", label: "核心盈利", style: "bezier", color: "emerald", animated: true },
+          { id: "mw-3", fromNode: "m-1", fromPort: "right", toNode: "m-4", toPort: "left", label: "底层基建", style: "bezier", color: "amber", animated: true },
+          { id: "mw-4", fromNode: "m-2", fromPort: "right", toNode: "m-5", toPort: "left", label: "目标", style: "bezier", color: "purple", animated: false },
+          { id: "mw-5", fromNode: "m-2", fromPort: "right", toNode: "m-6", toPort: "left", label: "目标", style: "bezier", color: "purple", animated: false },
+          { id: "mw-6", fromNode: "m-3", fromPort: "right", toNode: "m-7", toPort: "left", label: "价值", style: "bezier", color: "emerald", animated: false }
+        ]
+      },
+
+      decision_arch: {
+        title: "系统架构与自动化决策流程",
+        nodes: [
+          { id: "d-1", type: "rect", shape: "rect", x: 80, y: 220, width: 220, height: 120, title: "用户请求网关 (API Gateway)", content: "鉴权、流控与请求解析", color: "cyan", zIndex: 10 },
+          { id: "d-2", type: "diamond", shape: "diamond", x: 380, y: 190, width: 200, height: 180, title: "VIP 优先级判断", content: "是否属于企业级专属集群？", color: "amber", zIndex: 10 },
+          { id: "d-3", type: "rect", shape: "rect", x: 670, y: 100, width: 240, height: 120, title: "专属高速 GPU 集群 (H100)", content: "即时流式并发，无排队", color: "emerald", zIndex: 10 },
+          { id: "d-4", type: "rect", shape: "rect", x: 670, y: 320, width: 240, height: 120, title: "标准弹性排队池", content: "根据负载动态伸缩算力", color: "purple", zIndex: 10 }
+        ],
+        wires: [
+          { id: "dw-1", fromNode: "d-1", fromPort: "right", toNode: "d-2", toPort: "left", label: "派发任务", style: "orthogonal", color: "cyan", animated: true },
+          { id: "dw-2", fromNode: "d-2", fromPort: "top", toNode: "d-3", toPort: "left", label: "是 (VIP)", style: "orthogonal", color: "emerald", animated: true },
+          { id: "dw-3", fromNode: "d-2", fromPort: "bottom", toNode: "d-4", toPort: "left", label: "否 (标准)", style: "orthogonal", color: "purple", animated: true }
+        ]
+      },
+
+      blank: {
+        title: "我的创意脑图 · 无限画布",
+        nodes: [
+          { id: "b-1", type: "circle", shape: "circle", x: 300, y: 240, width: 220, height: 160, title: "💡 中心主题", content: "双击编辑内容，按 Tab 扩展分支", color: "cyan", zIndex: 10 }
+        ],
+        wires: []
+      }
+    };
+
+    // --- COORDINATE MATH UTILS ---
+    function screenToWorld(screenX, screenY) {
+      const rect = dom.viewport.getBoundingClientRect();
+      const x = (screenX - rect.left - state.panX) / state.zoom;
+      const y = (screenY - rect.top - state.panY) / state.zoom;
+      return { x, y };
+    }
+
+    function worldToScreen(worldX, worldY) {
+      const rect = dom.viewport.getBoundingClientRect();
+      const x = worldX * state.zoom + state.panX + rect.left;
+      const y = worldY * state.zoom + state.panY + rect.top;
+      return { x, y };
+    }
+
+    function snap(val) {
+      if (!state.snapToGrid) return val;
+      return Math.round(val / state.gridSize) * state.gridSize;
+    }
+
+    // --- HISTORY MANAGEMENT ---
+    function saveHistory() {
+      state.history = state.history.slice(0, state.historyIndex + 1);
+      const snapshot = JSON.stringify({
+        nodes: state.nodes,
+        wires: state.wires,
+        projectTitle: state.projectTitle
+      });
+      state.history.push(snapshot);
+      if (state.history.length > 40) state.history.shift();
+      state.historyIndex = state.history.length - 1;
+      updateHistoryButtons();
+      autoSaveToStorage();
+    }
+
+    function undo() {
+      if (state.historyIndex > 0) {
+        state.historyIndex--;
+        loadSnapshot(state.history[state.historyIndex]);
+        updateHistoryButtons();
+      }
+    }
+
+    function redo() {
+      if (state.historyIndex < state.history.length - 1) {
+        state.historyIndex++;
+        loadSnapshot(state.history[state.historyIndex]);
+        updateHistoryButtons();
+      }
+    }
+
+    function updateHistoryButtons() {
+      document.getElementById('btn-undo').disabled = state.historyIndex <= 0;
+      document.getElementById('btn-redo').disabled = state.historyIndex >= state.history.length - 1;
+    }
+
+    function loadSnapshot(jsonString) {
+      try {
+        const data = JSON.parse(jsonString);
+        state.nodes = data.nodes || [];
+        state.wires = data.wires || [];
+        if (data.projectTitle) {
+          state.projectTitle = data.projectTitle;
+          dom.projectTitleInput.value = data.projectTitle;
+        }
+        renderAll();
+      } catch (e) {
+        console.error("Failed to load snapshot", e);
+      }
+    }
+
+    function autoSaveToStorage() {
+      try {
+        localStorage.setItem('tapnow_canvas_data', JSON.stringify({
+          nodes: state.nodes,
+          wires: state.wires,
+          projectTitle: state.projectTitle
+        }));
+      } catch (e) {}
+    }
+
+    function loadFromStorage() {
+      try {
+        const saved = localStorage.getItem('tapnow_canvas_data');
+        if (saved) {
+          loadSnapshot(saved);
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    // --- NODE RENDERING ---
+    function getNodePortCoord(node, port) {
+      const x = node.x;
+      const y = node.y;
+      const w = node.width;
+      const h = node.height;
+      switch (port) {
+        case 'top': return { x: x + w / 2, y: y };
+        case 'right': return { x: x + w, y: y + h / 2 };
+        case 'bottom': return { x: x + w / 2, y: y + h };
+        case 'left': return { x: x, y: y + h / 2 };
+        default: return { x: x + w / 2, y: y + h / 2 };
+      }
+    }
+
+    function createNodeElement(node) {
+      const div = document.createElement('div');
+      div.id = `node-${node.id}`;
+      div.className = `canvas-node node-theme-${node.color || 'cyan'} ${state.selectedNodeIds.has(node.id) ? 'is-selected' : ''}`;
+      div.style.left = `${node.x}px`;
+      div.style.top = `${node.y}px`;
+      div.style.width = `${node.width}px`;
+      div.style.height = `${node.height}px`;
+      div.style.zIndex = node.zIndex || 10;
+
+      let innerHTML = '';
+
+      // Different Shape Templates
+      if (node.shape === 'circle') {
+        // Circle / Ellipse
+        div.style.borderRadius = '50%';
+        div.style.background = 'var(--node-bg, rgba(18,22,32,0.92))';
+        div.style.border = '1.5px solid rgba(255,255,255,0.12)';
+        div.style.backdropFilter = 'blur(16px)';
+        innerHTML = `
+          <div class="w-full h-full flex flex-col items-center justify-center p-5 text-center">
+            <div class="inline-editor font-bold text-sm text-white mb-1 leading-snug" contenteditable="true" data-field="title">${node.title}</div>
+            ${node.content ? `<div class="inline-editor text-[11px] text-slate-300 line-clamp-3" contenteditable="true" data-field="content">${node.content}</div>` : ''}
+          </div>
+        `;
+      } else if (node.shape === 'diamond') {
+        // Diamond Decision Node
+        div.style.background = 'var(--node-bg, rgba(28,20,10,0.92))';
+        div.style.border = '1.5px solid rgba(255,255,255,0.14)';
+        div.style.borderRadius = '16px';
+        div.style.backdropFilter = 'blur(16px)';
+        innerHTML = `
+          <div class="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+            <div class="px-2 py-0.5 rounded-full text-[9px] font-mono uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30 mb-1.5 flex items-center space-x-1">
+              <i data-lucide="help-circle" class="w-3 h-3"></i>
+              <span>决策分支</span>
+            </div>
+            <div class="inline-editor font-bold text-xs text-white mb-1" contenteditable="true" data-field="title">${node.title}</div>
+            <div class="inline-editor text-[11px] text-slate-300" contenteditable="true" data-field="content">${node.content || ''}</div>
+          </div>
+        `;
+      } else if (node.shape === 'sticky') {
+        // Sticky Note
+        div.style.background = '#fef08a';
+        div.style.color = '#1e293b';
+        div.style.borderRadius = '8px';
+        div.style.border = '1px solid #fde047';
+        div.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.5), 0 0 10px rgba(254, 240, 138, 0.2)';
+        div.classList.add('sticky-note-corner');
+        innerHTML = `
+          <div class="w-full h-full p-4 flex flex-col">
+            <div class="flex items-center justify-between border-b border-yellow-300/60 pb-1.5 mb-2">
+              <div class="inline-editor font-bold text-xs text-slate-900" contenteditable="true" data-field="title">${node.title}</div>
+              <i data-lucide="pin" class="w-3 h-3 text-amber-700"></i>
+            </div>
+            <div class="inline-editor text-xs text-slate-800 flex-1 whitespace-pre-wrap outline-none" contenteditable="true" data-field="content">${node.content || ''}</div>
+          </div>
+        `;
+      } else if (node.shape === 'pill') {
+        // Pill Capsule
+        div.style.borderRadius = '9999px';
+        div.style.background = 'var(--node-bg, rgba(22,26,38,0.92))';
+        div.style.border = '1.5px solid rgba(255,255,255,0.15)';
+        div.style.backdropFilter = 'blur(16px)';
+        innerHTML = `
+          <div class="w-full h-full flex items-center justify-center px-4 space-x-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-[var(--node-accent,#38bdf8)] shadow-[0_0_8px_var(--node-accent)]"></div>
+            <div class="inline-editor font-semibold text-xs text-white" contenteditable="true" data-field="title">${node.title}</div>
+          </div>
+        `;
+      } else if (node.shape === 'frame') {
+        // Frame / Group Container
+        div.style.background = 'rgba(255,255,255,0.02)';
+        div.style.border = '2px dashed rgba(255,255,255,0.15)';
+        div.style.borderRadius = '20px';
+        innerHTML = `
+          <div class="absolute -top-7 left-3 px-3 py-1 rounded-t-xl bg-slate-800/90 border border-white/10 flex items-center space-x-2">
+            <i data-lucide="boxes" class="w-3 h-3 text-indigo-400"></i>
+            <div class="inline-editor font-bold text-xs text-indigo-300" contenteditable="true" data-field="title">${node.title}</div>
+          </div>
+        `;
+      } else if (node.shape === 'ai_prompt') {
+        // TapNow Special AI Prompt Card
+        div.style.background = 'linear-gradient(145deg, rgba(15,23,42,0.95), rgba(30,17,48,0.95))';
+        div.style.border = '1.5px solid rgba(168,85,247,0.3)';
+        div.style.borderRadius = '18px';
+        div.style.backdropFilter = 'blur(20px)';
+        innerHTML = `
+          <div class="w-full h-full p-4 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-2 border-b border-white/10 mb-2.5">
+                <div class="flex items-center space-x-1.5">
+                  <div class="w-5 h-5 rounded-md bg-gradient-to-tr from-cyan-500 to-fuchsia-500 flex items-center justify-center">
+                    <i data-lucide="sparkles" class="w-3 h-3 text-white"></i>
+                  </div>
+                  <div class="inline-editor font-bold text-xs text-white" contenteditable="true" data-field="title">${node.title}</div>
+                </div>
+                <span class="text-[9px] px-1.5 py-0.5 rounded font-mono bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30">${node.tag || 'AI Node'}</span>
+              </div>
+              <div class="inline-editor text-xs text-slate-300 font-mono bg-black/30 p-2 rounded-xl border border-white/5 whitespace-pre-wrap" contenteditable="true" data-field="content">${node.content || ''}</div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-white/5">
+              <span class="flex items-center space-x-1"><i data-lucide="activity" class="w-3 h-3 text-cyan-400"></i><span>Status: Ready</span></span>
+              <span class="text-cyan-400 font-mono">100% Steps</span>
+            </div>
+          </div>
+        `;
+      } else {
+        // Standard Card Node & Rect
+        div.style.background = 'var(--node-bg, rgba(18,22,32,0.92))';
+        div.style.border = '1.5px solid rgba(255,255,255,0.12)';
+        div.style.borderRadius = node.shape === 'rect' ? '8px' : '16px';
+        div.style.backdropFilter = 'blur(16px)';
+        innerHTML = `
+          <div class="w-full h-full p-4 flex flex-col">
+            <div class="flex items-center justify-between pb-2 border-b border-white/10 mb-2">
+              <div class="flex items-center space-x-2">
+                <div class="w-2 h-2 rounded-full bg-[var(--node-accent,#38bdf8)] shadow-[0_0_8px_var(--node-accent)]"></div>
+                <div class="inline-editor font-bold text-xs text-white" contenteditable="true" data-field="title">${node.title}</div>
+              </div>
+              ${node.tag ? `<span class="text-[9px] px-1.5 py-0.2 rounded font-mono bg-white/10 text-slate-300">${node.tag}</span>` : ''}
+            </div>
+            <div class="inline-editor text-xs text-slate-300 flex-1 whitespace-pre-wrap outline-none leading-relaxed" contenteditable="true" data-field="content">${node.content || ''}</div>
+          </div>
+        `;
+      }
+
+      // Add 4 Connection Ports
+      innerHTML += `
+        <div class="port-handle" data-port="top" style="top: 0; left: 50%;"></div>
+        <div class="port-handle" data-port="right" style="top: 50%; left: 100%;"></div>
+        <div class="port-handle" data-port="bottom" style="top: 100%; left: 50%;"></div>
+        <div class="port-handle" data-port="left" style="top: 50%; left: 0%;"></div>
+      `;
+
+      div.innerHTML = innerHTML;
+
+      // Attach Node Events
+      setupNodeInteractions(div, node);
+
+      return div;
+    }
+
+    function setupNodeInteractions(el, node) {
+      // Inline Editing handlers
+      const editables = el.querySelectorAll('[contenteditable="true"]');
+      editables.forEach(editable => {
+        editable.addEventListener('mousedown', (e) => e.stopPropagation());
+        editable.addEventListener('blur', () => {
+          const field = editable.getAttribute('data-field');
+          node[field] = editable.innerText.trim();
+          saveHistory();
+          renderMinimap();
+        });
+        editable.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey && editable.getAttribute('data-field') === 'title') {
+            e.preventDefault();
+            editable.blur();
+          }
+        });
+      });
+
+      // Ports MouseDown (Start Connecting)
+      const ports = el.querySelectorAll('.port-handle');
+      ports.forEach(portEl => {
+        portEl.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          startConnecting(node.id, portEl.getAttribute('data-port'), e);
+        });
+      });
+
+      // Node Dragging & Selection
+      el.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('port-handle')) return;
+        if (state.tool === 'pan' || state.spacePressed) return;
+
+        e.stopPropagation();
+        
+        if (e.shiftKey) {
+          if (state.selectedNodeIds.has(node.id)) {
+            state.selectedNodeIds.delete(node.id);
+          } else {
+            state.selectedNodeIds.add(node.id);
+          }
+        } else {
+          if (!state.selectedNodeIds.has(node.id)) {
+            state.selectedNodeIds.clear();
+            state.selectedNodeIds.add(node.id);
+          }
+        }
+
+        state.selectedWireId = null;
+        updateSelectionUI();
+
+        // Start Dragging Node
+        state.isDraggingNode = true;
+        state.dragStartPos = { x: e.clientX, y: e.clientY };
+        state.nodesDragInitialPos.clear();
+        state.selectedNodeIds.forEach(id => {
+          const n = state.nodes.find(item => item.id === id);
+          if (n) {
+            state.nodesDragInitialPos.set(id, { x: n.x, y: n.y });
+          }
+        });
+      });
+    }
+
+    // --- WIRE (CONNECTIONS) RENDERING ---
+    function calculateBezierPath(p1, p2, port1, port2) {
+      const dx = Math.abs(p2.x - p1.x);
+      const dy = Math.abs(p2.y - p1.y);
+      const curvature = Math.max(dx * 0.5, 40);
+
+      let c1 = { ...p1 };
+      let c2 = { ...p2 };
+
+      if (port1 === 'right') c1.x += curvature;
+      else if (port1 === 'left') c1.x -= curvature;
+      else if (port1 === 'bottom') c1.y += curvature;
+      else if (port1 === 'top') c1.y -= curvature;
+
+      if (port2 === 'left') c2.x -= curvature;
+      else if (port2 === 'right') c2.x += curvature;
+      else if (port2 === 'top') c2.y -= curvature;
+      else if (port2 === 'bottom') c2.y += curvature;
+
+      return `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`;
+    }
+
+    function calculateOrthogonalPath(p1, p2, port1, port2) {
+      const midX = (p1.x + p2.x) / 2;
+      const midY = (p1.y + p2.y) / 2;
+      if (port1 === 'right' || port1 === 'left') {
+        return `M ${p1.x} ${p1.y} L ${midX} ${p1.y} L ${midX} ${p2.y} L ${p2.x} ${p2.y}`;
+      } else {
+        return `M ${p1.x} ${p1.y} L ${p1.x} ${midY} L ${p2.x} ${midY} L ${p2.x} ${p2.y}`;
+      }
+    }
+
+    function renderWires() {
+      dom.wiresGroup.innerHTML = '';
+
+      state.wires.forEach(wire => {
+        const fromNode = state.nodes.find(n => n.id === wire.fromNode);
+        const toNode = state.nodes.find(n => n.id === wire.toNode);
+        if (!fromNode || !toNode) return;
+
+        const p1 = getNodePortCoord(fromNode, wire.fromPort || 'right');
+        const p2 = getNodePortCoord(toNode, wire.toPort || 'left');
+
+        let d = '';
+        if (wire.style === 'orthogonal') {
+          d = calculateOrthogonalPath(p1, p2, wire.fromPort, wire.toPort);
+        } else if (wire.style === 'straight') {
+          d = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
+        } else {
+          d = calculateBezierPath(p1, p2, wire.fromPort || 'right', wire.toPort || 'left');
+        }
+
+        const isSelected = state.selectedWireId === wire.id;
+        const wireColorHex = {
+          cyan: '#38bdf8',
+          purple: '#a855f7',
+          emerald: '#10b981',
+          amber: '#f59e0b',
+          rose: '#f43f5e',
+          slate: '#64748b'
+        }[wire.color || 'cyan'] || '#38bdf8';
+
+        // SVG Group for this wire
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('data-wire-id', wire.id);
+
+        // Invisible wider stroke for easy clicking
+        const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        hitPath.setAttribute('d', d);
+        hitPath.setAttribute('fill', 'none');
+        hitPath.setAttribute('stroke', 'transparent');
+        hitPath.setAttribute('stroke-width', '18');
+        hitPath.style.cursor = 'pointer';
+
+        // Visual path
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', isSelected ? '#ffffff' : wireColorHex);
+        path.setAttribute('stroke-width', isSelected ? '3.5' : '2.2');
+        path.setAttribute('marker-end', `url(#arrow-${wire.color || 'cyan'})`);
+        if (wire.animated) {
+          path.classList.add('wire-flow-anim');
+        }
+
+        g.appendChild(hitPath);
+        g.appendChild(path);
+
+        // Wire Middle Label
+        const midX = (p1.x + p2.x) / 2;
+        const midY = (p1.y + p2.y) / 2;
+
+        if (wire.label || isSelected) {
+          const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          textGroup.setAttribute('transform', `translate(${midX}, ${midY})`);
+          textGroup.style.cursor = 'pointer';
+
+          const labelText = wire.label || '添加关系';
+          const labelWidth = Math.max(labelText.length * 12 + 18, 48);
+
+          // Background pill
+          const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          bgRect.setAttribute('x', -labelWidth / 2);
+          bgRect.setAttribute('y', -11);
+          bgRect.setAttribute('width', labelWidth);
+          bgRect.setAttribute('height', 22);
+          bgRect.setAttribute('rx', 11);
+          bgRect.setAttribute('fill', '#12151f');
+          bgRect.setAttribute('stroke', isSelected ? '#38bdf8' : 'rgba(255,255,255,0.15)');
+          bgRect.setAttribute('stroke-width', '1');
+
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('dominant-baseline', 'central');
+          text.setAttribute('fill', isSelected ? '#38bdf8' : '#cbd5e1');
+          text.setAttribute('font-size', '10.5');
+          text.setAttribute('font-weight', '500');
+          text.textContent = labelText;
+
+          textGroup.appendChild(bgRect);
+          textGroup.appendChild(text);
+
+          textGroup.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            promptEditWireLabel(wire);
+          });
+
+          g.appendChild(textGroup);
+        }
+
+        // Click to select wire
+        hitPath.addEventListener('click', (e) => {
+          e.stopPropagation();
+          state.selectedWireId = wire.id;
+          state.selectedNodeIds.clear();
+          updateSelectionUI();
+          showWireQuickBar(midX, midY);
+        });
+
+        dom.wiresGroup.appendChild(g);
+      });
+    }
+
+    function promptEditWireLabel(wire) {
+      const current = wire.label || '';
+      const result = prompt("请输入关系标签文字（如：依赖、输入、派生、导致、从属）：", current);
+      if (result !== null) {
+        wire.label = result.trim();
+        saveHistory();
+        renderWires();
+      }
+    }
+
+    // --- FULL RENDER ---
+    function renderAll() {
+      // Clear Nodes
+      dom.nodesLayer.innerHTML = '';
+      dom.framesLayer.innerHTML = '';
+
+      state.nodes.forEach(node => {
+        const el = createNodeElement(node);
+        if (node.shape === 'frame') {
+          dom.framesLayer.appendChild(el);
+        } else {
+          dom.nodesLayer.appendChild(el);
+        }
+      });
+
+      renderWires();
+      renderMinimap();
+      lucide.createIcons();
+      updateSelectionUI();
+    }
+
+    function updateViewportTransform() {
+      dom.world.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+      dom.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
+      dom.container.style.backgroundPosition = `${state.panX}px ${state.panY}px`;
+      dom.container.style.backgroundSize = `${32 * state.zoom}px ${32 * state.zoom}px`;
+      renderMinimapViewport();
+      
+      // Update quick bar position if a node is selected
+      if (state.selectedNodeIds.size === 1) {
+        const singleNode = state.nodes.find(n => n.id === Array.from(state.selectedNodeIds)[0]);
+        if (singleNode) showNodeQuickBar(singleNode);
+      }
+    }
+
+    // --- SELECTION & QUICK ACTIONS ---
+    function updateSelectionUI() {
+      // Update Node Highlight Classes
+      state.nodes.forEach(node => {
+        const el = document.getElementById(`node-${node.id}`);
+        if (el) {
+          if (state.selectedNodeIds.has(node.id)) {
+            el.classList.add('is-selected');
+          } else {
+            el.classList.remove('is-selected');
+          }
+        }
+      });
+
+      // Show/Hide Quick Bar for single selected node
+      if (state.selectedNodeIds.size === 1) {
+        const nodeId = Array.from(state.selectedNodeIds)[0];
+        const node = state.nodes.find(n => n.id === nodeId);
+        if (node) {
+          showNodeQuickBar(node);
+        }
+      } else {
+        dom.nodeQuickBar.classList.add('hidden');
+      }
+
+      if (!state.selectedWireId) {
+        dom.wireQuickBar.classList.add('hidden');
+      }
+    }
+
+    function showNodeQuickBar(node) {
+      const p = worldToScreen(node.x + node.width / 2, node.y);
+      dom.nodeQuickBar.classList.remove('hidden');
+      dom.nodeQuickBar.style.left = `${p.x}px`;
+      dom.nodeQuickBar.style.top = `${p.y - 48}px`;
+      dom.nodeQuickBar.style.transform = 'translateX(-50%)';
+    }
+
+    function showWireQuickBar(worldMidX, worldMidY) {
+      const p = worldToScreen(worldMidX, worldMidY);
+      dom.wireQuickBar.classList.remove('hidden');
+      dom.wireQuickBar.style.left = `${p.x}px`;
+      dom.wireQuickBar.style.top = `${p.y - 52}px`;
+      dom.wireQuickBar.style.transform = 'translateX(-50%)';
+    }
+
+    // --- CONNECTING NODES (DRAGGING WIRE) ---
+    function startConnecting(sourceNodeId, port, mouseEvent) {
+      state.isConnecting = true;
+      state.connectSourceNodeId = sourceNodeId;
+      state.connectSourcePort = port;
+      dom.container.classList.add('connecting');
+
+      const sourceNode = state.nodes.find(n => n.id === sourceNodeId);
+      const startCoord = getNodePortCoord(sourceNode, port);
+
+      dom.tempDragWire.style.opacity = '1';
+      dom.tempDragWire.setAttribute('d', `M ${startCoord.x} ${startCoord.y} L ${startCoord.x} ${startCoord.y}`);
+    }
+
+    function updateConnectingWire(screenX, screenY) {
+      if (!state.isConnecting) return;
+      const worldPos = screenToWorld(screenX, screenY);
+      const sourceNode = state.nodes.find(n => n.id === state.connectSourceNodeId);
+      if (!sourceNode) return;
+
+      const p1 = getNodePortCoord(sourceNode, state.connectSourcePort);
+      const p2 = worldPos;
+      const d = calculateBezierPath(p1, p2, state.connectSourcePort, 'left');
+      dom.tempDragWire.setAttribute('d', d);
+    }
+
+    function finishConnecting(targetNodeId, targetPort) {
+      if (!state.isConnecting) return;
+      
+      if (targetNodeId && targetNodeId !== state.connectSourceNodeId) {
+        // Create Wire
+        const newWire = {
+          id: `w-${Date.now()}`,
+          fromNode: state.connectSourceNodeId,
+          fromPort: state.connectSourcePort,
+          toNode: targetNodeId,
+          toPort: targetPort || 'left',
+          label: '',
+          style: 'bezier',
+          color: 'cyan',
+          animated: true
+        };
+        state.wires.push(newWire);
+        saveHistory();
+        renderWires();
+      } else if (!targetNodeId) {
+        // Dropped on empty canvas -> Quick create connected child node!
+        const worldPos = screenToWorld(state.connectMousePos.x, state.connectMousePos.y);
+        createAndConnectChild(state.connectSourceNodeId, snap(worldPos.x), snap(worldPos.y));
+      }
+
+      cancelConnecting();
+    }
+
+    function cancelConnecting() {
+      state.isConnecting = false;
+      state.connectSourceNodeId = null;
+      dom.container.classList.remove('connecting');
+      dom.tempDragWire.style.opacity = '0';
+    }
+
+    // --- MINDMAP & TREE EXPANSION (TAB / ENTER) ---
+    function createAndConnectChild(parentId, targetX, targetY) {
+      const parent = state.nodes.find(n => n.id === parentId);
+      if (!parent) return;
+
+      const newId = `node-${Date.now()}`;
+      const posX = targetX || (parent.x + parent.width + 120);
+      const posY = targetY || (parent.y);
+
+      const newNode = {
+        id: newId,
+        type: 'card',
+        shape: 'card',
+        x: posX,
+        y: posY,
+        width: 240,
+        height: 130,
+        title: "新思维分支",
+        content: "双击编辑分支详情与描述...",
+        color: parent.color || 'cyan',
+        zIndex: 10
+      };
+
+      const newWire = {
+        id: `w-${Date.now()}`,
+        fromNode: parent.id,
+        fromPort: 'right',
+        toNode: newNode.id,
+        toPort: 'left',
+        label: '',
+        style: 'bezier',
+        color: parent.color || 'cyan',
+        animated: true
+      };
+
+      state.nodes.push(newNode);
+      state.wires.push(newWire);
+      
+      state.selectedNodeIds.clear();
+      state.selectedNodeIds.add(newId);
+      
+      saveHistory();
+      renderAll();
+
+      // Auto focus title
+      setTimeout(() => {
+        const el = document.getElementById(`node-${newId}`);
+        if (el) {
+          const title = el.querySelector('[data-field="title"]');
+          if (title) {
+            title.focus();
+            document.execCommand('selectAll', false, null);
+          }
+        }
+      }, 50);
+    }
+
+    function createSiblingNode(referenceId) {
+      const ref = state.nodes.find(n => n.id === referenceId);
+      if (!ref) return;
+
+      const newId = `node-${Date.now()}`;
+      const newNode = {
+        id: newId,
+        type: ref.type || 'card',
+        shape: ref.shape || 'card',
+        x: ref.x,
+        y: ref.y + ref.height + 40,
+        width: ref.width,
+        height: ref.height,
+        title: "同级要点",
+        content: "内容描述...",
+        color: ref.color || 'cyan',
+        zIndex: 10
+      };
+
+      // Check if reference has incoming wire from a parent
+      const incoming = state.wires.find(w => w.toNode === ref.id);
+      if (incoming) {
+        state.wires.push({
+          id: `w-${Date.now()}`,
+          fromNode: incoming.fromNode,
+          fromPort: incoming.fromPort,
+          toNode: newId,
+          toPort: 'left',
+          label: '',
+          style: incoming.style || 'bezier',
+          color: incoming.color || 'cyan',
+          animated: incoming.animated
+        });
+      }
+
+      state.nodes.push(newNode);
+      state.selectedNodeIds.clear();
+      state.selectedNodeIds.add(newId);
+
+      saveHistory();
+      renderAll();
+    }
+
+    // --- AUTO TREE LAYOUT ALGORITHM ---
+    function autoLayoutMindmap() {
+      if (state.nodes.length === 0) return;
+
+      // Find root nodes (nodes with no incoming connections)
+      const incomingMap = new Map();
+      state.nodes.forEach(n => incomingMap.set(n.id, 0));
+      state.wires.forEach(w => {
+        incomingMap.set(w.toNode, (incomingMap.get(w.toNode) || 0) + 1);
+      });
+
+      let roots = state.nodes.filter(n => incomingMap.get(n.id) === 0);
+      if (roots.length === 0) roots = [state.nodes[0]]; // fallback
+
+      const HORIZONTAL_GAP = 140;
+      const VERTICAL_GAP = 40;
+
+      let currentRootY = 150;
+
+      roots.forEach(root => {
+        function layoutSubtree(node, level, startY) {
+          const childrenWires = state.wires.filter(w => w.fromNode === node.id);
+          const children = childrenWires.map(w => state.nodes.find(n => n.id === w.toNode)).filter(Boolean);
+
+          if (children.length === 0) {
+            node.x = 100 + level * (260 + HORIZONTAL_GAP);
+            node.y = startY;
+            return { totalHeight: node.height + VERTICAL_GAP, centerY: startY + node.height / 2 };
+          }
+
+          let childY = startY;
+          let firstChildCenter = 0;
+          let lastChildCenter = 0;
+
+          children.forEach((child, index) => {
+            const res = layoutSubtree(child, level + 1, childY);
+            if (index === 0) firstChildCenter = res.centerY;
+            if (index === children.length - 1) lastChildCenter = res.centerY;
+            childY += res.totalHeight;
+          });
+
+          const totalSubtreeHeight = childY - startY;
+          node.x = 100 + level * (260 + HORIZONTAL_GAP);
+          node.y = (firstChildCenter + lastChildCenter) / 2 - node.height / 2;
+
+          return { totalHeight: totalSubtreeHeight, centerY: node.y + node.height / 2 };
+        }
+
+        const res = layoutSubtree(root, 0, currentRootY);
+        currentRootY += res.totalHeight + 80;
+      });
+
+      saveHistory();
+      renderAll();
+      fitViewToNodes();
+    }
+
+    function fitViewToNodes() {
+      if (state.nodes.length === 0) return;
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      state.nodes.forEach(n => {
+        minX = Math.min(minX, n.x);
+        minY = Math.min(minY, n.y);
+        maxX = Math.max(maxX, n.x + n.width);
+        maxY = Math.max(maxY, n.y + n.height);
+      });
+
+      const padding = 100;
+      const graphW = maxX - minX + padding * 2;
+      const graphH = maxY - minY + padding * 2;
+      const viewW = window.innerWidth;
+      const viewH = window.innerHeight;
+
+      const scaleX = viewW / graphW;
+      const scaleY = viewH / graphH;
+      state.zoom = Math.min(Math.max(Math.min(scaleX, scaleY), 0.35), 1.2);
+
+      state.panX = (viewW - (maxX + minX) * state.zoom) / 2;
+      state.panY = (viewH - (maxY + minY) * state.zoom) / 2;
+
+      updateViewportTransform();
+      renderMinimap();
+    }
+
+    // --- MINIMAP RENDERING ---
+    function renderMinimap() {
+      const canvas = dom.minimapCanvas;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      dom.minimapNodeCount.textContent = `${state.nodes.length} 个节点`;
+      if (state.nodes.length === 0) return;
+
+      // Bounds
+      let minX = -500, minY = -500, maxX = 2500, maxY = 1800;
+      state.nodes.forEach(n => {
+        minX = Math.min(minX, n.x - 200);
+        minY = Math.min(minY, n.y - 200);
+        maxX = Math.max(maxX, n.x + n.width + 200);
+        maxY = Math.max(maxY, n.y + n.height + 200);
+      });
+
+      const mapW = maxX - minX;
+      const mapH = maxY - minY;
+      const scale = Math.min(canvas.width / mapW, canvas.height / mapH);
+
+      // Draw Wires
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+      ctx.lineWidth = 1;
+      state.wires.forEach(w => {
+        const from = state.nodes.find(n => n.id === w.fromNode);
+        const to = state.nodes.find(n => n.id === w.toNode);
+        if (from && to) {
+          ctx.beginPath();
+          ctx.moveTo((from.x + from.width/2 - minX) * scale, (from.y + from.height/2 - minY) * scale);
+          ctx.lineTo((to.x + to.width/2 - minX) * scale, (to.y + to.height/2 - minY) * scale);
+          ctx.stroke();
+        }
+      });
+
+      // Draw Nodes
+      state.nodes.forEach(n => {
+        const x = (n.x - minX) * scale;
+        const y = (n.y - minY) * scale;
+        const w = Math.max(n.width * scale, 3);
+        const h = Math.max(n.height * scale, 2);
+
+        ctx.fillStyle = state.selectedNodeIds.has(n.id) ? '#38bdf8' : 'rgba(255,255,255,0.4)';
+        ctx.fillRect(x, y, w, h);
+      });
+
+      renderMinimapViewport();
+    }
+
+    function renderMinimapViewport() {
+      const canvas = dom.minimapCanvas;
+      if (state.nodes.length === 0) return;
+
+      let minX = -500, minY = -500, maxX = 2500, maxY = 1800;
+      state.nodes.forEach(n => {
+        minX = Math.min(minX, n.x - 200);
+        minY = Math.min(minY, n.y - 200);
+        maxX = Math.max(maxX, n.x + n.width + 200);
+        maxY = Math.max(maxY, n.y + n.height + 200);
+      });
+
+      const mapW = maxX - minX;
+      const mapH = maxY - minY;
+      const scale = Math.min(canvas.width / mapW, canvas.height / mapH);
+
+      const viewWorldTopLeft = screenToWorld(0, 0);
+      const viewWorldBottomRight = screenToWorld(window.innerWidth, window.innerHeight);
+
+      const vx = (viewWorldTopLeft.x - minX) * scale;
+      const vy = (viewWorldTopLeft.y - minY) * scale;
+      const vw = (viewWorldBottomRight.x - viewWorldTopLeft.x) * scale;
+      const vh = (viewWorldBottomRight.y - viewWorldTopLeft.y) * scale;
+
+      const box = dom.minimapViewportBox;
+      box.style.left = `${Math.max(0, vx)}px`;
+      box.style.top = `${Math.max(0, vy)}px`;
+      box.style.width = `${Math.min(canvas.width, vw)}px`;
+      box.style.height = `${Math.min(canvas.height, vh)}px`;
+    }
+
+    // --- HIGH-RESOLUTION EXPORT ENGINE ---
+    async function executeExport(format, scaleFactor = 2, bgChoice = 'dark') {
+      if (format === 'json') {
+        const data = {
+          app: "TapNow Canvas MindFlow",
+          version: "1.0",
+          exportedAt: new Date().toISOString(),
+          projectTitle: state.projectTitle,
+          nodes: state.nodes,
+          wires: state.wires
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        downloadBlob(blob, `${state.projectTitle}.json`);
+        return;
+      }
+
+      if (format === 'svg') {
+        exportAsSVG();
+        return;
+      }
+
+      await exportAsHighResPNG(scaleFactor, bgChoice);
+    }
+
+    async function exportAsHighResPNG(scale = 2, bgChoice = 'dark') {
+      if (state.nodes.length === 0) {
+        alert("画布上没有可导出的节点！");
+        return;
+      }
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      state.nodes.forEach(n => {
+        minX = Math.min(minX, n.x);
+        minY = Math.min(minY, n.y);
+        maxX = Math.max(maxX, n.x + n.width);
+        maxY = Math.max(maxY, n.y + n.height);
+      });
+
+      const padding = 80;
+      minX -= padding;
+      minY -= padding;
+      maxX += padding;
+      maxY += padding;
+
+      const width = maxX - minX;
+      const height = maxY - minY;
+
+      const prevPanX = state.panX;
+      const prevPanY = state.panY;
+      const prevZoom = state.zoom;
+
+      state.panX = -minX;
+      state.panY = -minY;
+      state.zoom = 1;
+      updateViewportTransform();
+
+      let bgColor = '#08090d';
+      if (bgChoice === 'white') bgColor = '#ffffff';
+      if (bgChoice === 'transparent') bgColor = null;
+
+      try {
+        const canvas = await html2canvas(dom.world, {
+          scale: scale,
+          backgroundColor: bgColor,
+          x: 0,
+          y: 0,
+          width: width,
+          height: height,
+          logging: false,
+          useCORS: true
+        });
+
+        canvas.toBlob((blob) => {
+          downloadBlob(blob, `${state.projectTitle}_${scale}x.png`);
+        }, 'image/png');
+      } catch (err) {
+        console.error("Export error", err);
+        alert("导出失败，请重试！");
+      } finally {
+        state.panX = prevPanX;
+        state.panY = prevPanY;
+        state.zoom = prevZoom;
+        updateViewportTransform();
+      }
+    }
+
+    function exportAsSVG() {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      state.nodes.forEach(n => {
+        minX = Math.min(minX, n.x);
+        minY = Math.min(minY, n.y);
+        maxX = Math.max(maxX, n.x + n.width);
+        maxY = Math.max(maxY, n.y + n.height);
+      });
+
+      const padding = 60;
+      minX -= padding;
+      minY -= padding;
+      maxX += padding;
+      maxY += padding;
+
+      const width = maxX - minX;
+      const height = maxY - minY;
+
+      let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${width} ${height}" width="${width}" height="${height}">\n`;
+      svgContent += `<rect x="${minX}" y="${minY}" width="${width}" height="${height}" fill="#08090d"/>\n`;
+
+      // Render wires in SVG
+      state.wires.forEach(w => {
+        const from = state.nodes.find(n => n.id === w.fromNode);
+        const to = state.nodes.find(n => n.id === w.toNode);
+        if (from && to) {
+          const p1 = getNodePortCoord(from, w.fromPort || 'right');
+          const p2 = getNodePortCoord(to, w.toPort || 'left');
+          const d = calculateBezierPath(p1, p2, w.fromPort, w.toPort);
+          svgContent += `<path d="${d}" fill="none" stroke="#38bdf8" stroke-width="2.5" />\n`;
+        }
+      });
+
+      // Render nodes as SVG rects/texts
+      state.nodes.forEach(n => {
+        svgContent += `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="14" fill="#161922" stroke="#38bdf8" stroke-width="1.5"/>\n`;
+        svgContent += `<text x="${n.x + 16}" y="${n.y + 28}" fill="#ffffff" font-family="sans-serif" font-size="14" font-weight="bold">${escapeXml(n.title)}</text>\n`;
+        if (n.content) {
+          svgContent += `<text x="${n.x + 16}" y="${n.y + 54}" fill="#94a3b8" font-family="sans-serif" font-size="11">${escapeXml(n.content.slice(0, 40))}</text>\n`;
+        }
+      });
+
+      svgContent += `</svg>`;
+      const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+      downloadBlob(blob, `${state.projectTitle}.svg`);
+    }
+
+    function escapeXml(unsafe) {
+      return unsafe.replace(/[<>&'"]/g, c => {
+        switch (c) {
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '&': return '&amp;';
+          case '\'': return '&apos;';
+          case '"': return '&quot;';
+        }
+      });
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // --- EVENT LISTENERS & WIRING ---
+    function setupGlobalEvents() {
+      
+      window.addEventListener('resize', () => {
+        renderMinimap();
+      });
+
+      // Mouse Move on Viewport
+      window.addEventListener('mousemove', (e) => {
+        state.connectMousePos = { x: e.clientX, y: e.clientY };
+
+        if (state.isConnecting) {
+          updateConnectingWire(e.clientX, e.clientY);
+          return;
+        }
+
+        if (state.isPanning) {
+          const dx = e.clientX - state.panStartX;
+          const dy = e.clientY - state.panStartY;
+          state.panX += dx;
+          state.panY += dy;
+          state.panStartX = e.clientX;
+          state.panStartY = e.clientY;
+          updateViewportTransform();
+          return;
+        }
+
+        if (state.isDraggingNode) {
+          const dx = (e.clientX - state.dragStartPos.x) / state.zoom;
+          const dy = (e.clientY - state.dragStartPos.y) / state.zoom;
+
+          state.selectedNodeIds.forEach(id => {
+            const initPos = state.nodesDragInitialPos.get(id);
+            const node = state.nodes.find(n => n.id === id);
+            if (node && initPos) {
+              node.x = snap(initPos.x + dx);
+              node.y = snap(initPos.y + dy);
+
+              const el = document.getElementById(`node-${node.id}`);
+              if (el) {
+                el.style.left = `${node.x}px`;
+                el.style.top = `${node.y}px`;
+              }
+            }
+          });
+
+          renderWires();
+          renderMinimap();
+          if (state.selectedNodeIds.size === 1) {
+            const singleNode = state.nodes.find(n => n.id === Array.from(state.selectedNodeIds)[0]);
+            if (singleNode) showNodeQuickBar(singleNode);
+          }
+          return;
+        }
+
+        if (state.isMarquee) {
+          const x1 = Math.min(state.marqueeStart.x, e.clientX);
+          const y1 = Math.min(state.marqueeStart.y, e.clientY);
+          const x2 = Math.max(state.marqueeStart.x, e.clientX);
+          const y2 = Math.max(state.marqueeStart.y, e.clientY);
+
+          dom.selectionMarquee.style.display = 'block';
+          dom.selectionMarquee.style.left = `${x1}px`;
+          dom.selectionMarquee.style.top = `${y1}px`;
+          dom.selectionMarquee.style.width = `${x2 - x1}px`;
+          dom.selectionMarquee.style.height = `${y2 - y1}px`;
+
+          const w1 = screenToWorld(x1, y1);
+          const w2 = screenToWorld(x2, y2);
+
+          state.selectedNodeIds.clear();
+          state.nodes.forEach(n => {
+            if (n.x + n.width >= w1.x && n.x <= w2.x && n.y + n.height >= w1.y && n.y <= w2.y) {
+              state.selectedNodeIds.add(n.id);
+            }
+          });
+          updateSelectionUI();
+        }
+      });
+
+      // Mouse Up on Window
+      window.addEventListener('mouseup', (e) => {
+        if (state.isConnecting) {
+          const portEl = e.target.closest('.port-handle');
+          const nodeEl = e.target.closest('.canvas-node');
+
+          if (portEl && nodeEl) {
+            const targetNodeId = nodeEl.id.replace('node-', '');
+            const targetPort = portEl.getAttribute('data-port');
+            finishConnecting(targetNodeId, targetPort);
+          } else if (nodeEl) {
+            const targetNodeId = nodeEl.id.replace('node-', '');
+            finishConnecting(targetNodeId, 'left');
+          } else {
+            finishConnecting(null, null);
+          }
+        }
+
+        if (state.isPanning) {
+          state.isPanning = false;
+        }
+
+        if (state.isDraggingNode) {
+          state.isDraggingNode = false;
+          saveHistory();
+        }
+
+        if (state.isMarquee) {
+          state.isMarquee = false;
+          dom.selectionMarquee.style.display = 'none';
+        }
+      });
+
+      // Canvas Container MouseDown
+      dom.container.addEventListener('mousedown', (e) => {
+        if (e.target !== dom.container && e.target !== dom.world && e.target.id !== 'svg-connections-layer') return;
+
+        if (state.spacePressed || e.button === 1 || state.tool === 'pan') {
+          state.isPanning = true;
+          state.panStartX = e.clientX;
+          state.panStartY = e.clientY;
+          return;
+        }
+
+        if (e.button === 0) {
+          state.selectedNodeIds.clear();
+          state.selectedWireId = null;
+          updateSelectionUI();
+
+          state.isMarquee = true;
+          state.marqueeStart = { x: e.clientX, y: e.clientY };
+        }
+      });
+
+      // Mouse Wheel Zoom
+      dom.viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+
+        if (e.ctrlKey || e.metaKey || !state.spacePressed) {
+          const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+          const newZoom = Math.min(Math.max(state.zoom * zoomFactor, 0.15), 3.0);
+
+          const rect = dom.viewport.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+
+          state.panX = mouseX - (mouseX - state.panX) * (newZoom / state.zoom);
+          state.panY = mouseY - (mouseY - state.panY) * (newZoom / state.zoom);
+          state.zoom = newZoom;
+
+          updateViewportTransform();
+        } else {
+          state.panX -= e.deltaX;
+          state.panY -= e.deltaY;
+          updateViewportTransform();
+        }
+      }, { passive: false });
+
+      // Keyboard Shortcuts
+      window.addEventListener('keydown', (e) => {
+        const isEditing = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable;
+
+        if (e.code === 'Space' && !isEditing && !state.spacePressed) {
+          state.spacePressed = true;
+          dom.container.classList.add('tool-pan');
+        }
+
+        if (isEditing) return;
+
+        // Tab: Add Child Node
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          if (state.selectedNodeIds.size === 1) {
+            const parentId = Array.from(state.selectedNodeIds)[0];
+            createAndConnectChild(parentId);
+          }
+        }
+
+        // Enter: Add Sibling Node
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (state.selectedNodeIds.size === 1) {
+            const refId = Array.from(state.selectedNodeIds)[0];
+            createSiblingNode(refId);
+          }
+        }
+
+        // Delete / Backspace: Remove Selected Nodes or Wire
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          if (state.selectedNodeIds.size > 0) {
+            state.nodes = state.nodes.filter(n => !state.selectedNodeIds.has(n.id));
+            state.wires = state.wires.filter(w => !state.selectedNodeIds.has(w.fromNode) && !state.selectedNodeIds.has(w.toNode));
+            state.selectedNodeIds.clear();
+            saveHistory();
+            renderAll();
+          } else if (state.selectedWireId) {
+            state.wires = state.wires.filter(w => w.id !== state.selectedWireId);
+            state.selectedWireId = null;
+            saveHistory();
+            renderAll();
+          }
+        }
+
+        // Ctrl + Z / Ctrl + Y (Undo / Redo)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) redo();
+          else undo();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+          e.preventDefault();
+          redo();
+        }
+
+        // Ctrl + D: Duplicate
+        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+          e.preventDefault();
+          duplicateSelectedNodes();
+        }
+
+        // V & H Tool hotkeys
+        if (e.key === 'v' || e.key === 'V') setTool('select');
+        if (e.key === 'h' || e.key === 'H') setTool('pan');
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
+          state.spacePressed = false;
+          if (state.tool !== 'pan') {
+            dom.container.classList.remove('tool-pan');
+          }
+        }
+      });
+
+      // Quick bar action buttons
+      document.getElementById('quick-btn-add-child').addEventListener('click', () => {
+        if (state.selectedNodeIds.size === 1) {
+          createAndConnectChild(Array.from(state.selectedNodeIds)[0]);
+        }
+      });
+
+      document.getElementById('quick-btn-duplicate').addEventListener('click', () => {
+        duplicateSelectedNodes();
+      });
+
+      document.getElementById('quick-btn-delete').addEventListener('click', () => {
+        if (state.selectedNodeIds.size > 0) {
+          state.nodes = state.nodes.filter(n => !state.selectedNodeIds.has(n.id));
+          state.wires = state.wires.filter(w => !state.selectedNodeIds.has(w.fromNode) && !state.selectedNodeIds.has(w.toNode));
+          state.selectedNodeIds.clear();
+          saveHistory();
+          renderAll();
+        }
+      });
+
+      // Color Swatches in Node Quick Bar
+      document.querySelectorAll('[data-node-color]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const color = btn.getAttribute('data-node-color');
+          state.selectedNodeIds.forEach(id => {
+            const n = state.nodes.find(item => item.id === id);
+            if (n) n.color = color;
+          });
+          saveHistory();
+          renderAll();
+        });
+      });
+
+      // Wire Quick Bar actions
+      document.querySelectorAll('[data-wire-style]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const style = btn.getAttribute('data-wire-style');
+          const wire = state.wires.find(w => w.id === state.selectedWireId);
+          if (wire) {
+            wire.style = style;
+            saveHistory();
+            renderWires();
+          }
+        });
+      });
+
+      document.getElementById('wire-btn-edit-label').addEventListener('click', () => {
+        const wire = state.wires.find(w => w.id === state.selectedWireId);
+        if (wire) promptEditWireLabel(wire);
+      });
+
+      document.getElementById('wire-btn-toggle-anim').addEventListener('click', () => {
+        const wire = state.wires.find(w => w.id === state.selectedWireId);
+        if (wire) {
+          wire.animated = !wire.animated;
+          saveHistory();
+          renderWires();
+        }
+      });
+
+      document.getElementById('wire-btn-delete').addEventListener('click', () => {
+        if (state.selectedWireId) {
+          state.wires = state.wires.filter(w => w.id !== state.selectedWireId);
+          state.selectedWireId = null;
+          saveHistory();
+          renderAll();
+        }
+      });
+
+      // Bottom Dock Tool Switcher
+      document.querySelectorAll('.dock-tool-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tool = btn.getAttribute('data-tool');
+          const createShape = btn.getAttribute('data-create');
+
+          if (tool) {
+            setTool(tool);
+            document.querySelectorAll('.dock-tool-btn').forEach(b => b.classList.remove('active', 'bg-white/15', 'text-white'));
+            btn.classList.add('active', 'bg-white/15', 'text-white');
+          } else if (createShape) {
+            createNewNodeAtCenter(createShape);
+          }
+        });
+      });
+
+      document.getElementById('btn-add-mind-branch').addEventListener('click', () => {
+        if (state.selectedNodeIds.size === 1) {
+          createAndConnectChild(Array.from(state.selectedNodeIds)[0]);
+        } else if (state.nodes.length > 0) {
+          createAndConnectChild(state.nodes[0].id);
+        } else {
+          createNewNodeAtCenter('card');
+        }
+      });
+
+      // Top bar actions
+      document.getElementById('btn-undo').addEventListener('click', undo);
+      document.getElementById('btn-redo').addEventListener('click', redo);
+      document.getElementById('btn-auto-layout').addEventListener('click', autoLayoutMindmap);
+      
+      document.getElementById('btn-snap-grid').addEventListener('click', () => {
+        state.snapToGrid = !state.snapToGrid;
+        document.getElementById('btn-snap-grid').classList.toggle('text-cyan-400', state.snapToGrid);
+      });
+
+      document.getElementById('btn-zoom-in').addEventListener('click', () => {
+        state.zoom = Math.min(state.zoom * 1.2, 3.0);
+        updateViewportTransform();
+      });
+
+      document.getElementById('btn-zoom-out').addEventListener('click', () => {
+        state.zoom = Math.max(state.zoom * 0.8, 0.15);
+        updateViewportTransform();
+      });
+
+      document.getElementById('btn-fit-view').addEventListener('click', fitViewToNodes);
+
+      // Project Title input
+      dom.projectTitleInput.addEventListener('change', () => {
+        state.projectTitle = dom.projectTitleInput.value.trim() || "思维导图 · 无限画布";
+        saveHistory();
+      });
+
+      // Templates dropdown
+      const tplToggle = document.getElementById('btn-templates-toggle');
+      const tplDropdown = document.getElementById('templates-dropdown');
+      tplToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        tplDropdown.classList.toggle('hidden');
+      });
+      window.addEventListener('click', () => tplDropdown.classList.add('hidden'));
+
+      document.querySelectorAll('[data-template]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-template');
+          loadTemplate(key);
+        });
+      });
+
+      // Export Modal
+      let exportFormat = 'png';
+      let exportScale = 2;
+      let exportBg = 'dark';
+
+      document.getElementById('btn-open-export').addEventListener('click', () => {
+        dom.exportModal.classList.remove('hidden');
+      });
+      document.getElementById('btn-close-export').addEventListener('click', () => {
+        dom.exportModal.classList.add('hidden');
+      });
+      document.getElementById('btn-cancel-export').addEventListener('click', () => {
+        dom.exportModal.classList.add('hidden');
+      });
+
+      document.querySelectorAll('.export-format-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.export-format-btn').forEach(b => {
+            b.classList.remove('active', 'border-cyan-500/40', 'bg-cyan-500/15', 'text-cyan-300');
+            b.classList.add('border-white/10', 'bg-white/5', 'text-slate-300');
+          });
+          btn.classList.add('active', 'border-cyan-500/40', 'bg-cyan-500/15', 'text-cyan-300');
+          exportFormat = btn.getAttribute('data-export-format');
+
+          document.getElementById('png-options-group').style.display = exportFormat === 'png' ? 'block' : 'none';
+          document.getElementById('export-btn-label').textContent = exportFormat === 'png' ? '立即下载 PNG 图片' : (exportFormat === 'svg' ? '导出 SVG 矢量' : '下载 JSON 工程');
+        });
+      });
+
+      document.querySelectorAll('.png-scale-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.png-scale-btn').forEach(b => b.classList.remove('active', 'border-cyan-500/40', 'bg-cyan-500/20', 'text-cyan-300', 'font-semibold'));
+          btn.classList.add('active', 'border-cyan-500/40', 'bg-cyan-500/20', 'text-cyan-300', 'font-semibold');
+          exportScale = parseInt(btn.getAttribute('data-png-scale'));
+        });
+      });
+
+      document.querySelectorAll('.png-bg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.png-bg-btn').forEach(b => b.classList.remove('active', 'border-cyan-500/40', 'bg-cyan-500/20', 'text-cyan-300'));
+          btn.classList.add('active', 'border-cyan-500/40', 'bg-cyan-500/20', 'text-cyan-300');
+          exportBg = btn.getAttribute('data-png-bg');
+        });
+      });
+
+      document.getElementById('btn-execute-export').addEventListener('click', async () => {
+        dom.exportModal.classList.add('hidden');
+        await executeExport(exportFormat, exportScale, exportBg);
+      });
+
+      // JSON File Upload
+      document.getElementById('json-file-input').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            loadSnapshot(ev.target.result);
+            dom.exportModal.classList.add('hidden');
+            saveHistory();
+            fitViewToNodes();
+          };
+          reader.readAsText(file);
+        }
+      });
+
+      // Help Modal
+      document.getElementById('btn-toggle-help').addEventListener('click', () => {
+        dom.helpModal.classList.remove('hidden');
+      });
+      document.getElementById('btn-close-help').addEventListener('click', () => {
+        dom.helpModal.classList.add('hidden');
+      });
+    }
+
+    function setTool(tool) {
+      state.tool = tool;
+      dom.container.classList.remove('tool-select', 'tool-pan');
+      dom.container.classList.add(`tool-${tool}`);
+    }
+
+    function createNewNodeAtCenter(shape) {
+      const centerWorld = screenToWorld(window.innerWidth / 2, window.innerHeight / 2);
+      const newId = `node-${Date.now()}`;
+
+      let width = 240;
+      let height = 140;
+      let title = "新主题卡片";
+      let content = "双击编辑内容...";
+      let color = "cyan";
+
+      if (shape === 'circle') {
+        width = 200; height = 160; title = "思维原点";
+      } else if (shape === 'diamond') {
+        width = 200; height = 180; title = "决策条件？"; color = "amber";
+      } else if (shape === 'sticky') {
+        width = 200; height = 160; title = "便签要点"; color = "amber";
+      } else if (shape === 'pill') {
+        width = 180; height = 50; title = "标签关键词"; color = "rose";
+      } else if (shape === 'frame') {
+        width = 500; height = 360; title = "Chapter / 模块分组"; color = "blue";
+      } else if (shape === 'ai_prompt') {
+        width = 300; height = 180; title = "TapFlow AI 提示词"; content = "输入生成提示词与参数..."; color = "purple";
+      }
+
+      const newNode = {
+        id: newId,
+        type: shape,
+        shape: shape,
+        x: snap(centerWorld.x - width / 2),
+        y: snap(centerWorld.y - height / 2),
+        width: width,
+        height: height,
+        title: title,
+        content: content,
+        color: color,
+        zIndex: 10
+      };
+
+      state.nodes.push(newNode);
+      state.selectedNodeIds.clear();
+      state.selectedNodeIds.add(newId);
+
+      saveHistory();
+      renderAll();
+    }
+
+    function duplicateSelectedNodes() {
+      if (state.selectedNodeIds.size === 0) return;
+
+      const newIds = new Set();
+      state.selectedNodeIds.forEach(id => {
+        const orig = state.nodes.find(n => n.id === id);
+        if (orig) {
+          const cloneId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+          const clone = {
+            ...orig,
+            id: cloneId,
+            x: orig.x + 40,
+            y: orig.y + 40,
+            title: `${orig.title} (副本)`
+          };
+          state.nodes.push(clone);
+          newIds.add(cloneId);
+        }
+      });
+
+      state.selectedNodeIds = newIds;
+      saveHistory();
+      renderAll();
+    }
+
+    function loadTemplate(templateKey) {
+      const tpl = TEMPLATES[templateKey];
+      if (tpl) {
+        state.projectTitle = tpl.title;
+        dom.projectTitleInput.value = tpl.title;
+        state.nodes = JSON.parse(JSON.stringify(tpl.nodes));
+        state.wires = JSON.parse(JSON.stringify(tpl.wires));
+        state.selectedNodeIds.clear();
+        state.selectedWireId = null;
+        saveHistory();
+        renderAll();
+        fitViewToNodes();
+      }
+    }
+
+    // --- INITIALIZATION ---
+    function init() {
+      const loaded = loadFromStorage();
+      if (!loaded) {
+        loadTemplate('tapnow_ai');
+      } else {
+        saveHistory();
+        renderAll();
+        fitViewToNodes();
+      }
+      setupGlobalEvents();
+      updateViewportTransform();
+    }
+
+    // Start App
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+
+</body>
+</html>

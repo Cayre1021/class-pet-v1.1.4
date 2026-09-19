@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "notes": [
+    "Draft only. Not wired into production code.",
+    "species_code is the business ID. Replacing files must not change it.",
+    "visual_stage 0-5 follows V1-Lite baseline, not old Lv1/3/6/8.",
+    "dragon legacy mapping is unresolved: worktree maps to cat, schema draft maps to fox.",
+    "Source PNGs are 2048 RGB with baked light background. Runtime should use downscaled copies."
+  ],
+  "sourceRoot": "old-class-pet/class pet/src/assets/pets",
+  "legacyPetTypeMap": {
+    "puppy": "dog",
+    "dragon": null
+  },
+  "shared": {
+    "egg": {
+      "asset_ref": "pet.shared.stage.0.egg",
+      "file": null,
+      "media": "placeholder",
+      "placeholder": true,
+      "fallback": "css-egg",
+      "eggColors": ["red", "blue", "green", "purple", "yellow"]
+    }
+  },
+  "species": [
+    { "sort": 1, "code": "bird", "display_name": "小鸟", "asset_key": "bird", "legacy": ["bird"], "default_nickname_template": "{studentName}的{displayName}", "nickname_candidates": ["叽叽", "小羽"] },
+    { "sort": 2, "code": "bunny", "display_name": "兔子", "asset_key": "bunny", "legacy": ["bunny"], "default_nickname_template": "{studentName}的{displayName}", "nickname_candidates": ["团子", "蹦蹦"] },
+    { "sort": 3, "code": "dog", "display_name": "小狗", "asset_key": "dog", "legacy": ["puppy"], "default_nickname_template": "{studentName}的{displayName}", "nickname_candidates": ["豆豆", "毛豆"] },
+    { "sort": 4, "code": "fish", "display_name": "小鱼", "asset_key": "fish", "legacy": ["fish"], "default_nickname_template": "{studentName}的{displayName}", "nickname_candidates": ["泡泡", "小鳍"] },
+    { "sort": 5, "code": "cat", "display_name": "猫咪", "asset_key": "cat", "legacy": [], "default_nickname_template": "{studentName}的{displayName}", "nickname_candidates": ["奶糖", "团绒"] },
+    { "sort": 6, "code": "hamster", "display_name": "仓鼠", "asset_key": "hamster", "legacy": [], "default_nickname_template": "{studentName}的{displayName}", "nickname_candidates": ["谷谷", "囊囊"] },
+    { "sort": 7, "code": "fox", "display_name": "狐狸", "asset_key": "fox", "legacy": [], "default_nickname_template": "{studentName}的{displayName}", "nickname_candidates": ["小橘", "赤赤"] },
+    { "sort": 8, "code": "deer", "display_name": "小鹿", "asset_key": "deer", "legacy": [], "default_nickname_template": "{studentName}的{displayName}", "nickname_candidates": ["小芽", "春春"] }
+  ],
+  "visualStages": [
+    { "stage": 0, "min_level": 0, "code": "egg", "label": "宠物蛋" },
+    { "stage": 1, "min_level": 1, "code": "form1", "label": "初始形态" },
+    { "stage": 2, "min_level": 4, "code": "form2", "label": "第一次明显成长" },
+    { "stage": 3, "min_level": 8, "code": "form3", "label": "中期成长" },
+    { "stage": 4, "min_level": 13, "code": "form4", "label": "高级形态" },
+    { "stage": 5, "min_level": 20, "code": "form5", "label": "最终形态" }
+  ],
+  "assets": {
+    "bird": {
+      "0": { "asset_ref": "pet.shared.stage.0.egg", "file": null, "media": "placeholder", "placeholder": true },
+      "1": { "asset_ref": "pet.bird.stage.1.idle", "file": "bird/bird-stage1.png", "bytes": 2952267, "media": "png", "placeholder": false },
+      "2": { "asset_ref": "pet.bird.stage.2.idle", "file": "bird/bird-stage2.png", "bytes": 3171847, "media": "png", "placeholder": false },
+      "3": { "asset_ref": "pet.bird.stage.3.idle", "file": "bird/bird-stage3.png", "bytes": 2987880, "media": "png", "placeholder": false },
+      "4": { "asset_ref": "pet.bird.stage.4.idle", "file": "bird/bird-stage4.png", "bytes": 3157571, "media": "png", "placeholder": false },
+      "5": { "asset_ref": "pet.bird.stage.5.idle", "file": "bird/bird-stage4.png", "bytes": 3157571, "media": "png", "placeholder": true, "fallback_of": "pet.bird.stage.4.idle" }
+    },
+    "bunny": {
+      "0": { "asset_ref": "pet.shared.stage.0.egg", "file": null, "media": "placeholder", "placeholder": true },
+      "1": { "asset_ref": "pet.bunny.stage.1.idle", "file": "bunny/bunny-stage1.png", "bytes": 2363784, "media": "png", "placeholder": false },
+      "2": { "asset_ref": "pet.bunny.stage.2.idle", "file": "bunny/bunny-stage2.png", "bytes": 2702864, "media": "png", "placeholder": false },
+      "3": { "asset_ref": "pet.bunny.stage.3.idle", "file": "bunny/bunny-stage3.png", "bytes": 2513185, "media": "png", "placeholder": false },
+      "4": { "asset_ref": "pet.bunny.stage.4.idle", "file": "bunny/bunny-stage4.png", "bytes": 3129017, "media": "png", "placeholder": false },
+      "5": { "asset_ref": "pet.bunny.stage.5.idle", "file": "bunny/bunny-stage4.png", "bytes": 3129017, "media": "png", "placeholder": true, "fallback_of": "pet.bunny.stage.4.idle" }
+    },
+    "dog": {
+      "0": { "asset_ref": "pet.shared.stage.0.egg", "file": null, "media": "placeholder", "placeholder": true },
+      "1": { "asset_ref": "pet.dog.stage.1.idle", "file": "dog/dog-stage1.png", "bytes": 2653531, "media": "png", "placeholder": false },
+      "2": { "asset_ref": "pet.dog.stage.2.idle", "file": "dog/dog-stage2.png", "bytes": 2716212, "media": "png", "placeholder": false },
+      "3": { "asset_ref": "pet.dog.stage.3.idle", "file": "dog/dog-stage3.png", "bytes": 2994386, "media": "png", "placeholder": false },
+      "4": { "asset_ref": "pet.dog.stage.4.idle", "file": "dog/dog-stage4.png", "bytes": 3467085, "media": "png", "placeholder": false },
+      "5": { "asset_ref": "pet.dog.stage.5.idle", "file": "dog/dog-stage4.png", "bytes": 3467085, "media": "png", "placeholder": true, "fallback_of": "pet.dog.stage.4.idle" }
+    },
+    "fish": {
+      "0": { "asset_ref": "pet.shared.stage.0.egg", "file": null, "media": "placeholder", "placeholder": true },
+      "1": { "asset_ref": "pet.fish.stage.1.idle", "file": "fish/fish-stage1.png", "bytes": 2539856, "media": "png", "placeholder": false },
+      "2": { "asset_ref": "pet.fish.stage.2.idle", "file": "fish/fish-stage2.png", "bytes": 3186438, "media": "png", "placeholder": false },
+      "3": { "asset_ref": "pet.fish.stage.3.idle", "file": "fish/fish-stage3.png", "bytes": 2917680, "media": "png", "placeholder": false },
+      "4": { "asset_ref": "pet.fish.stage.4.idle", "file": "fish/fish-stage4.png", "bytes": 3552373, "media": "png", "placeholder": false },
+      "5": { "asset_ref": "pet.fish.stage.5.idle", "file": "fish/fish-stage4.png", "bytes": 3552373, "media": "png", "placeholder": true, "fallback_of": "pet.fish.stage.4.idle" }
+    },
+    "cat": {
+      "0": { "asset_ref": "pet.shared.stage.0.egg", "file": null, "media": "placeholder", "placeholder": true },
+      "1": { "asset_ref": "pet.cat.stage.1.idle", "file": "cat/cat-stage1.png", "bytes": 2856467, "media": "png", "placeholder": false },
+      "2": { "asset_ref": "pet.cat.stage.2.idle", "file": "cat/cat-stage2.png", "bytes": 3595546, "media": "png", "placeholder": false },
+      "3": { "asset_ref": "pet.cat.stage.3.idle", "file": "cat/cat-stage3.png", "bytes": 3272720, "media": "png", "placeholder": false },
+      "4": { "asset_ref": "pet.cat.stage.4.idle", "file": "cat/cat-stage4.png", "bytes": 3397601, "media": "png", "placeholder": false },
+      "5": { "asset_ref": "pet.cat.stage.5.idle", "file": "cat/cat-stage4.png", "bytes": 3397601, "media": "png", "placeholder": true, "fallback_of": "pet.cat.stage.4.idle" }
+    },
+    "hamster": {
+      "0": { "asset_ref": "pet.shared.stage.0.egg", "file": null, "media": "placeholder", "placeholder": true },
+      "1": { "asset_ref": "pet.hamster.stage.1.idle", "file": "hamster/hamster-stage1.png", "bytes": 2696832, "media": "png", "placeholder": false },
+      "2": { "asset_ref": "pet.hamster.stage.2.idle", "file": "hamster/hamster-stage2.png", "bytes": 2862700, "media": "png", "placeholder": false },
+      "3": { "asset_ref": "pet.hamster.stage.3.idle", "file": "hamster/hamster-stage3.png", "bytes": 2924338, "media": "png", "placeholder": false },
+      "4": { "asset_ref": "pet.hamster.stage.4.idle", "file": "hamster/hamster-stage4.png", "bytes": 3114402, "media": "png", "placeholder": false },
+      "5": { "asset_ref": "pet.hamster.stage.5.idle", "file": "hamster/hamster-stage4.png", "bytes": 3114402, "media": "png", "placeholder": true, "fallback_of": "pet.hamster.stage.4.idle" }
+    },
+    "fox": {
+      "0": { "asset_ref": "pet.shared.stage.0.egg", "file": null, "media": "placeholder", "placeholder": true },
+      "1": { "asset_ref": "pet.fox.stage.1.idle", "file": "fox/fox-stage1.png", "bytes": 2717300, "media": "png", "placeholder": false },
+      "2": { "asset_ref": "pet.fox.stage.2.idle", "file": "fox/fox-stage2.png", "bytes": 3025770, "media": "png", "placeholder": false },
+      "3": { "asset_ref": "pet.fox.stage.3.idle", "file": "fox/fox-stage3.png", "bytes": 3818100, "media": "png", "placeholder": false },
+      "4": { "asset_ref": "pet.fox.stage.4.idle", "file": "fox/fox-stage4.png", "bytes": 3575422, "media": "png", "placeholder": false },
+      "5": { "asset_ref": "pet.fox.stage.5.idle", "file": "fox/fox-stage4.png", "bytes": 3575422, "media": "png", "placeholder": true, "fallback_of": "pet.fox.stage.4.idle" }
+    },
+    "deer": {
+      "0": { "asset_ref": "pet.shared.stage.0.egg", "file": null, "media": "placeholder", "placeholder": true },
+      "1": { "asset_ref": "pet.deer.stage.1.idle", "file": "deer/deer-stage1.png", "bytes": 3029274, "media": "png", "placeholder": false },
+      "2": { "asset_ref": "pet.deer.stage.2.idle", "file": "deer/deer-stage2.png", "bytes": 2365765, "media": "png", "placeholder": false },
+      "3": { "asset_ref": "pet.deer.stage.3.idle", "file": "deer/deer-stage3.png", "bytes": 2406653, "media": "png", "placeholder": false },
+      "4": { "asset_ref": "pet.deer.stage.4.idle", "file": "deer/deer-stage4.png", "bytes": 2982525, "media": "png", "placeholder": false },
+      "5": { "asset_ref": "pet.deer.stage.5.idle", "file": "deer/deer-stage4.png", "bytes": 2982525, "media": "png", "placeholder": true, "fallback_of": "pet.deer.stage.4.idle" }
+    }
+  },
+  "runtimeGuidance": {
+    "doNotImportSourcePngDirectly": true,
+    "recommendedDisplayMaxPx": { "card": 512, "detail": 768 },
+    "sourcePng": { "width": 2048, "height": 2048, "color": "rgb", "alpha": false, "count": 32, "totalBytes": 95647391 },
+    "missing": ["egg-art", "stage5-unique", "gif", "webp", "interaction-props"],
+    "openItems": ["legacy-dragon-mapping", "display-name-cat-vs-kitten", "shared-vs-per-species-egg"]
+  }
+}

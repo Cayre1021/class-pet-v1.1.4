@@ -1,0 +1,23 @@
+{
+  "id": "tpl-creative-pipeline",
+  "projectTitle": "创意影视创作管线",
+  "description": "剧本生成 → 分镜控制 → 电影镜头调色 → 质量检测 → 4K 输出",
+  "updatedAt": "2026-08-28T10:00:00.000Z",
+  "nodes": [
+    { "id": "c-1", "type": "ai_prompt", "shape": "ai_prompt", "x": 80, "y": 180, "width": 320, "height": 190, "title": "故事剧本生成", "content": "赛博朋克雨夜街道，霓虹倒影，电影级质感，8K 分辨率，失焦光斑与光追倒影。", "color": "cyan", "tag": "Script Lab", "icon": "sparkles", "zIndex": 10 },
+    { "id": "c-2", "type": "card", "shape": "card", "x": 500, "y": 90, "width": 280, "height": 150, "title": "多角度分镜设定", "content": "镜头 A：广角仰拍街景\n镜头 B：特写主角微表情\n镜头 C：无人机航拍俯瞰", "color": "purple", "tag": "Camera", "icon": "camera", "zIndex": 10 },
+    { "id": "c-3", "type": "card", "shape": "card", "x": 500, "y": 290, "width": 280, "height": 150, "title": "影视级调色与质感", "content": "模拟电影传感器色彩\n镜头色散与眩光\n雨夜高对比倒影", "color": "amber", "tag": "Color Grade", "icon": "palette", "zIndex": 10 },
+    { "id": "c-4", "type": "diamond", "shape": "diamond", "x": 880, "y": 170, "width": 210, "height": 190, "title": "生成质量检验", "content": "光影连贯性与动态一致性通过？", "color": "rose", "tag": "QC Gate", "zIndex": 10 },
+    { "id": "c-5", "type": "circle", "shape": "circle", "x": 1180, "y": 120, "width": 220, "height": 170, "title": "最终 4K 输出", "content": "高清剪辑导出与母带封装", "color": "emerald", "tag": "Output", "zIndex": 10 },
+    { "id": "c-6", "type": "sticky", "shape": "sticky", "x": 900, "y": 410, "width": 200, "height": 160, "title": "创作灵感笔记", "content": "同步生成雨声与电子合成器配乐，让画面与声音同一呼吸。", "color": "amber", "tag": "Note", "zIndex": 10 },
+    { "id": "c-7", "type": "frame", "shape": "frame", "x": 470, "y": 50, "width": 350, "height": 430, "title": "影像制作域", "content": "", "color": "slate", "zIndex": 1 }
+  ],
+  "wires": [
+    { "id": "cw-1", "fromNode": "c-1", "fromPort": "right", "toNode": "c-2", "toPort": "left", "label": "输入分镜", "style": "bezier", "color": "cyan", "animated": true },
+    { "id": "cw-2", "fromNode": "c-1", "fromPort": "right", "toNode": "c-3", "toPort": "left", "label": "设定光感", "style": "bezier", "color": "cyan", "animated": true },
+    { "id": "cw-3", "fromNode": "c-2", "fromPort": "right", "toNode": "c-4", "toPort": "left", "label": "渲染送检", "style": "bezier", "color": "purple", "animated": true },
+    { "id": "cw-4", "fromNode": "c-3", "fromPort": "right", "toNode": "c-4", "toPort": "left", "label": "调色注入", "style": "bezier", "color": "amber", "animated": true },
+    { "id": "cw-5", "fromNode": "c-4", "fromPort": "right", "toNode": "c-5", "toPort": "left", "label": "通过检验", "style": "bezier", "color": "emerald", "animated": true },
+    { "id": "cw-6", "fromNode": "c-4", "fromPort": "bottom", "toNode": "c-6", "toPort": "top", "label": "待修点", "style": "orthogonal", "color": "rose", "animated": false }
+  ]
+}

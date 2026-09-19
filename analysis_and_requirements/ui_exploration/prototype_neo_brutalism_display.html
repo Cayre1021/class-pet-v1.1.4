@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="classic">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生大屏展示 (5套完整主题·丝滑圆形扩散转场·竖版卡片·全屏烟花·沉降) - Class Pet V1-Lite</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* 5套完备 Neo-Brutalism 主题配色系统 (彻底修复 orange, forest, ocean 丢失变量导致边框消失的Bug) */
+        :root[data-theme="classic"] {
+            --bg-primary: #FFFEF9;
+            --bg-secondary: #F5F3EF;
+            --text-primary: #0A0A0A;
+            --text-secondary: #525252;
+            --border: #0A0A0A;
+            --accent: #0066FF;
+            --accent-hover: #0052CC;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #16A34A;
+            --warning: #FFD60A;
+            --error: #FF3B30;
+            --tag-bg: #E8F0FE;
+            --shadow-color: #0A0A0A;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #121212;
+            --bg-secondary: #1E1E1E;
+            --text-primary: #F3F4F6;
+            --text-secondary: #9CA3AF;
+            --border: #374151;
+            --accent: #00D9FF;
+            --accent-hover: #00B4D8;
+            --accent-text: #0A0A0A;
+            --card-bg: #1A1A1A;
+            --success: #10B981;
+            --warning: #FBBF24;
+            --error: #F43F5E;
+            --tag-bg: #262626;
+            --shadow-color: #000000;
+        }
+
+        :root[data-theme="orange"] {
+            --bg-primary: #FFF9F5;
+            --bg-secondary: #FFE8DC;
+            --text-primary: #1A0A00;
+            --text-secondary: #664433;
+            --border: #1A0A00;
+            --accent: #FF5722;
+            --accent-hover: #E64A19;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #4CAF50;
+            --warning: #FFC107;
+            --error: #D32F2F;
+            --tag-bg: #FFECE2;
+            --shadow-color: #1A0A00;
+        }
+
+        :root[data-theme="forest"] {
+            --bg-primary: #F5F9F5;
+            --bg-secondary: #E8F5E9;
+            --text-primary: #0D3B0D;
+            --text-secondary: #2E5A2E;
+            --border: #0D3B0D;
+            --accent: #2E7D32;
+            --accent-hover: #1B5E20;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #66BB6A;
+            --warning: #FFA726;
+            --error: #E53935;
+            --tag-bg: #E8F5E9;
+            --shadow-color: #0D3B0D;
+        }
+
+        :root[data-theme="ocean"] {
+            --bg-primary: #F5F9FF;
+            --bg-secondary: #E3F2FD;
+            --text-primary: #0A1A3B;
+            --text-secondary: #2C4A7A;
+            --border: #0A1A3B;
+            --accent: #1976D2;
+            --accent-hover: #0D47A1;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #43A047;
+            --warning: #FFB300;
+            --error: #E53935;
+            --tag-bg: #E3F2FD;
+            --shadow-color: #0A1A3B;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+            position: relative;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        /* 丝滑圆形扩散 View Transition API 原生样式 */
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation: none;
+            mix-blend-mode: normal;
+        }
+        ::view-transition-old(root) {
+            z-index: 1;
+        }
+        ::view-transition-new(root) {
+            z-index: 999999;
+        }
+
+        /* 兼容性圆形涟漪扩散覆盖层 (Fallback) */
+        .theme-ripple-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 999998;
+            display: none;
+        }
+
+        /* 顶部紧凑状态栏 */
+        .stage-header {
+            background: var(--card-bg);
+            border-bottom: 2.5px solid var(--border);
+            padding: 6px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 48px;
+            z-index: 100;
+        }
+
+        .btn-header {
+            padding: 5px 10px;
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-weight: 800;
+            font-size: 11px;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            transition: transform 0.1s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-header:active { transform: translate(1px, 1px); box-shadow: 0 0 0; }
+
+        .view-mode-tabs {
+            display: flex;
+            gap: 3px;
+            background: var(--bg-secondary);
+            padding: 2px;
+            border: 2px solid var(--border);
+        }
+
+        .btn-view-tab {
+            padding: 3px 9px;
+            border: 1.5px solid transparent;
+            background: transparent;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .btn-view-tab.active {
+            background: var(--card-bg);
+            border-color: var(--border);
+            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
+            color: var(--accent);
+        }
+
+        /* 主舞台容器 (支持一键屏幕沉降 38%) */
+        .main-stage-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-y: auto;
+            transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+        }
+
+        .main-stage-wrapper.reachability-active {
+            transform: translateY(38vh); /* 屏幕向下沉降 38% */
+        }
+
+        /* 模式 1：标准竖版网格容器 (12列排布，大头像方盒子居中，自然舒展) */
+        .grid-full-view {
+            padding: 12px 18px 84px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+            gap: 11px;
+            align-content: start;
+        }
+
+        /* 用户指定的经典竖版卡片样式 (prototype_interactive_whiteboard_solutions.html 原版基因) */
+        .pet-card {
+            background: var(--card-bg);
+            border: 2.5px solid var(--border);
+            box-shadow: 2.5px 2.5px 0 var(--shadow-color);
+            padding: 9px 8px 7px;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.1s, box-shadow 0.1s;
+            height: 168px;
+        }
+
+        .pet-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4.5px 4.5px 0 var(--shadow-color);
+        }
+
+        .pet-card.absent {
+            opacity: 0.35;
+            filter: grayscale(85%);
+            background: #E5E7EB;
+            border-style: dashed;
+        }
+
+        .card-stamp {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            padding: 1px 5px;
+            font-size: 8px;
+            font-weight: 900;
+            font-family: monospace;
+            border: 1.5px solid var(--border);
+            transform: rotate(-6deg);
+            z-index: 5;
+            box-shadow: 1px 1px 0 var(--shadow-color);
+        }
+        .card-stamp.evolve { background: var(--warning); color: #0A0A0A; }
+        .card-stamp.max { background: #9C27B0; color: #FFFFFF; }
+        .card-stamp.absent { background: #6B7280; color: #FFFFFF; }
+
+        /* 顶部大方盒头像 (用户明确保留的核心特征) */
+        .pet-visual-box {
+            width: 66px;
+            height: 66px;
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
+            position: relative;
+            margin-bottom: 6px;
+        }
+
+        .pet-subject-tag {
+            position: absolute;
+            bottom: -5px;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            font-size: 8px;
+            font-weight: 900;
+            padding: 0 4px;
+            border: 1px solid var(--border);
+            font-family: monospace;
+        }
+
+        .card-title-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+
+        .st-name { font-size: 13px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .st-no { font-family: monospace; font-size: 10px; font-weight: 800; background: var(--tag-bg); border: 1px solid var(--border); padding: 0 3px; }
+
+        .st-level-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            font-weight: 800;
+            font-family: monospace;
+            color: var(--text-secondary);
+            margin-bottom: 3px;
+        }
+
+        .st-bar {
+            width: 100%;
+            height: 6px;
+            border: 1.5px solid var(--border);
+            background: var(--bg-secondary);
+            overflow: hidden;
+        }
+
+        .st-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        /* 模式 4 底部小组总分状态条 (充实最后一行空间) */
+        .group-status-banner-card {
+            background: var(--bg-secondary);
+            border: 2.5px dashed var(--border);
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 168px;
+            text-align: center;
+        }
+
+        /* 模式 2：座位表 (4大组) */
+        .seatmap-view {
+            padding: 14px 18px 86px;
+            display: none;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            height: 100%;
+        }
+
+        .seat-group-col {
+            background: var(--bg-secondary);
+            border: 3px solid var(--border);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 4px 0 var(--shadow-color);
+        }
+
+        .group-header {
+            font-size: 13px;
+            font-weight: 900;
+            padding: 6px 10px;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .group-cards-scroll {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            overflow-y: auto;
+        }
+
+        /* 模式 3：四组 PK 赛道 */
+        .pk-race-view {
+            padding: 14px 18px 86px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            background: var(--bg-secondary);
+            border: 3px solid var(--border);
+            margin: 14px 18px;
+            box-shadow: 5px 5px 0 var(--shadow-color);
+        }
+
+        .race-track-row {
+            flex: 1;
+            background: var(--card-bg);
+            border: 2.5px solid var(--border);
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+        }
+
+        .track-runway {
+            flex: 1;
+            height: 52px;
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border);
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .mascot-runner {
+            position: absolute;
+            font-size: 32px;
+            transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.2));
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 方案一：画面中央底部悬浮操作坞 (Bottom Touch Dock) */
+        .bottom-touch-dock {
+            position: fixed;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card-bg);
+            border: 3.5px solid var(--border);
+            box-shadow: 6px 6px 0 var(--shadow-color);
+            padding: 6px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 500;
+        }
+
+        /* 方案四：右下角一键屏幕沉降按键 (Reachability Dropdown) */
+        .btn-reachability-trigger {
+            position: fixed;
+            bottom: 12px;
+            right: 18px;
+            background: var(--warning);
+            color: #0A0A0A;
+            border: 3.5px solid var(--border);
+            box-shadow: 5px 5px 0 var(--shadow-color);
+            padding: 8px 16px;
+            font-weight: 900;
+            font-size: 13px;
+            cursor: pointer;
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-reachability-trigger:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--shadow-color); }
+
+        /* 点击学生卡片中央弹出详情 Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 800;
+        }
+
+        .details-modal-box {
+            background: var(--card-bg);
+            border: 4px solid var(--border);
+            box-shadow: 12px 12px 0 var(--shadow-color);
+            width: 100%;
+            max-width: 640px;
+            padding: 24px;
+            position: relative;
+        }
+
+        /* 🌟 日常普通升级 C 位聚光灯局部庆祝 */
+        .levelup-spotlight-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9000;
+        }
+        .levelup-spotlight-box {
+            background: var(--card-bg);
+            border: 4px solid var(--border);
+            box-shadow: 10px 10px 0 var(--accent);
+            padding: 24px;
+            text-align: center;
+            max-width: 440px;
+            width: 90%;
+            animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes popUp { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+        /* 🎆 真实全屏 Canvas 满级烟花暗化庆祝 */
+        .fireworks-celebration-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 9999;
+        }
+
+        #fireworksCanvas {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10000;
+        }
+
+        .max-spotlight-card {
+            position: relative;
+            background: var(--card-bg);
+            border: 5px solid var(--border);
+            box-shadow: 16px 16px 0 var(--warning);
+            padding: 30px 44px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            z-index: 10001;
+            animation: spotlightZoom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes spotlightZoom { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部状态栏 -->
+    <div class="stage-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <a href="./index.html" class="btn-header">← 导航主页</a>
+            <h1 style="font-size: 15px; font-weight: 900;">班级宠物大屏</h1>
+            <span style="font-size: 10px; font-family: monospace; font-weight: 800; background: var(--tag-bg); padding: 2px 6px; border: 1.5px solid var(--border);">三年级二班 (42人)</span>
+            <span style="font-size: 10px; font-weight: 900; color: var(--success); font-family: monospace;">● 双屏实时互联</span>
+
+            <div class="view-mode-tabs">
+                <button class="btn-view-tab active" id="tabGrid" onclick="switchView('grid')">🔲 竖版全班网格</button>
+                <button class="btn-view-tab" id="tabSeat" onclick="switchView('seat')">🪑 座位表 (4大组)</button>
+                <button class="btn-view-tab" id="tabPK" onclick="switchView('pk')">🏆 四组 PK 榜</button>
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <button class="btn-header" style="background: #F0FDF4; color: #166534;" onclick="triggerSpotlightCelebration(1, 4)">🌟 模拟C位升级</button>
+            <button class="btn-header" style="background: #9C27B0; color: #FFFFFF;" onclick="triggerFullFireworksCelebration(4)">🎆 满级全屏烟花</button>
+            <button class="btn-header" style="background: var(--warning); color: #000;" onclick="startRandomPicker()">🎲 抽选点名</button>
+            <select class="btn-header" style="outline: none;" id="themeSelect" onchange="setGlobalTheme(this.value, event)">
+                <option value="classic">🎨 经典档案</option>
+                <option value="dark">🌙 暗夜护眼</option>
+                <option value="orange">🍊 活力橙红</option>
+                <option value="forest">🌲 森林绿野</option>
+                <option value="ocean">🌊 海洋蓝调</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 主展示舞台 (支持沉降 38%) -->
+    <div class="main-stage-wrapper" id="stageWrapper">
+
+        <!-- 模式 1：42人标准竖版卡片全景网格 -->
+        <div class="grid-full-view" id="gridFullView"></div>
+
+        <!-- 模式 2：座位表 (4大组) -->
+        <div class="seatmap-view" id="seatmapView">
+            <div class="seat-group-col">
+                <div class="group-header"><span>第 1 大组 (窗边)</span><button class="btn-header" style="padding: 1px 5px; font-size: 9px;" onclick="scoreGroup(1, 5)">组加分 +5</button></div>
+                <div class="group-cards-scroll" id="groupList1"></div>
+            </div>
+            <div class="seat-group-col">
+                <div class="group-header"><span>第 2 大组 (中左)</span><button class="btn-header" style="padding: 1px 5px; font-size: 9px;" onclick="scoreGroup(2, 5)">组加分 +5</button></div>
+                <div class="group-cards-scroll" id="groupList2"></div>
+            </div>
+            <div class="seat-group-col">
+                <div class="group-header"><span>第 3 大组 (中右)</span><button class="btn-header" style="padding: 1px 5px; font-size: 9px;" onclick="scoreGroup(3, 5)">组加分 +5</button></div>
+                <div class="group-cards-scroll" id="groupList3"></div>
+            </div>
+            <div class="seat-group-col">
+                <div class="group-header"><span>第 4 大组 (门边)</span><button class="btn-header" style="padding: 1px 5px; font-size: 9px;" onclick="scoreGroup(4, 5)">组加分 +5</button></div>
+                <div class="group-cards-scroll" id="groupList4"></div>
+            </div>
+        </div>
+
+        <!-- 模式 3：四组 PK 赛道 -->
+        <div class="pk-race-view" id="pkRaceView">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 4px;">
+                <h3 style="font-size: 15px; font-weight: 900;">🏆 四大小组宠物竞速积分争霸赛</h3>
+                <span style="font-size: 11px; font-family: monospace; color: var(--text-secondary);">* 组积分越高，吉祥物冲刺越快！</span>
+            </div>
+            <div id="raceTracksContainer" style="flex: 1; display: flex; flex-direction: column; gap: 8px; margin-top: 6px;"></div>
+        </div>
+
+    </div>
+
+    <!-- 方案一：底部操作坞 (Bottom Touch Dock) -->
+    <div class="bottom-touch-dock">
+        <span style="font-size: 10px; font-weight: 900; background: #0A0A0A; color: #FFFFFF; padding: 2px 5px; font-family: monospace;">TOUCH DOCK</span>
+        <button class="btn-header" onclick="sortCards('no')">🔢 学号排序</button>
+        <button class="btn-header" onclick="sortCards('level')">⭐ 等级排行</button>
+        <button class="btn-header" style="background: var(--warning); color: #000;" onclick="startRandomPicker()">🎲 随堂抽选点名</button>
+        <button class="btn-header" style="background: var(--accent); color: var(--accent-text);" onclick="location.href='./teacher_panel.html'">⚡ 打开教师操作台</button>
+    </div>
+
+    <!-- 方案四：右下角屏幕沉降按钮 (Reachability Dropdown) -->
+    <button class="btn-reachability-trigger" onclick="toggleReachability()">
+        <span id="reachIcon">⬇️</span>
+        <span id="reachText">一键屏幕沉降 (降低38%)</span>
+    </button>
+
+    <!-- 点击学生卡片中央弹出详情 Modal -->
+    <div class="modal-overlay" id="modalStudentDetails">
+        <div class="details-modal-box">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--border); padding-bottom: 10px;">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 900;" id="modalStudentName">张三 · #01</h2>
+                    <p style="font-size: 12px; color: var(--text-secondary);" id="modalStudentSub">三年级二班 · 专属灵兽成长空间</p>
+                </div>
+                <button class="btn-header" onclick="closeDetailsModal()">✕ 关闭</button>
+            </div>
+
+            <div style="display: flex; gap: 6px; margin: 10px 0 6px;">
+                <button class="btn-header" style="background: var(--accent); color: white;" id="tabSubjChinese" onclick="switchModalSubject('chinese')">语文 (🐱 灵猫)</button>
+                <button class="btn-header" id="tabSubjMath" onclick="switchModalSubject('math')">数学 (🐶 猎犬)</button>
+                <button class="btn-header" id="tabSubjEnglish" onclick="switchModalSubject('english')">英语 (🦊 灵狐)</button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 14px; background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 12px; margin: 8px 0;">
+                <div style="width: 64px; height: 64px; border: 2px solid var(--border); background: var(--card-bg); display: flex; align-items: center; justify-content: center; font-size: 38px;" id="heroPetIcon">🐱</div>
+                <div style="flex: 1;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <strong style="font-size: 15px;" id="heroPetName">灵猫 (Stage 3 进阶形态)</strong>
+                        <span style="font-size: 13px; font-weight: 900; color: var(--accent);" id="heroPetLevel">LV.8</span>
+                    </div>
+                    <div style="font-size: 11px; font-family: monospace; color: var(--text-secondary); margin: 3px 0;" id="heroExpText">当前经验：280 EXP · 下级阈值：315 EXP</div>
+                    <div class="st-bar" style="height: 7px;"><div class="st-bar-fill" id="heroProgressBar" style="width: 70%;"></div></div>
+                    <div style="font-size: 11px; color: var(--accent); font-weight: 800; margin-top: 3px;" id="heroNextGoalText">🎯 距离 Lv.13 青年形态还需 305 EXP</div>
+                </div>
+            </div>
+
+            <span style="font-size: 12px; font-weight: 900;">🐾 互动关怀动作 (每日上限 5 EXP)：</span>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0 10px;">
+                <button class="btn-header" style="justify-content: center;" onclick="doInteraction('打招呼', 1)">👋 打招呼 (+1)</button>
+                <button class="btn-header" style="justify-content: center;" onclick="doInteraction('抚摸', 1)">🖐️ 抚摸 (+1)</button>
+                <button class="btn-header" style="justify-content: center;" onclick="doInteraction('玩耍', 2)">🎾 玩耍 (+2)</button>
+                <button class="btn-header" style="justify-content: center;" onclick="doInteraction('喂水', 2)">💧 喂水 (+2)</button>
+                <button class="btn-header" style="justify-content: center;" onclick="doInteraction('喂食', 2)">🍖 喂食 (+2)</button>
+                <button class="btn-header" style="justify-content: center;" onclick="doInteraction('安抚', 2)">✨ 安抚 (+2)</button>
+            </div>
+
+            <div style="border-top: 2px solid var(--border); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 12px; font-weight: 900;">⚡ 课堂快速加分：</span>
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn-header" style="background: #F0FDF4; color: #15803D;" onclick="quickModalScore(5, '认真听讲')">+5 认真</button>
+                    <button class="btn-header" style="background: #F0FDF4; color: #15803D;" onclick="quickModalScore(10, '作业优秀')">+10 优秀</button>
+                    <button class="btn-header" style="background: #FEF2F2; color: #DC2626;" onclick="quickModalScore(-2, '未交作业')">-2 扣分</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 日常普通升级 C 位聚光灯弹窗 -->
+    <div class="levelup-spotlight-modal" id="spotlightModal">
+        <div class="levelup-spotlight-box">
+            <div style="font-size: 52px; margin-bottom: 4px;" id="spotPetIcon">🐯</div>
+            <div style="background: var(--warning); font-weight: 900; padding: 2px 10px; display: inline-block; font-size: 12px; border: 2px solid var(--border); margin-bottom: 6px;">★ LEVEL UP! 形态进阶 ★</div>
+            <h2 style="font-size: 22px; font-weight: 900;" id="spotStudentName">李四 (#02)</h2>
+            <p style="font-size: 13px; font-weight: 800; color: var(--accent); margin: 6px 0;" id="spotLevelMsg">成功晋升至 Lv.4 进阶期！</p>
+            <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px;">已解锁全新伙伴动作与专属互动气泡！</p>
+            <button class="btn-header" style="background: var(--accent); color: white; padding: 8px 20px; font-size: 13px;" onclick="closeSpotlightCelebration()">太棒了！</button>
+        </div>
+    </div>
+
+    <!-- 🎆 真实全屏 Canvas 满级烟花暗化庆祝 -->
+    <div class="fireworks-celebration-overlay" id="fireworksLayer">
+        <canvas id="fireworksCanvas"></canvas>
+        <div class="max-spotlight-card">
+            <div style="font-size: 64px; animation: bounceCrown 1.5s infinite ease-in-out;">👑</div>
+            <div style="background: var(--warning); border: 2.5px solid var(--border); font-weight: 900; padding: 4px 14px; display: inline-block; font-family: monospace; font-size: 13px; margin: 8px 0;">★ 终极满级神兽达成 ★</div>
+            <h2 style="font-size: 26px; font-weight: 900;" id="fireworksStudentName">孙七 (#05)</h2>
+            <p style="font-size: 14px; font-weight: 800; color: var(--accent); margin: 6px 0;" id="fireworksPetMsg">恭喜达成 Lv.20 满级大师形态！</p>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">已解锁全套究极技能，并获得开启第二只学科宠物蛋资格！</p>
+            <button class="btn-header" style="background: var(--accent); color: white; padding: 10px 28px; font-size: 14px;" onclick="closeFireworksCelebration()">确认并返回大屏</button>
+        </div>
+    </div>
+
+    <script src="./classpet_core.js"></script>
+
+    <script>
+        const store = window.classPetRuntime;
+        let currentView = 'grid';
+        let activeModalStudent = null;
+        let activeModalSubject = 'chinese';
+
+        let fireworksRunning = false;
+        let fireworksAnimationId = null;
+        let particles = [];
+        let rockets = [];
+
+        // 🌟 丝滑圆形扩散主题切换核心算法
+        function setGlobalTheme(t, event) {
+            const root = document.documentElement;
+            if (root.getAttribute('data-theme') === t) return;
+
+            // 获取触发原点坐标 (优先取下拉框中心，或点击坐标)
+            const selectElem = document.getElementById('themeSelect');
+            let x = window.innerWidth - 60;
+            let y = 24;
+
+            if (event && event.clientX) {
+                x = event.clientX;
+                y = event.clientY;
+            } else if (selectElem) {
+                const rect = selectElem.getBoundingClientRect();
+                x = rect.left + rect.width / 2;
+                y = rect.top + rect.height / 2;
+            }
+
+            // 计算到达视口最远对角线顶点的半径
+            const maxRadius = Math.hypot(
+                Math.max(x, window.innerWidth - x),
+                Math.max(y, window.innerHeight - y)
+            );
+
+            // 优先采用现代化 View Transitions API 实现丝滑扩散
+            if (document.startViewTransition) {
+                const transition = document.startViewTransition(() => {
+                    root.setAttribute('data-theme', t);
+                    localStorage.setItem('nb_selected_theme', t);
+                    if (selectElem) selectElem.value = t;
+                });
+
+                transition.ready.then(() => {
+                    document.documentElement.animate({
+                        clipPath: [
+                            `circle(0px at ${x}px ${y}px)`,
+                            `circle(${maxRadius}px at ${x}px ${y}px)`
+                        ]
+                    }, {
+                        duration: 650,
+                        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                        pseudoElement: '::view-transition-new(root)'
+                    });
+                });
+            } else {
+                // 兼容性 Fallback：动态创建圆形扩散层
+                const ripple = document.createElement('div');
+                ripple.style.position = 'fixed';
+                ripple.style.left = `${x}px`;
+                ripple.style.top = `${y}px`;
+                ripple.style.width = '10px';
+                ripple.style.height = '10px';
+                ripple.style.borderRadius = '50%';
+                ripple.style.transform = 'translate(-50%, -50%)';
+                ripple.style.zIndex = '999999';
+                ripple.style.pointerEvents = 'none';
+                ripple.style.transition = 'width 0.65s cubic-bezier(0.22, 1, 0.36, 1), height 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.65s';
+
+                const themeColors = {
+                    classic: '#FFFEF9',
+                    dark: '#121212',
+                    orange: '#FFF9F5',
+                    forest: '#F5F9F5',
+                    ocean: '#F5F9FF'
+                };
+                ripple.style.background = themeColors[t] || '#FFFFFF';
+                ripple.style.opacity = '0.96';
+                document.body.appendChild(ripple);
+
+                requestAnimationFrame(() => {
+                    ripple.style.width = `${maxRadius * 2.2}px`;
+                    ripple.style.height = `${maxRadius * 2.2}px`;
+                });
+
+                setTimeout(() => {
+                    root.setAttribute('data-theme', t);
+                    localStorage.setItem('nb_selected_theme', t);
+                    if (selectElem) selectElem.value = t;
+                    ripple.style.opacity = '0';
+                    setTimeout(() => ripple.remove(), 400);
+                }, 300);
+            }
+        }
+
+        // 初始化加载记忆的主题
+        const savedTheme = localStorage.getItem('nb_selected_theme') || 'classic';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        const sel = document.getElementById('themeSelect');
+        if (sel) sel.value = savedTheme;
+
+        store.subscribe((event, payload) => {
+            if (event === 'SCORE' && payload) {
+                if (payload.newLevel >= 20) {
+                    triggerFullFireworksCelebration(payload.studentId - 1);
+                } else if ([4, 8, 13].includes(payload.newLevel)) {
+                    triggerSpotlightCelebration(payload.studentId - 1, payload.newLevel);
+                }
+            }
+            renderAll();
+        });
+
+        function renderAll() {
+            if (currentView === 'grid') renderGrid();
+            else if (currentView === 'seat') renderSeatMap();
+            else if (currentView === 'pk') renderPKRace();
+        }
+
+        // 渲染标准竖版卡片网格
+        function renderGrid() {
+            const container = document.getElementById('gridFullView');
+            const cardsHtml = store.students.map(s => {
+                const pet = s.pets[s.activeSubject];
+                const currentMin = s.minExpForCurrentLevel || 0;
+                const nextMax = s.nextLevelExp || 1250;
+                const percent = Math.min(100, Math.max(0, Math.round(((s.exp - currentMin) / Math.max(1, nextMax - currentMin)) * 100)));
+
+                let stampHtml = '';
+                if (s.isAbsent) stampHtml = `<div class="card-stamp absent">请假</div>`;
+                else if (s.stamp === 'EVOLVE') stampHtml = `<div class="card-stamp evolve">可进化</div>`;
+                else if (s.stamp === 'MAX') stampHtml = `<div class="card-stamp max">MAX</div>`;
+
+                return `
+                    <div class="pet-card ${s.isAbsent ? 'absent' : ''}" onclick="openStudentDetailsModal(${s.id})">
+                        ${stampHtml}
+                        <div class="pet-visual-box">
+                            <span>${pet.icon}</span>
+                            <span class="pet-subject-tag">${pet.subject}</span>
+                        </div>
+                        <div class="card-title-row">
+                            <span class="st-name">${s.name}</span>
+                            <span class="st-no">#${s.no}</span>
+                        </div>
+                        <div class="st-level-row">
+                            <span>LV.${s.level}</span>
+                            <span>${s.exp}/${nextMax}</span>
+                        </div>
+                        <div class="st-bar">
+                            <div class="st-bar-fill" style="width: ${percent}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 小组总分概览充实卡片 (填补最后空位，丰富大屏视效)
+            const groups = store.getGroupStats();
+            const groupBannersHtml = `
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 1</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 1 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===1)?.totalExp || 0} EXP</div>
+                    <div style="font-size:9px;color:#888;">窗边组 · 均级 Lv.4.2</div>
+                </div>
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 2</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 2 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===2)?.totalExp || 0} EXP</div>
+                    <div style="font-size:9px;color:#888;">中左组 · 均级 Lv.3.8</div>
+                </div>
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 3</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 3 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===3)?.totalExp || 0} EXP</div>
+                    <div style="font-size:9px;color:#888;">中右组 · 均级 Lv.4.0</div>
+                </div>
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 4</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 4 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===4)?.totalExp || 0} EXP</div>
+                    <div style="font-size:9px;color:#888;">门边组 · 均级 Lv.4.5</div>
+                </div>
+            `;
+
+            container.innerHTML = cardsHtml + groupBannersHtml;
+        }
+
+        function renderSeatMap() {
+            for (let g = 1; g <= 4; g++) {
+                const list = store.students.filter(s => s.group === g);
+                document.getElementById(`groupList${g}`).innerHTML = list.map(s => {
+                    const pet = s.pets[s.activeSubject];
+                    return `
+                        <div class="pet-card" style="height:110px;padding:6px;" onclick="openStudentDetailsModal(${s.id})">
+                            <div class="pet-visual-box" style="width:44px;height:44px;font-size:22px;">${pet.icon}</div>
+                            <div style="font-size:11px;font-weight:900;">${s.name} <span style="font-size:9px;color:#888;">#${s.no}</span></div>
+                            <div style="font-size:9px;color:var(--accent);font-weight:800;">LV.${s.level} · ${s.exp}P</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function renderPKRace() {
+            const groups = store.getGroupStats();
+            const maxExp = Math.max(...groups.map(g => g.totalExp), 500);
+            const container = document.getElementById('raceTracksContainer');
+
+            container.innerHTML = groups.map(g => {
+                const percent = Math.min(88, Math.max(5, Math.round((g.totalExp / maxExp) * 85)));
+                const mascot = g.group === 1 ? '🐱' : (g.group === 2 ? '🐶' : (g.group === 3 ? '🦊' : '🐼'));
+                return `
+                    <div class="race-track-row">
+                        <div style="width:130px;">
+                            <strong style="font-size:13px;">${g.name}</strong>
+                            <div style="font-size:10px;color:#666;">总分: ${g.totalExp} · 均级 Lv.${g.avgLevel}</div>
+                        </div>
+                        <div class="track-runway">
+                            <div class="mascot-runner" style="left: ${percent}%;">
+                                <span>${mascot}</span>
+                                <span style="font-size:9px;font-weight:900;background:var(--warning);border:1px solid #000;padding:1px 3px;">${g.totalExp} EXP</span>
+                            </div>
+                        </div>
+                        <button class="btn-header" onclick="scoreGroup(${g.group}, 5)">组加分 +5</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function switchView(v) {
+            currentView = v;
+            document.getElementById('tabGrid').classList.toggle('active', v === 'grid');
+            document.getElementById('tabSeat').classList.toggle('active', v === 'seat');
+            document.getElementById('tabPK').classList.toggle('active', v === 'pk');
+
+            document.getElementById('gridFullView').style.display = v === 'grid' ? 'grid' : 'none';
+            document.getElementById('seatmapView').style.display = v === 'seat' ? 'grid' : 'none';
+            document.getElementById('pkRaceView').style.display = v === 'pk' ? 'flex' : 'none';
+            renderAll();
+        }
+
+        function openStudentDetailsModal(id) {
+            const s = store.students.find(x => x.id === id);
+            if (!s) return;
+            activeModalStudent = s;
+            activeModalSubject = s.activeSubject || 'chinese';
+            refreshModal();
+            document.getElementById('modalStudentDetails').style.display = 'flex';
+        }
+
+        function refreshModal() {
+            if (!activeModalStudent) return;
+            const s = activeModalStudent;
+            const pet = s.pets[activeModalSubject] || s.pets.chinese;
+
+            document.getElementById('modalStudentName').textContent = `${s.name} · #${s.no}`;
+            document.getElementById('modalStudentSub').textContent = `三年级二班 · 第 ${s.group} 大组 · ${pet.subject}专属空间`;
+            document.getElementById('heroPetIcon').textContent = pet.icon;
+            document.getElementById('heroPetName').textContent = `${pet.name} (Stage ${pet.visualStage} 形态)`;
+            document.getElementById('heroPetLevel').textContent = `LV.${pet.level}`;
+
+            const currentMin = s.minExpForCurrentLevel || 0;
+            const nextMax = s.nextLevelExp || 1250;
+            const percent = Math.min(100, Math.max(0, Math.round(((pet.exp - currentMin) / Math.max(1, nextMax - currentMin)) * 100)));
+
+            document.getElementById('heroExpText').textContent = `当前经验：${pet.exp} EXP · 下级阈值：${nextMax} EXP`;
+            document.getElementById('heroProgressBar').style.width = percent + '%';
+        }
+
+        function switchModalSubject(sub) {
+            activeModalSubject = sub;
+            document.getElementById('tabSubjChinese').style.background = sub === 'chinese' ? 'var(--accent)' : 'var(--bg-secondary)';
+            document.getElementById('tabSubjChinese').style.color = sub === 'chinese' ? 'white' : 'var(--text-primary)';
+            document.getElementById('tabSubjMath').style.background = sub === 'math' ? 'var(--accent)' : 'var(--bg-secondary)';
+            document.getElementById('tabSubjMath').style.color = sub === 'math' ? 'white' : 'var(--text-primary)';
+            document.getElementById('tabSubjEnglish').style.background = sub === 'english' ? 'var(--accent)' : 'var(--bg-secondary)';
+            document.getElementById('tabSubjEnglish').style.color = sub === 'english' ? 'white' : 'var(--text-primary)';
+            refreshModal();
+        }
+
+        function doInteraction(action, exp) {
+            store.audio.playDing();
+            alert(`已完成 [${action}] 互动！好感度提升，获得 +${exp} 互动经验！`);
+            store.scoreStudent(activeModalStudent.id, exp, `互动:${action}`);
+            refreshModal();
+        }
+
+        function quickModalScore(delta, reason) {
+            if (!activeModalStudent) return;
+            store.scoreStudent(activeModalStudent.id, delta, reason);
+            refreshModal();
+        }
+
+        function scoreGroup(g, d) {
+            const list = store.students.filter(s => s.group === g);
+            store.batchScore(list.map(s => s.id), d, `第${g}组奖励`);
+            renderAll();
+        }
+
+        function startRandomPicker() {
+            const chosen = store.startRandomPick();
+            if (chosen) openStudentDetailsModal(chosen.id);
+        }
+
+        function toggleReachability() {
+            const w = document.getElementById('stageWrapper');
+            const isActive = w.classList.toggle('reachability-active');
+            document.getElementById('reachIcon').textContent = isActive ? '⬆️' : '⬇️';
+            document.getElementById('reachText').textContent = isActive ? '恢复大屏原位' : '一键屏幕沉降 (降低38%)';
+        }
+
+        function sortCards(by) {
+            if (by === 'no') store.students.sort((a, b) => a.no.localeCompare(b.no));
+            else store.students.sort((a, b) => b.level - a.level || b.exp - a.exp);
+            renderGrid();
+        }
+
+        function closeDetailsModal() { document.getElementById('modalStudentDetails').style.display = 'none'; }
+
+        function triggerSpotlightCelebration(index, lvl) {
+            const s = store.students[index] || store.students[0];
+            document.getElementById('spotPetIcon').textContent = s.pets[s.activeSubject].icon;
+            document.getElementById('spotStudentName').textContent = `${s.name} (#${s.no})`;
+            document.getElementById('spotLevelMsg').textContent = `成功晋升至 Lv.${lvl} 进阶期！`;
+            store.audio.playFanfare();
+            document.getElementById('spotlightModal').style.display = 'flex';
+        }
+
+        function closeSpotlightCelebration() {
+            document.getElementById('spotlightModal').style.display = 'none';
+        }
+
+        function triggerFullFireworksCelebration(studentIndex = 4) {
+            const s = store.students[studentIndex] || store.students[4];
+            document.getElementById('fireworksStudentName').textContent = `${s.name} (#${s.no})`;
+            document.getElementById('fireworksPetMsg').textContent = `恭喜达成 Lv.20 满级大师形态！`;
+            document.getElementById('fireworksLayer').style.display = 'flex';
+
+            store.audio.playFanfare();
+
+            const canvas = document.getElementById('fireworksCanvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const ctx = canvas.getContext('2d');
+
+            fireworksRunning = true;
+            particles = [];
+            rockets = [];
+
+            function loop() {
+                if (!fireworksRunning) return;
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.globalCompositeOperation = 'lighter';
+
+                if (Math.random() < 0.15) {
+                    rockets.push({
+                        x: Math.random() * canvas.width,
+                        y: canvas.height,
+                        targetY: 80 + Math.random() * (canvas.height * 0.4),
+                        speed: 7 + Math.random() * 5,
+                        color: `hsl(${Math.random() * 360}, 100%, 65%)`
+                    });
+                }
+
+                for (let i = rockets.length - 1; i >= 0; i--) {
+                    const r = rockets[i];
+                    r.y -= r.speed;
+                    ctx.beginPath();
+                    ctx.arc(r.x, r.y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = r.color;
+                    ctx.fill();
+
+                    if (r.y <= r.targetY) {
+                        for (let j = 0; j < 60; j++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const speed = Math.random() * 6 + 1;
+                            particles.push({
+                                x: r.x, y: r.y,
+                                vx: Math.cos(angle) * speed,
+                                vy: Math.sin(angle) * speed,
+                                alpha: 1, color: r.color,
+                                decay: Math.random() * 0.02 + 0.015
+                            });
+                        }
+                        rockets.splice(i, 1);
+                    }
+                }
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.08;
+                    p.alpha -= p.decay;
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+
+                    if (p.alpha <= 0) particles.splice(i, 1);
+                }
+
+                fireworksAnimationId = requestAnimationFrame(loop);
+            }
+
+            loop();
+        }
+
+        function closeFireworksCelebration() {
+            fireworksRunning = false;
+            cancelAnimationFrame(fireworksAnimationId);
+            document.getElementById('fireworksLayer').style.display = 'none';
+        }
+
+        renderAll();
+    </script>
+</body>
+</html>

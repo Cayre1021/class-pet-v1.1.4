@@ -1,0 +1,17 @@
+{
+  "id": "tpl-decision-arch",
+  "projectTitle": "系统架构与自动化决策流程",
+  "description": "API Gateway 网关鉴权 -> VIP 条件判断分支 -> 高速 GPU 集群与标准弹性池调度",
+  "updatedAt": "2026-08-28T10:00:00.000Z",
+  "nodes": [
+    { "id": "d-1", "type": "rect", "shape": "rect", "x": 80, "y": 220, "width": 220, "height": 120, "title": "用户请求网关 (API Gateway)", "content": "鉴权、流控与请求解析", "color": "cyan", "zIndex": 10 },
+    { "id": "d-2", "type": "diamond", "shape": "diamond", "x": 380, "y": 190, "width": 200, "height": 180, "title": "VIP 优先级判断", "content": "是否属于企业级专属集群？", "color": "amber", "zIndex": 10 },
+    { "id": "d-3", "type": "rect", "shape": "rect", "x": 670, "y": 100, "width": 240, "height": 120, "title": "专属高速 GPU 集群 (H100)", "content": "即时流式并发，无排队", "color": "emerald", "zIndex": 10 },
+    { "id": "d-4", "type": "rect", "shape": "rect", "x": 670, "y": 320, "width": 240, "height": 120, "title": "标准弹性排队池", "content": "根据负载动态伸缩算力", "color": "purple", "zIndex": 10 }
+  ],
+  "wires": [
+    { "id": "dw-1", "fromNode": "d-1", "fromPort": "right", "toNode": "d-2", "toPort": "left", "label": "派发任务", "style": "orthogonal", "color": "cyan", "animated": true },
+    { "id": "dw-2", "fromNode": "d-2", "fromPort": "top", "toNode": "d-3", "toPort": "left", "label": "是 (VIP)", "style": "orthogonal", "color": "emerald", "animated": true },
+    { "id": "dw-3", "fromNode": "d-2", "fromPort": "bottom", "toNode": "d-4", "toPort": "left", "label": "否 (标准)", "style": "orthogonal", "color": "purple", "animated": true }
+  ]
+}

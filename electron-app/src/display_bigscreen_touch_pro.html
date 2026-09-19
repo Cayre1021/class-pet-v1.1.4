@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="classic">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Pet - 班级电子宠物管理系统 (学生大屏)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* 5套完备 Neo-Brutalism 主题配色系统 */
+        :root[data-theme="classic"] {
+            --bg-primary: #FFFEF9;
+            --bg-secondary: #F5F3EF;
+            --text-primary: #0A0A0A;
+            --text-secondary: #525252;
+            --border: #0A0A0A;
+            --accent: #0066FF;
+            --accent-hover: #0052CC;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #16A34A;
+            --warning: #FFD60A;
+            --error: #FF3B30;
+            --tag-bg: #E8F0FE;
+            --shadow-color: #0A0A0A;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #121212;
+            --bg-secondary: #1E1E1E;
+            --text-primary: #F3F4F6;
+            --text-secondary: #9CA3AF;
+            --border: #374151;
+            --accent: #00D9FF;
+            --accent-hover: #00B4D8;
+            --accent-text: #0A0A0A;
+            --card-bg: #1A1A1A;
+            --success: #10B981;
+            --warning: #FBBF24;
+            --error: #F43F5E;
+            --tag-bg: #262626;
+            --shadow-color: #000000;
+        }
+
+        :root[data-theme="orange"] {
+            --bg-primary: #FFF9F5;
+            --bg-secondary: #FFE8DC;
+            --text-primary: #1A0A00;
+            --text-secondary: #664433;
+            --border: #1A0A00;
+            --accent: #FF5722;
+            --accent-hover: #E64A19;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #4CAF50;
+            --warning: #FFC107;
+            --error: #D32F2F;
+            --tag-bg: #FFECE2;
+            --shadow-color: #1A0A00;
+        }
+
+        :root[data-theme="forest"] {
+            --bg-primary: #F5F9F5;
+            --bg-secondary: #E8F5E9;
+            --text-primary: #0D3B0D;
+            --text-secondary: #2E5A2E;
+            --border: #0D3B0D;
+            --accent: #2E7D32;
+            --accent-hover: #1B5E20;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #66BB6A;
+            --warning: #FFA726;
+            --error: #E53935;
+            --tag-bg: #E8F5E9;
+            --shadow-color: #0D3B0D;
+        }
+
+        :root[data-theme="ocean"] {
+            --bg-primary: #F5F9FF;
+            --bg-secondary: #E3F2FD;
+            --text-primary: #0A1A3B;
+            --text-secondary: #2C4A7A;
+            --border: #0A1A3B;
+            --accent: #1976D2;
+            --accent-hover: #0D47A1;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #43A047;
+            --warning: #FFB300;
+            --error: #E53935;
+            --tag-bg: #E3F2FD;
+            --shadow-color: #0A1A3B;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+            position: relative;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        /* 🌟 顶部操作横条强化：高度加倍至 92px，按键高 54px，超大触控靶区，适配教室壁挂一体机 */
+        .stage-header-pro {
+            background: var(--card-bg);
+            border-bottom: 3.5px solid var(--border);
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 92px;
+            min-height: 92px;
+            z-index: 100;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.08);
+            overflow: visible;
+            box-sizing: border-box;
+        }
+
+        /* 顶部大靶区触控按键 (高度54px，字号15px，不换行，永不截断) */
+        .btn-header-touch {
+            height: 54px;
+            padding: 0 16px;
+            border: 2.5px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-weight: 900;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            transition: transform 0.08s, box-shadow 0.08s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+        .btn-header-touch:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow-color); }
+
+        .view-mode-tabs-pro {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-secondary);
+            padding: 3px;
+            border: 2.5px solid var(--border);
+            height: 54px;
+            align-items: center;
+            flex-shrink: 0;
+            white-space: nowrap;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+
+        .btn-view-tab-pro {
+            height: 44px;
+            padding: 0 14px;
+            border: 2px solid transparent;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 900;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            border-radius: 3px;
+        }
+
+        .btn-view-tab-pro.active {
+            background: var(--card-bg);
+            border-color: var(--border);
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            color: var(--accent);
+        }
+
+        /* 🎨 Neo-Brutalism 全局输入框聚焦高亮体系 */
+        input:focus, select:focus, textarea:focus {
+            outline: none !important;
+            border-color: var(--accent) !important;
+            border-width: 3px !important;
+            box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.22), 4px 4px 0 var(--shadow-color) !important;
+            background-color: #FFFFFF !important;
+            transform: translateY(-1px);
+        }
+
+        /* 主舞台容器 (支持一键屏幕沉降 38%) */
+        .main-stage-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-y: auto;
+            transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+        }
+
+        .main-stage-wrapper.reachability-active {
+            transform: translateY(38vh);
+        }
+
+        /* 模式 1：标准竖版网格容器 (支持用户触控动态放大/缩小) */
+        .grid-full-view {
+            padding: 12px 18px 90px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(var(--card-min-w, 136px), 1fr));
+            gap: var(--card-gap, 11px);
+            align-content: start;
+        }
+
+        /* 经典竖版卡片样式 (比例动态随动) */
+        .pet-card {
+            background: var(--card-bg);
+            border: 2.5px solid var(--border);
+            box-shadow: 2.5px 2.5px 0 var(--shadow-color);
+            padding: var(--card-pad, 9px 8px 7px);
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.1s, box-shadow 0.1s, width 0.15s, height 0.15s;
+            height: var(--card-h, 168px);
+            box-sizing: border-box;
+        }
+
+        .pet-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4.5px 4.5px 0 var(--shadow-color);
+        }
+
+        .pet-card.absent {
+            opacity: 0.35;
+            filter: grayscale(85%);
+            background: #E5E7EB;
+            border-style: dashed;
+        }
+
+        .card-stamp {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            padding: 1px 5px;
+            font-size: var(--stamp-fs, 8px);
+            font-weight: 900;
+            font-family: monospace;
+            border: 1.5px solid var(--border);
+            transform: rotate(-6deg);
+            z-index: 5;
+            box-shadow: 1px 1px 0 var(--shadow-color);
+        }
+        .card-stamp.evolve { background: var(--warning); color: #0A0A0A; }
+        .card-stamp.max { background: #9C27B0; color: #FFFFFF; }
+        .card-stamp.absent { background: #6B7280; color: #FFFFFF; }
+        .card-stamp.hatch-ready {
+            background: #FFD60A;
+            color: #0A0A0A;
+            border-color: #0A0A0A;
+            animation: pulse-glow 1.4s infinite alternate;
+        }
+        .card-stamp.egg-stage { background: #E0E7FF; color: #3730A3; }
+
+        @keyframes pulse-glow {
+            0% { transform: rotate(-6deg) scale(0.96); box-shadow: 0 0 2px #FFD60A; }
+            100% { transform: rotate(-6deg) scale(1.08); box-shadow: 0 0 10px #FFD60A; }
+        }
+
+        .pet-thumb-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.12));
+            pointer-events: none;
+        }
+
+        .pet-speech-bubble {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #FFFFFF;
+            border: 2.5px solid var(--border);
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            padding: 9px 15px;
+            font-size: 13px;
+            font-weight: 900;
+            color: var(--text-primary);
+            border-radius: 10px;
+            white-space: normal;
+            max-width: 320px;
+            width: max-content;
+            z-index: 60;
+            pointer-events: none;
+            animation: bubble-bounce 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            display: none;
+            line-height: 1.4;
+            text-align: center;
+        }
+        .pet-speech-bubble::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -7px;
+            border-width: 7px;
+            border-style: solid;
+            border-color: var(--border) transparent transparent transparent;
+        }
+        @keyframes bubble-bounce {
+            0% { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.85); }
+            100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+        }
+
+        .hatch-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 14px 0;
+            max-height: 380px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+        .hatch-card-option {
+            border: 2.5px solid var(--border);
+            background: var(--card-bg);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 2.5px 2.5px 0 var(--shadow-color);
+            transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s;
+            text-align: center;
+        }
+        .hatch-card-option:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0 var(--shadow-color);
+        }
+        .hatch-card-option.selected {
+            border-color: var(--accent);
+            background: var(--tag-bg);
+            box-shadow: 4px 4px 0 var(--accent);
+            transform: scale(1.03);
+        }
+        .hatch-pet-preview {
+            width: 76px;
+            height: 76px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .hatch-pet-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .pet-visual-box {
+            width: var(--pet-box-size, 66px);
+            height: var(--pet-box-size, 66px);
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--pet-icon-fs, 34px);
+            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
+            position: relative;
+            margin-bottom: var(--pet-margin-b, 6px);
+            flex-shrink: 0;
+            transition: width 0.15s, height 0.15s, font-size 0.15s;
+        }
+
+        .pet-subject-tag {
+            position: absolute;
+            bottom: -5px;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            font-size: var(--tag-fs, 8px);
+            font-weight: 900;
+            padding: 0 4px;
+            border: 1px solid var(--border);
+            font-family: monospace;
+        }
+
+        .card-title-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+
+        .st-name { font-size: var(--name-fs, 13px); font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .st-no { font-family: monospace; font-size: var(--no-fs, 10px); font-weight: 800; background: var(--tag-bg); border: 1px solid var(--border); padding: 0 3px; }
+
+        .st-level-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: var(--level-fs, 10px);
+            font-weight: 800;
+            font-family: monospace;
+            color: var(--text-secondary);
+            margin-bottom: 3px;
+        }
+
+        .st-bar {
+            width: 100%;
+            height: var(--bar-h, 6px);
+            border: 1.5px solid var(--border);
+            background: var(--bg-secondary);
+            overflow: hidden;
+        }
+
+        .st-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        /* 模式 4 底部小组总分状态条 */
+        .group-status-banner-card {
+            background: var(--bg-secondary);
+            border: 2.5px dashed var(--border);
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: var(--card-h, 168px);
+            text-align: center;
+            box-sizing: border-box;
+            transition: height 0.15s;
+        }
+
+        /* 🌟 触控缩放控制器与预设弹出菜单 (强化至 54px 高，按键 44px 高) */
+        .scale-control-box {
+            display: inline-flex;
+            align-items: center;
+            background: var(--bg-secondary);
+            border: 2.5px solid var(--border);
+            height: 54px;
+            padding: 3px 8px;
+            gap: 6px;
+            box-shadow: 2.5px 2.5px 0 var(--shadow-color);
+            position: relative;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+        .btn-scale-step {
+            width: 44px;
+            height: 44px;
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            transition: transform 0.08s, box-shadow 0.08s;
+            user-select: none;
+            border-radius: 3px;
+        }
+        .btn-scale-step:active {
+            transform: translate(1.5px, 1.5px);
+            box-shadow: 0.5px 0.5px 0 var(--shadow-color);
+        }
+        .btn-scale-value {
+            height: 44px;
+            min-width: 72px;
+            padding: 0 8px;
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
+            user-select: none;
+        }
+        .btn-scale-value:active {
+            transform: translate(1px, 1px);
+            box-shadow: 0.5px 0.5px 0 var(--shadow-color);
+        }
+        .scale-preset-popover {
+            position: absolute;
+            background: var(--card-bg);
+            border: 3px solid var(--border);
+            box-shadow: 6px 6px 0 var(--shadow-color);
+            padding: 6px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 1200;
+            min-width: 145px;
+        }
+        .scale-preset-popover.dock-popover {
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .scale-preset-popover.header-popover {
+            top: calc(100% + 8px);
+            right: 0;
+        }
+        .scale-preset-item {
+            height: 32px;
+            padding: 0 10px;
+            border: 1.5px solid transparent;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.1s;
+        }
+        .scale-preset-item:hover {
+            background: var(--bg-secondary);
+            border-color: var(--border);
+        }
+        .scale-preset-item.active {
+            background: var(--accent);
+            color: #FFFFFF;
+            border-color: var(--border);
+            font-weight: 900;
+        }
+
+        /* 🌟 版本 B：底部操作坞也大幅强化靶区 (高度60px，按键46px) */
+        .bottom-touch-dock-pro {
+            position: fixed;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card-bg);
+            border: 3.5px solid var(--border);
+            box-shadow: 6px 6px 0 var(--shadow-color);
+            padding: 7px 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 60px;
+            z-index: 500;
+            max-width: 96vw;
+            overflow-x: auto;
+        }
+
+        @media (max-width: 1400px) {
+            .btn-reachability-trigger-pro #reachText {
+                display: none;
+            }
+            .btn-reachability-trigger-pro {
+                padding: 0 14px;
+            }
+        }
+
+        /* 🌟 版本 B：右下角屏幕沉降按钮大靶区化 */
+        .btn-reachability-trigger-pro {
+            position: fixed;
+            bottom: 12px;
+            right: 20px;
+            background: var(--warning);
+            color: #0A0A0A;
+            border: 3.5px solid var(--border);
+            box-shadow: 5px 5px 0 var(--shadow-color);
+            padding: 0 20px;
+            font-weight: 900;
+            font-size: 14px;
+            height: 60px;
+            cursor: pointer;
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-reachability-trigger-pro:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--shadow-color); }
+
+        /* 点击学生卡片中央弹出详情 Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 800;
+        }
+
+        .details-modal-box {
+            background: var(--card-bg);
+            border: 4px solid var(--border);
+            box-shadow: 12px 12px 0 var(--shadow-color);
+            width: 100%;
+            max-width: 720px;
+            padding: 24px;
+            position: relative;
+        }
+
+        /* 宠物大立绘悬浮呼吸灵动动画 */
+        @keyframes petHeroFloat {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-7px) scale(1.02); }
+        }
+        .pet-hero-stage-img {
+            animation: petHeroFloat 3.4s ease-in-out infinite;
+            transition: transform 0.15s;
+        }
+        .pet-hero-stage-img:active {
+            transform: scale(0.92);
+        }
+
+        /* 全局轻量教室风格 Toast 提示 */
+        .classroom-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: var(--card-bg);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--shadow-color);
+            padding: 10px 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 900;
+            z-index: 20000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .classroom-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+
+        /* 💡 操作指引向导样式 */
+        .tour-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 900;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            cursor: pointer;
+            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
+            transition: transform 0.1s, background 0.1s;
+        }
+        .tour-dot.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 0;
+            transform: scale(1.08);
+        }
+        .tour-step-card {
+            background: var(--bg-secondary);
+            border: 2.5px solid var(--border);
+            box-shadow: 4px 4px 0 var(--shadow-color);
+            padding: 18px 20px;
+            margin-bottom: 12px;
+        }
+
+        /* 升级弹窗 */
+        .levelup-spotlight-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9000;
+        }
+        .levelup-spotlight-box {
+            background: var(--card-bg);
+            border: 4px solid var(--border);
+            box-shadow: 10px 10px 0 var(--accent);
+            padding: 24px;
+            text-align: center;
+            max-width: 440px;
+            width: 90%;
+            animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* 烟花庆祝 */
+        .fireworks-celebration-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 9999;
+        }
+
+        #fireworksCanvas {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10000;
+        }
+
+        .max-spotlight-card {
+            position: relative;
+            background: var(--card-bg);
+            border: 5px solid var(--border);
+            box-shadow: 16px 16px 0 var(--warning);
+            padding: 30px 44px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            z-index: 10001;
+            animation: spotlightZoom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部大靶区操作横条 (高度 92px，触控靶区加倍，单行流线排布) -->
+    <div class="stage-header-pro">
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;">
+            <button class="btn-header-touch" onclick="goToPortal()">← 门户</button>
+            <button class="btn-header-touch" style="background: var(--accent); color: white;" onclick="openTeacherWorkstation()">⚡ 工作台</button>
+            <h1 style="font-size: 19px; font-weight: 900; white-space: nowrap; margin: 0 4px; display: inline-flex; align-items: center; gap: 6px;">
+                <span>🐾 电子宠物 · 学生大屏</span>
+            </h1>
+            <span id="headerClassBadge" style="font-size: 13px; font-family: monospace; font-weight: 900; background: var(--tag-bg); padding: 4px 10px; border: 2px solid var(--border); white-space: nowrap;">班级加载中...</span>
+
+            <div class="view-mode-tabs-pro">
+                <button class="btn-view-tab-pro active" id="tabGrid" onclick="switchView('grid')">🔲 卡片</button>
+                <button class="btn-view-tab-pro" id="tabSeat" onclick="switchView('seat')">🪑 座位</button>
+                <button class="btn-view-tab-pro" id="tabPK" onclick="switchView('pk')">🏆 PK榜</button>
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;">
+            <!-- 顶部卡片尺寸快捷微调 (54px 大靶区) -->
+            <div class="scale-control-box">
+                <span style="font-size: 13px; font-weight: 900; margin: 0 2px;">🔍</span>
+                <button class="btn-scale-step" onclick="adjustScale(-0.1)" title="卡片缩小 (更紧凑/容纳更多)">➖</button>
+                <button class="btn-scale-value" id="topScaleBadge" onclick="toggleHeaderScaleMenu(event)" title="点击切换缩放预设档位">
+                    <span id="topScaleLabel">100%</span>
+                    <span style="font-size: 11px;">▼</span>
+                </button>
+                <button class="btn-scale-step" onclick="adjustScale(0.1)" title="卡片放大 (更清晰醒目)">➕</button>
+                
+                <div id="headerScaleMenu" class="scale-preset-popover header-popover">
+                    <div style="font-size: 11px; font-weight: 900; color: var(--text-secondary); padding: 3px 6px; border-bottom: 1.5px solid var(--border);">卡片比例预设</div>
+                    <button class="scale-preset-item" data-preset="0.8" onclick="selectScalePreset(0.8)"><span>紧凑密集</span> <span>80%</span></button>
+                    <button class="scale-preset-item active" data-preset="1.0" onclick="selectScalePreset(1.0)"><span>标准默认</span> <span>100%</span></button>
+                    <button class="scale-preset-item" data-preset="1.25" onclick="selectScalePreset(1.25)"><span>舒适清晰</span> <span>125%</span></button>
+                    <button class="scale-preset-item" data-preset="1.5" onclick="selectScalePreset(1.5)"><span>宽大震撼</span> <span>150%</span></button>
+                    <button class="scale-preset-item" data-preset="1.75" onclick="selectScalePreset(1.75)"><span>巨型特写</span> <span>175%</span></button>
+                </div>
+            </div>
+
+            <button class="btn-header-touch" style="background: var(--warning); color: #000;" onclick="startRandomPicker()">🎲 抽选</button>
+            <button class="btn-header-touch" style="background: #FEF9C3; color: #854D0E; border-color: #EAB308;" onclick="openGuidedTourModal()">💡 指引</button>
+            <button class="btn-header-touch" onclick="toggleAppFullscreen()">⛶ 全屏</button>
+            <select class="btn-header-touch" style="outline: none; cursor: pointer; height: 54px; padding: 0 10px; font-size: 14px;" id="themeSelect" onchange="setGlobalTheme(this.value, event)">
+                <option value="classic">🎨 经典</option>
+                <option value="dark">🌙 暗夜</option>
+                <option value="orange">🍊 橙红</option>
+                <option value="forest">🌲 绿野</option>
+                <option value="ocean">🌊 蓝调</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 主展示舞台 (支持一键下沉) -->
+    <div class="main-stage-wrapper" id="stageWrapper">
+        <div class="grid-full-view" id="gridFullView"></div>
+
+        <!-- 模式 2：座位表 (4大组) -->
+        <div id="seatmapView" style="display:none; padding:14px; grid-template-columns:repeat(4,1fr); gap:12px;">
+            <div class="seat-group-col"><div id="groupList1"></div></div>
+            <div class="seat-group-col"><div id="groupList2"></div></div>
+            <div class="seat-group-col"><div id="groupList3"></div></div>
+            <div class="seat-group-col"><div id="groupList4"></div></div>
+        </div>
+
+        <!-- 模式 3：四组 PK 赛道 -->
+        <div id="pkRaceView" style="display:none; padding:14px; flex-direction:column; gap:8px;">
+            <div id="raceTracksContainer"></div>
+        </div>
+    </div>
+
+    <!-- 底部操作坞 -->
+    <div class="bottom-touch-dock-pro">
+        <button class="btn-header-touch" onclick="sortCards('no')">🔢 学号排序</button>
+        <button class="btn-header-touch" onclick="sortCards('level')">⭐ 等级排行</button>
+
+        <!-- 底部大靶区缩放控制 -->
+        <div class="scale-control-box">
+            <span style="font-size: 12px; font-weight: 900; margin: 0 4px;">🔍 比例:</span>
+            <button class="btn-scale-step" onclick="adjustScale(-0.1)" title="卡片缩小 (更紧凑)">➖</button>
+            <button class="btn-scale-value" id="dockScaleBadge" onclick="toggleDockScaleMenu(event)" title="点击选择缩放预设档位">
+                <span id="dockScaleLabel">100%</span>
+                <span style="font-size: 9px;">▲</span>
+            </button>
+            <button class="btn-scale-step" onclick="adjustScale(0.1)" title="卡片放大 (更清晰)">➕</button>
+            
+            <div id="dockScaleMenu" class="scale-preset-popover dock-popover">
+                <div style="font-size: 11px; font-weight: 900; color: var(--text-secondary); padding: 3px 6px; border-bottom: 1.5px solid var(--border);">卡片比例预设</div>
+                <button class="scale-preset-item" data-preset="0.8" onclick="selectScalePreset(0.8)"><span>紧凑密集</span> <span>80%</span></button>
+                <button class="scale-preset-item active" data-preset="1.0" onclick="selectScalePreset(1.0)"><span>标准默认</span> <span>100%</span></button>
+                <button class="scale-preset-item" data-preset="1.25" onclick="selectScalePreset(1.25)"><span>舒适清晰</span> <span>125%</span></button>
+                <button class="scale-preset-item" data-preset="1.5" onclick="selectScalePreset(1.5)"><span>宽大震撼</span> <span>150%</span></button>
+                <button class="scale-preset-item" data-preset="1.75" onclick="selectScalePreset(1.75)"><span>巨型特写</span> <span>175%</span></button>
+            </div>
+        </div>
+
+        <button class="btn-header-touch" style="background: var(--warning); color: #000;" onclick="startRandomPicker()">🎲 随堂抽选点名</button>
+        <button class="btn-header-touch" style="background: var(--accent); color: var(--accent-text);" onclick="openTeacherWorkstation()">⚡ 教师工作台</button>
+    </div>
+
+    <!-- 右下角屏幕沉降按键 -->
+    <button class="btn-reachability-trigger-pro" onclick="toggleReachability()">
+        <span id="reachIcon" style="font-size: 18px;">⬇️</span>
+        <span id="reachText">屏幕下沉</span>
+    </button>
+
+    <!-- 学生详情 Modal (含 20 条治愈系台词冒泡与 6 种互动 CD 倒计时) -->
+    <div class="modal-overlay" id="modalStudentDetails">
+        <div class="details-modal-box">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--border); padding-bottom: 10px;">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 900;" id="modalStudentName">张三 · #01</h2>
+                    <p style="font-size: 12px; color: var(--text-secondary);" id="modalStudentSub">三年级二班 · 专属电子宠物成长空间</p>
+                </div>
+                <button class="btn-header-touch" style="height:36px;" onclick="closeDetailsModal()">✕ 关闭</button>
+            </div>
+
+            <div style="display: flex; gap: 6px; margin: 10px 0 6px;">
+                <button class="btn-header-touch" style="height:38px; background: var(--accent); color: white;" id="tabSubjChinese" onclick="switchModalSubject('chinese')">语文</button>
+                <button class="btn-header-touch" style="height:38px;" id="tabSubjMath" onclick="switchModalSubject('math')">数学</button>
+                <button class="btn-header-touch" style="height:38px;" id="tabSubjEnglish" onclick="switchModalSubject('english')">英语</button>
+            </div>
+
+            <!-- 萌宠大秀场舞台 (210px 超大立绘 + 悬浮呼吸动画 + 活泼气泡台词) -->
+            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); box-shadow: 4px 4px 0 var(--shadow-color); padding: 16px; margin: 10px 0; position: relative; border-radius: 8px;">
+                <!-- 治愈系与童趣台词气泡 (位于宠物正上方，生动醒目) -->
+                <div class="pet-speech-bubble" id="heroSpeechBubble"></div>
+
+                <div style="display: flex; gap: 18px; align-items: center;">
+                    <!-- 超大立绘展示台 (210px x 210px) -->
+                    <div style="width: 210px; height: 210px; border: 3px solid var(--border); background: radial-gradient(circle, #FFFFFF 40%, var(--card-bg) 100%); display: flex; align-items: center; justify-content: center; box-shadow: 3px 3px 0 var(--shadow-color); flex-shrink: 0; position: relative; border-radius: 8px;">
+                        <img id="heroPetImg" src="" class="pet-hero-stage-img" style="width: 190px; height: 190px; object-fit: contain; filter: drop-shadow(2px 6px 10px rgba(0,0,0,0.18));" onerror="this.style.display='none'; document.getElementById('heroPetIcon').style.display='inline';" />
+                        <span style="font-size: 88px; display: none;" id="heroPetIcon">🐱</span>
+                    </div>
+
+                    <!-- 萌宠身份档案与成长进度 -->
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="font-size: 19px; font-weight: 900; margin: 0; color: var(--text-primary);" id="heroPetName">猫咪 (Stage 3 进阶形态)</h3>
+                            <span style="font-size: 16px; font-weight: 900; color: var(--accent); background: #EFF6FF; border: 2px solid var(--accent); padding: 2px 10px; border-radius: 20px;" id="heroPetLevel">LV.8</span>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary);" id="heroPetMotto">灵动专注 · 治愈陪伴</div>
+                        <div style="background: var(--card-bg); border: 2px solid var(--border); padding: 10px 14px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; margin-bottom: 5px;">
+                                <span style="color: var(--text-secondary);">🌟 成长经验进度</span>
+                                <span style="font-family: monospace; color: var(--accent); font-size: 13px;" id="heroExpText">280 EXP / 315 EXP</span>
+                            </div>
+                            <div class="st-bar" style="height: 12px; border-radius: 6px; overflow: hidden; border: 1.5px solid var(--border);">
+                                <div class="st-bar-fill" id="heroProgressBar" style="width: 70%; height: 100%; background: linear-gradient(90deg, #FBBF24, #F59E0B);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                <span style="font-size: 12px; font-weight: 900;">🐾 互动关怀动作 (触碰产生治愈台词 · 15s 冷却)：</span>
+                <span id="interactionDailyTip" style="font-size: 11px; color: var(--text-secondary); font-weight: 800;">今日互动收益：0/5 EXP</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 10px;">
+                <button class="btn-header-touch" id="btnInteract_greet" style="height:44px; justify-content: center;" onclick="triggerInteraction('greet', '打招呼', 1)">
+                    <span id="label_greet">👋 打招呼 (+1)</span>
+                </button>
+                <button class="btn-header-touch" id="btnInteract_pet" style="height:44px; justify-content: center;" onclick="triggerInteraction('pet', '抚摸', 1)">
+                    <span id="label_pet">🖐️ 抚摸 (+1)</span>
+                </button>
+                <button class="btn-header-touch" id="btnInteract_play" style="height:44px; justify-content: center;" onclick="triggerInteraction('play', '玩耍', 2)">
+                    <span id="label_play">🎾 玩耍 (+2)</span>
+                </button>
+                <button class="btn-header-touch" id="btnInteract_water" style="height:44px; justify-content: center;" onclick="triggerInteraction('water', '喂水', 2)">
+                    <span id="label_water">💧 喂水 (+2)</span>
+                </button>
+                <button class="btn-header-touch" id="btnInteract_feed" style="height:44px; justify-content: center;" onclick="triggerInteraction('feed', '喂食', 2)">
+                    <span id="label_feed">🍖 喂食 (+2)</span>
+                </button>
+                <button class="btn-header-touch" id="btnInteract_comfort" style="height:44px; justify-content: center;" onclick="triggerInteraction('comfort', '安抚', 2)">
+                    <span id="label_comfort">✨ 安抚 (+2)</span>
+                </button>
+            </div>
+
+            <span style="font-size: 12px; font-weight: 900; margin-top: 6px; display: block;">⚡ 教师现场速评加减分：</span>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 6px 0 10px;">
+                <button class="btn-header-touch" style="height:42px; justify-content: center; background: #DCFCE7; color: #15803D;" onclick="quickModalScore(1, '认真听讲')">+1 分</button>
+                <button class="btn-header-touch" style="height:42px; justify-content: center; background: #DCFCE7; color: #15803D;" onclick="quickModalScore(3, '积极发言')">+3 分</button>
+                <button class="btn-header-touch" style="height:42px; justify-content: center; background: #DCFCE7; color: #15803D;" onclick="quickModalScore(5, '作业优秀')">+5 分</button>
+                <button class="btn-header-touch" style="height:42px; justify-content: center; background: #FEE2E2; color: #B91C1C;" onclick="quickModalScore(-3, '课上分心')">-3 分</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 电子宠物破壳认领中心 Modal (8 大物种自选认领) -->
+    <div class="modal-overlay" id="modalHatchCenter" style="display: none; z-index: 1500;">
+        <div class="details-modal-box" style="max-width: 720px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--border); padding-bottom: 10px;">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 900;" id="hatchStudentTitle">🐣 电子宠物破壳认领中心</h2>
+                    <p style="font-size: 12px; color: var(--text-secondary);" id="hatchStudentSub">恭喜积攒满 15 EXP，可破壳诞生！请学生/老师挑选心仪宠物完成认领：</p>
+                </div>
+                <button class="btn-header-touch" style="height:36px;" onclick="closeHatchModal()">✕ 关闭</button>
+            </div>
+
+            <!-- 8 大物种网格 -->
+            <div class="hatch-grid" id="hatchSpeciesGrid"></div>
+
+            <!-- 选定物种与确认认领条 -->
+            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <div>
+                    <div style="font-size: 15px; font-weight: 900;">已选宠物：<span id="selectedSpeciesNameText" style="color: var(--accent);">猫咪</span></div>
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;" id="selectedSpeciesMottoText">灵动专注 · 治愈陪伴</div>
+                </div>
+                <button class="btn-header-touch" style="background: var(--warning); color: #000; height: 46px; font-size: 14px; padding: 0 24px;" onclick="confirmHatchPet()">✨ 确认认领 · 破壳诞生！</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 升级弹窗 -->
+    <div class="levelup-spotlight-modal" id="spotlightModal">
+        <div class="levelup-spotlight-box" style="max-width: 480px; padding: 28px 24px;">
+            <div style="font-size: 52px; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; min-height: 150px;" id="spotPetIcon">🐯</div>
+            <div style="background: var(--warning); font-weight: 900; padding: 3px 14px; display: inline-block; font-size: 13px; border: 2.5px solid var(--border); margin-bottom: 10px; box-shadow: 2px 2px 0 var(--shadow-color);">★ LEVEL UP! 形态进阶 ★</div>
+            <h2 style="font-size: 24px; font-weight: 900;" id="spotStudentName">李四 (#02)</h2>
+            <p style="font-size: 14px; font-weight: 800; color: var(--accent); margin: 8px 0 14px 0;" id="spotLevelMsg">成功晋升至 Lv.4 进阶期！</p>
+            <button class="btn-header-touch" style="background: var(--accent); color: white; margin-top: 6px; width: 100%; justify-content: center; height: 44px; font-size: 15px;" onclick="closeSpotlightCelebration()">太棒了！</button>
+        </div>
+    </div>
+
+    <!-- 烟花庆祝 -->
+    <div class="fireworks-celebration-overlay" id="fireworksLayer">
+        <canvas id="fireworksCanvas"></canvas>
+        <div class="max-spotlight-card">
+            <div style="font-size: 64px;">👑</div>
+            <div style="background: var(--warning); border: 2.5px solid var(--border); font-weight: 900; padding: 4px 14px; display: inline-block; font-family: monospace; font-size: 13px; margin: 8px 0;">★ 终极满级神兽达成 ★</div>
+            <h2 style="font-size: 26px; font-weight: 900;" id="fireworksStudentName">孙七 (#05)</h2>
+            <p style="font-size: 14px; font-weight: 800; color: var(--accent); margin: 6px 0;" id="fireworksPetMsg">恭喜达成 Lv.20 满级大师形态！</p>
+            <button class="btn-header-touch" style="background: var(--accent); color: white; padding: 0 28px; margin-top: 12px;" onclick="closeFireworksCelebration()">确认并返回大屏</button>
+        </div>
+    </div>
+
+    <!-- 模态框：学生大屏全套操作指引与按键实战向导 -->
+    <div class="modal-overlay" id="modalGuidedTour">
+        <div class="details-modal-box" style="max-width: 760px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--border); padding-bottom: 12px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 24px;">💡</span>
+                    <div>
+                        <h2 style="font-size: 18px; font-weight: 900; margin: 0;">学生大屏 · 全套操作指引与按键向导</h2>
+                        <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">依次了解每个按键与交互触发，掌握课堂趣味互动与仪式感激励</p>
+                    </div>
+                </div>
+                <button class="btn-header-touch" style="height: 36px; padding: 0 12px;" onclick="closeGuidedTourModal()">✕ 关闭</button>
+            </div>
+
+            <!-- 模式切换：分步向导 VS 功能速查 -->
+            <div style="display: flex; gap: 6px; margin-bottom: 14px;">
+                <button class="btn-header-touch active" id="btnTourTabStep" style="flex: 1; justify-content: center; height: 38px; background: var(--accent); color: white;" onclick="switchTourTab('step')">🚀 5步新手实战向导</button>
+                <button class="btn-header-touch" id="btnTourTabOverview" style="flex: 1; justify-content: center; height: 38px; background: var(--bg-secondary);" onclick="switchTourTab('overview')">📋 全按键功能速查一览表</button>
+            </div>
+
+            <!-- 视图 1：分步向导 -->
+            <div id="tourStepView">
+                <!-- 步进进度条指示器 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; background: var(--bg-secondary); border: 2px solid var(--border); padding: 8px 14px;">
+                    <div style="font-size: 13px; font-weight: 900;" id="tourStepIndicator">步骤 1 / 5</div>
+                    <div style="display: flex; gap: 6px;" id="tourStepDots">
+                        <span class="tour-dot active" onclick="goToTourStep(1)">1</span>
+                        <span class="tour-dot" onclick="goToTourStep(2)">2</span>
+                        <span class="tour-dot" onclick="goToTourStep(3)">3</span>
+                        <span class="tour-dot" onclick="goToTourStep(4)">4</span>
+                        <span class="tour-dot" onclick="goToTourStep(5)">5</span>
+                    </div>
+                </div>
+
+                <!-- 步骤动态容器 -->
+                <div id="tourStepContent" style="min-height: 280px;"></div>
+
+                <!-- 底部步进控制条 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 2.5px solid var(--border); padding-top: 14px;">
+                    <button class="btn-header-touch" id="btnTourPrev" style="height: 42px; padding: 0 18px;" onclick="prevTourStep()">← 上一步</button>
+                    <button class="btn-header-touch" style="height: 42px; padding: 0 16px; background: #F3F4F6;" onclick="closeGuidedTourModal()">已了解 / 关闭向导</button>
+                    <button class="btn-header-touch" id="btnTourNext" style="height: 42px; padding: 0 24px; background: var(--accent); color: white;" onclick="nextTourStep()">下一步 →</button>
+                </div>
+            </div>
+
+            <!-- 视图 2：全按键功能速查表 -->
+            <div id="tourOverviewView" style="display: none; max-height: 420px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 2px solid var(--border);">
+                    <thead>
+                        <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border); text-align: left;">
+                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border); width: 130px;">按键 / 交互对象</th>
+                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border); width: 100px;">所在位置</th>
+                            <th style="padding: 8px 10px; border-right: 1.5px solid var(--border);">核心功能与作用</th>
+                            <th style="padding: 8px 10px;">课堂推荐应用场景</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tourOverviewTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全局统一教室风 Toast 浮动提示 -->
+    <div id="classroomToast" class="classroom-toast" style="display: none;">
+        <span id="classroomToastIcon">✅</span>
+        <span id="classroomToastMsg">操作成功</span>
+    </div>
+
+    <!-- 全局统一教室风 Alert 弹窗 -->
+    <div class="modal-overlay" id="classroomModalAlert" style="display: none; z-index: 21000;">
+        <div class="modal-box" style="max-width: 440px; text-align: center; border-width: 3.5px;">
+            <div id="customAlertIcon" style="font-size: 46px; margin-bottom: 8px;">💡</div>
+            <h3 id="customAlertTitle" style="font-weight: 900; font-size: 18px; margin-bottom: 8px;">温馨提示</h3>
+            <p id="customAlertMsg" style="font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 18px; white-space: pre-wrap;"></p>
+            <button class="btn-header-touch" id="customAlertBtnOk" style="width: 100%; height: 44px; justify-content: center; background: var(--accent); color: white; font-size: 14px;">好的，知道了</button>
+        </div>
+    </div>
+
+    <!-- 全局统一教室风 Confirm 确认弹窗 -->
+    <div class="modal-overlay" id="classroomModalConfirm" style="display: none; z-index: 21000;">
+        <div class="modal-box" style="max-width: 460px; text-align: center; border-width: 3.5px;">
+            <div id="customConfirmIcon" style="font-size: 46px; margin-bottom: 8px;">❓</div>
+            <h3 id="customConfirmTitle" style="font-weight: 900; font-size: 18px; margin-bottom: 8px;">操作确认</h3>
+            <p id="customConfirmMsg" style="font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 18px; white-space: pre-wrap;"></p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-header-touch" id="customConfirmBtnCancel" style="flex: 1; height: 44px; justify-content: center;">取消</button>
+                <button class="btn-header-touch" id="customConfirmBtnOk" style="flex: 1; height: 44px; justify-content: center; background: var(--accent); color: white;">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./classpet_core.js"></script>
+
+    <script>
+        const store = window.classPetRuntime;
+        let currentView = 'grid';
+        let activeModalStudent = null;
+        let activeModalSubject = 'chinese';
+
+        // 统一大屏端 Toast 提示
+        let __toastTimer = null;
+        function showClassroomToast(msg, icon = '✅', duration = 2500) {
+            const toast = document.getElementById('classroomToast');
+            if (!toast) return;
+            document.getElementById('classroomToastIcon').textContent = icon;
+            document.getElementById('classroomToastMsg').textContent = msg;
+            toast.style.display = 'flex';
+            toast.classList.remove('hide');
+            toast.classList.add('show');
+            clearTimeout(__toastTimer);
+            __toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+                toast.classList.add('hide');
+                setTimeout(() => { toast.style.display = 'none'; }, 250);
+            }, duration);
+        }
+
+        // 统一大屏端自定义 Alert 弹窗
+        function showClassroomAlert(msg, title = '温馨提示', icon = '💡', onOk = null) {
+            const modal = document.getElementById('classroomModalAlert');
+            if (!modal) { alert(msg); return; }
+            document.getElementById('customAlertIcon').textContent = icon;
+            document.getElementById('customAlertTitle').textContent = title;
+            document.getElementById('customAlertMsg').textContent = msg;
+            modal.style.display = 'flex';
+            const btn = document.getElementById('customAlertBtnOk');
+            btn.onclick = () => {
+                modal.style.display = 'none';
+                if (typeof onOk === 'function') onOk();
+            };
+        }
+
+        // 统一大屏端自定义 Confirm 确认弹窗
+        function showClassroomConfirm(msg, title = '操作确认', onConfirm, onCancel = null, icon = '❓', confirmText = '确认', confirmBg = 'var(--accent)') {
+            const modal = document.getElementById('classroomModalConfirm');
+            if (!modal) {
+                if (window.confirm(msg)) onConfirm && onConfirm();
+                else onCancel && onCancel();
+                return;
+            }
+            document.getElementById('customConfirmIcon').textContent = icon;
+            document.getElementById('customConfirmTitle').textContent = title;
+            document.getElementById('customConfirmMsg').textContent = msg;
+            modal.style.display = 'flex';
+            const btnOk = document.getElementById('customConfirmBtnOk');
+            const btnCancel = document.getElementById('customConfirmBtnCancel');
+            btnOk.textContent = confirmText;
+            btnOk.style.background = confirmBg;
+            btnOk.style.color = 'white';
+            btnOk.onclick = () => {
+                modal.style.display = 'none';
+                if (typeof onConfirm === 'function') onConfirm();
+            };
+            btnCancel.onclick = () => {
+                modal.style.display = 'none';
+                if (typeof onCancel === 'function') onCancel();
+            };
+        }
+
+        // 覆写 window.alert，彻底杜绝操作系统自带丑陋弹窗
+        window.__nativeAlert = window.alert;
+        window.alert = function(msg) {
+            showClassroomAlert(msg);
+        };
+
+        // 丝滑圆形扩散
+        function setGlobalTheme(t, event) {
+            const root = document.documentElement;
+            if (root.getAttribute('data-theme') === t) return;
+
+            const selectElem = document.getElementById('themeSelect');
+            let x = window.innerWidth - 60;
+            let y = 32;
+
+            if (event && event.clientX) {
+                x = event.clientX;
+                y = event.clientY;
+            } else if (selectElem) {
+                const rect = selectElem.getBoundingClientRect();
+                x = rect.left + rect.width / 2;
+                y = rect.top + rect.height / 2;
+            }
+
+            const maxRadius = Math.hypot(
+                Math.max(x, window.innerWidth - x),
+                Math.max(y, window.innerHeight - y)
+            );
+
+            if (document.startViewTransition) {
+                const transition = document.startViewTransition(() => {
+                    root.setAttribute('data-theme', t);
+                    localStorage.setItem('nb_selected_theme', t);
+                    if (selectElem) selectElem.value = t;
+                });
+
+                transition.ready.then(() => {
+                    document.documentElement.animate({
+                        clipPath: [
+                            `circle(0px at ${x}px ${y}px)`,
+                            `circle(${maxRadius}px at ${x}px ${y}px)`
+                        ]
+                    }, {
+                        duration: 650,
+                        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                        pseudoElement: '::view-transition-new(root)'
+                    });
+                });
+            } else {
+                root.setAttribute('data-theme', t);
+                localStorage.setItem('nb_selected_theme', t);
+                if (selectElem) selectElem.value = t;
+            }
+        }
+
+        const savedTheme = localStorage.getItem('nb_selected_theme') || 'classic';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        const sel = document.getElementById('themeSelect');
+        if (sel) sel.value = savedTheme;
+
+        store.subscribe((event, payload) => {
+            if (event === 'SCORE' && payload) {
+                const stages = store.getStageMinLevels ? store.getStageMinLevels() : (window.STAGE_MIN_LEVELS || []);
+                const s2L = stages[2]?.minLevel || 4;
+                const s3L = stages[3]?.minLevel || 8;
+                const s4L = stages[4]?.minLevel || 13;
+                const s5L = stages[5]?.minLevel || 20;
+
+                if (payload.newLevel >= 20 || payload.newLevel >= s5L) {
+                    const idx = payload.studentId ? (parseInt(payload.studentId.replace('stu_', ''), 10) - 1) : 4;
+                    triggerFullFireworksCelebration(Math.max(0, idx));
+                } else if ([s2L, s3L, s4L].includes(payload.newLevel)) {
+                    const idx = payload.studentId ? (parseInt(payload.studentId.replace('stu_', ''), 10) - 1) : 0;
+                    triggerSpotlightCelebration(Math.max(0, idx), payload.newLevel);
+                }
+            } else if (event === 'RANDOM_PICK' && payload && payload.chosenId) {
+                openStudentDetailsModal(payload.chosenId);
+                store.audio.playFanfare();
+            }
+            renderAll();
+        });
+
+        function renderAll() {
+            if (currentView === 'grid') renderGrid();
+            else if (currentView === 'seat') renderSeatMap();
+            else if (currentView === 'pk') renderPKRace();
+        }
+
+        let hatchTargetStudentId = null;
+        let currentSelectedHatchSpecies = 'cat';
+        const interactCooldowns = {};
+        let bubbleHideTimer = null;
+
+        function updateHeaderClassInfo() {
+            const acc = store.getCurrentAccount ? store.getCurrentAccount() : { className: '三年级二班' };
+            const activeCount = store.students.filter(s => !s.isArchived).length;
+            const badge = document.getElementById('headerClassBadge');
+            if (badge) {
+                const isPreset = acc.id === 'acc_demo_302' || acc.id === 'acc_demo_401' || acc.isPreset;
+                const tag = isPreset ? ' [演示示例]' : '';
+                badge.textContent = `${acc.className || '新班级'}${tag} (${activeCount}人)`;
+            }
+        }
+
+        function renderGrid() {
+            const container = document.getElementById('gridFullView');
+            const activeStudents = store.students.filter(s => !s.isArchived);
+            updateHeaderClassInfo();
+
+            if (activeStudents.length === 0) {
+                const acc = store.getCurrentAccount ? store.getCurrentAccount() : {};
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; text-align: center;">
+                        <div style="background: var(--card-bg); border: 3.5px solid var(--border); box-shadow: 8px 8px 0 var(--shadow-color); padding: 36px 44px; max-width: 580px; width: 100%;">
+                            <div style="font-size: 52px; margin-bottom: 12px;">🐣</div>
+                            <div style="background: var(--warning); border: 2px solid var(--border); font-weight: 900; font-size: 13px; padding: 3px 12px; display: inline-block; margin-bottom: 14px; font-family: monospace;">
+                                NEW CLASS SPACE READY
+                            </div>
+                            <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 10px;">【${acc.className || '全新班级'}】已就绪</h2>
+                            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; font-weight: 700;">
+                                当前班级暂无学生名单。请前往【⚡ 教师工作台】，一键导入 Excel 花名册或手动添加学生，全班同学的电子宠物蛋将立刻在此破壳展示！
+                            </p>
+                            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                                <button class="btn-header-touch" style="background: var(--accent); color: white; height: 46px; font-size: 14px; padding: 0 24px;" onclick="openTeacherWorkstation()">
+                                    ⚡ 前往教师工作台录入名单 ➔
+                                </button>
+                                <button class="btn-header-touch" style="background: #FEF9C3; color: #854D0E; height: 46px; font-size: 14px; padding: 0 20px;" onclick="openGuidedTourModal()">
+                                    💡 查看大屏操作指引
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const cardsHtml = activeStudents.map(s => {
+                const pet = s.pets[s.activeSubject] || s.pets.chinese;
+                const currentMin = s.minExpForCurrentLevel || 0;
+                const nextMax = s.nextLevelExp || 1250;
+                const percent = Math.min(100, Math.max(0, Math.round(((s.exp - currentMin) / Math.max(1, nextMax - currentMin)) * 100)));
+
+                const hatchThresh = store.getHatchThreshold ? store.getHatchThreshold() : 15;
+                let stampHtml = '';
+                if (s.isAbsent) stampHtml = `<div class="card-stamp absent">请假</div>`;
+                else if (!s.isHatched && (s.stamp === 'HATCH' || s.exp >= hatchThresh)) stampHtml = `<div class="card-stamp hatch-ready">★ 可破壳 ★</div>`;
+                else if (!s.isHatched) stampHtml = `<div class="card-stamp egg-stage">🐣 孵化中</div>`;
+                else if (s.stamp === 'EVOLVE') stampHtml = `<div class="card-stamp evolve">可进化</div>`;
+                else if (s.stamp === 'MAX') stampHtml = `<div class="card-stamp max">MAX</div>`;
+
+                const clickFn = (!s.isHatched && (s.stamp === 'HATCH' || s.exp >= hatchThresh)) ? `openHatchModal('${s.id}')` : `openStudentDetailsModal('${s.id}')`;
+                const petImgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(pet.species, pet.visualStage) : './assets/pets/shared/egg.png');
+
+                return `
+                    <div class="pet-card ${s.isAbsent ? 'absent' : ''}" onclick="${clickFn}">
+                        ${stampHtml}
+                        <div class="pet-visual-box">
+                            <img src="${petImgSrc}" class="pet-thumb-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+                            <span style="display:none;">${pet.icon}</span>
+                            <span class="pet-subject-tag">${pet.subject}</span>
+                        </div>
+                        <div class="card-title-row">
+                            <span class="st-name">${s.name}</span>
+                            <span class="st-no">#${s.no}</span>
+                        </div>
+                        <div class="st-level-row">
+                            <span>${!s.isHatched ? '🐣 蛋形态' : 'LV.' + s.level}</span>
+                            <span>${s.exp}/${nextMax}</span>
+                        </div>
+                        <div class="st-bar">
+                            <div class="st-bar-fill" style="width: ${percent}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const groups = store.getGroupStats();
+            const groupBannersHtml = `
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 1</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 1 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===1)?.totalExp || 0} EXP</div>
+                </div>
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 2</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 2 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===2)?.totalExp || 0} EXP</div>
+                </div>
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 3</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 3 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===3)?.totalExp || 0} EXP</div>
+                </div>
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 4</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 4 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===4)?.totalExp || 0} EXP</div>
+                </div>
+            `;
+
+            container.innerHTML = cardsHtml + groupBannersHtml;
+        }
+
+        function switchView(v) {
+            currentView = v;
+            document.getElementById('tabGrid').classList.toggle('active', v === 'grid');
+            document.getElementById('tabSeat').classList.toggle('active', v === 'seat');
+            document.getElementById('tabPK').classList.toggle('active', v === 'pk');
+
+            document.getElementById('gridFullView').style.display = v === 'grid' ? 'grid' : 'none';
+            document.getElementById('seatmapView').style.display = v === 'seat' ? 'grid' : 'none';
+            document.getElementById('pkRaceView').style.display = v === 'pk' ? 'flex' : 'none';
+
+            renderAll();
+        }
+
+        function renderSeatMap() {
+            const activeList = store.students.filter(s => !s.isArchived);
+            updateHeaderClassInfo();
+
+            if (activeList.length === 0) {
+                for (let g = 1; g <= 4; g++) {
+                    const col = document.getElementById(`groupList${g}`);
+                    if (col) col.innerHTML = `<div style="padding:24px;text-align:center;background:var(--card-bg);border:2px dashed var(--border);color:var(--text-secondary);font-size:12px;font-weight:700;">第 ${g} 组暂无学生<br><span style="font-size:11px;">(请在工作台录入)</span></div>`;
+                }
+                return;
+            }
+
+            for (let g = 1; g <= 4; g++) {
+                const list = activeList.filter(s => s.group === g);
+                const col = document.getElementById(`groupList${g}`);
+                if (!col) continue;
+                col.innerHTML = `
+                    <div style="font-size:14px;font-weight:900;background:var(--bg-secondary);border:2.5px solid var(--border);padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+                        <span>第 ${g} 大组 (${list.length}人)</span>
+                        <span style="color:var(--accent);font-family:monospace;font-weight:900;">${list.reduce((sum, s) => sum + s.exp, 0)} EXP</span>
+                    </div>
+                ` + list.map(s => {
+                    const pet = s.pets[s.activeSubject] || s.pets.chinese;
+                    const hatchThresh = store.getHatchThreshold ? store.getHatchThreshold() : 15;
+                    const clickFn = (!s.isHatched && (s.stamp === 'HATCH' || s.exp >= hatchThresh)) ? `openHatchModal('${s.id}')` : `openStudentDetailsModal('${s.id}')`;
+                    const petImgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(pet.species, pet.visualStage) : './assets/pets/shared/egg.png');
+                    return `
+                        <div class="pet-card ${s.isAbsent ? 'absent' : ''}" style="height:96px;padding:8px;margin-bottom:8px;" onclick="${clickFn}">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div class="pet-visual-box" style="width:52px;height:52px;">
+                                    <img src="${petImgSrc}" class="pet-thumb-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+                                    <span style="display:none; font-size:24px;">${pet.icon}</span>
+                                </div>
+                                <div style="flex:1;">
+                                    <div style="font-size:13px;font-weight:900;">${s.name} <span style="font-size:10px;color:var(--text-secondary);">#${s.no}</span></div>
+                                    <div style="font-size:11px;color:var(--accent);font-weight:800;margin-top:2px;">${!s.isHatched ? '🐣 蛋形态' : 'LV.' + s.level} · ${s.exp} EXP</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function renderPKRace() {
+            const activeList = store.students.filter(s => !s.isArchived);
+            updateHeaderClassInfo();
+            const container = document.getElementById('raceTracksContainer');
+            if (!container) return;
+
+            if (activeList.length === 0) {
+                container.innerHTML = `<div style="padding:48px;text-align:center;background:var(--card-bg);border:2.5px dashed var(--border);color:var(--text-secondary);font-size:14px;font-weight:800;">🏃 当前班级暂无学生参与赛道，请先前往教师工作台录入名单</div>`;
+                return;
+            }
+
+            const groups = store.getGroupStats();
+            const maxExp = Math.max(...groups.map(g => g.totalExp), 500);
+
+            container.innerHTML = groups.map(g => {
+                const percent = Math.min(88, Math.max(5, Math.round((g.totalExp / maxExp) * 85)));
+                const mascot = g.group === 1 ? '🐱' : (g.group === 2 ? '🐶' : (g.group === 3 ? '🦊' : '🐰'));
+                return `
+                    <div style="background:var(--card-bg);border:3px solid var(--border);box-shadow:4px 4px 0 var(--shadow-color);padding:12px 18px;display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                        <div style="width:150px;">
+                            <strong style="font-size:15px;">${g.name}</strong>
+                            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">总分: <b style="color:var(--accent);">${g.totalExp}</b> · 均级 Lv.${g.avgLevel}</div>
+                        </div>
+                        <div style="flex:1;height:44px;background:var(--bg-secondary);border:2px dashed var(--border);position:relative;display:flex;align-items:center;">
+                            <div style="position:absolute;left:${percent}%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;transition:left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);">
+                                <span style="font-size:26px;">${mascot}</span>
+                                <span style="font-size:11px;font-weight:900;background:var(--warning);border:2px solid var(--border);padding:2px 6px;white-space:nowrap;">${g.totalExp} EXP</span>
+                            </div>
+                        </div>
+                        <button class="btn-header-touch" style="background:#DCFCE7;color:#15803D;height:42px;padding:0 16px;" onclick="scoreGroup(${g.group}, 5)">组加分 +5</button>
+                        <button class="btn-header-touch" style="background:#FEE2E2;color:#B91C1C;height:42px;padding:0 16px;" onclick="scoreGroup(${g.group}, -3)">组扣分 -3</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // 💡 大屏全套操作指引向导与速查表
+        // ==========================================
+        const BIGSCREEN_TOUR_STEPS = [
+            {
+                step: 1,
+                title: '🐾 学生萌宠卡片 · 5阶视觉进化体系',
+                targetBadge: '学生卡片 (普通 / 破壳 / 进化)',
+                icon: '🐱',
+                position: '大屏中央网格卡片区域',
+                feature: '【常驻大屏互动】点击任意学生卡片，即可进入该学生的专属【治愈系宠物空间】。支持抚摸、投喂苹果、喝水润嗓、鼓励加油等6种日常生理互动，内置20条温馨治愈台词与音效；【15 EXP破壳认领】学生初获15经验时卡片盖有【★ 可破壳 ★】印章，点击弹出【8大物种认领中心】供学生/教师自选物种（猫咪/柴犬/赤狐/月兔等）诞生！',
+                classroomTip: '课间让值日生或表现优秀的学生上讲台触控触摸自己的萌宠，极大提升学生的归属感与课堂积极性。'
+            },
+            {
+                step: 2,
+                title: '🔲 三大课堂展示视图 · 灵活适配不同教学课型',
+                targetBadge: '[🔲 卡片] / [🪑 座位] / [🏆 PK榜]',
+                icon: '🔲',
+                position: '顶部操作横条左侧导航 Tab',
+                feature: '【🔲 卡片】全班大网格标准视图，自适应充满大屏，一眼看清每位学生的宠物形态与等级条；【🪑 座位】四大小组物理空间矩阵排布，与讲台下真实座位一一对应，方便老师巡堂对照；【🏆 PK榜】四大小组动态经验竞速赛道，各组总积分化为龙舟竞渡，实时显示积分差距！',
+                classroomTip: '日常听讲使用【卡片】或【座位】视图；进行小组合作讨论、竞赛抢答时一键切换至【🏆 PK榜】，瞬间激发团队协作斗志！'
+            },
+            {
+                step: 3,
+                title: '🎲 随堂抽选 & C位暗化聚焦高光时刻',
+                targetBadge: '[🎲 抽选] / C位 Spotlight',
+                icon: '🎲',
+                position: '顶部横条右侧 或 底部操作坞右侧 [🎲 抽选]',
+                feature: '【随堂随机抽选点名】点击立即开启全屏动态随机滚动点名，大屏音效烘托紧张氛围，最终聚焦一名学生并自动弹开其萌宠空间（请假学生自动跳过）；【C位暗化聚焦】学生达到阶段升级（Lv.4、8、13）时触发全屏背景暗化、主角置顶放大的 Spotlight 光环；晋升至 Lv.20 满级神兽时全屏释放绚丽粒子礼炮烟花庆祝！',
+                classroomTip: '随堂提问、朗读抽背时点击抽选；期末或结课达成满级时，全班共同见证烟花大招，荣誉感拉满！'
+            },
+            {
+                step: 4,
+                title: '🔍 触控缩放微调 & ⬇️ 屏幕沉降触控适配',
+                targetBadge: '[➖] 100% [➕] 与 [⬇️ 屏幕下沉]',
+                icon: '🔍',
+                position: '顶部/底部比例调节盒 & 右下角浮动按键',
+                feature: '【卡片无级缩放】支持 80%（紧凑密集）、100%（标准）、125%（舒适）、150%（宽大）、175%（巨型特写）快捷预设与 +/- 微调，自适应各种大屏投影尺寸；【⬇️ 屏幕沉降模式】针对教室一体机挂载过高、老师或矮个子学生够不到屏幕顶部的痛点，点击右下角沉降按钮，整个大屏展示区域平滑下移至下半屏！',
+                classroomTip: '班级人数较多（50人以上）时选 80% 紧凑档；一体机安装位置过高时开启【屏幕下沉】，触控操作省力自如。'
+            },
+            {
+                step: 5,
+                title: '🎨 5套护眼主题 & 纯单窗口无缝全屏',
+                targetBadge: '[🎨 主题] / [⛶ 全屏] / [← 门户]',
+                icon: '🎨',
+                position: '顶部操作横条右侧 & 最左侧 [← 门户]',
+                feature: '【5套护眼主题】经典米白、暗夜霓虹、活力橙红、静谧森林、深海蓝调，切换带有丝滑圆形光波动画；【⛶ 全屏】一键隐藏所有窗口边框沉浸投影（支持键盘 F11）；【纯单窗口无缝平滑跳转】杜绝任何多余弹窗干扰课堂，大屏与工作台切换平滑如飞且全屏状态不丢；点击【← 门户】可随时退出并切换不同班级账号。',
+                classroomTip: '多媒体教室暗光拉窗帘环境下推荐【暗夜】或【深海】主题，保护视力不刺眼；白天明亮环境使用【经典】或【绿野】。'
+            }
+        ];
+
+        const BIGSCREEN_OVERVIEW_LIST = [
+            { key: '← 门户', pos: '顶部横条最左', desc: '返回系统主控门户，进行班级与教师账号切换', scene: '需要更换上课班级或交接时使用' },
+            { key: '⚡ 工作台', pos: '顶部横条左二', desc: '一键原地切换到教师快速赋分控制台', scene: '教师需要批量给学生加减分、导表排班时' },
+            { key: '班级徽标', pos: '顶部标题右侧', desc: '实时显示当前班级名称及在籍学生总数', scene: '核对当前是否在正确的班级空间' },
+            { key: '🔲 卡片视图', pos: '顶部视图Tab 1', desc: '默认全班宠物卡片网格自适应展示', scene: '日常课堂常规巡览' },
+            { key: '🪑 座位视图', pos: '顶部视图Tab 2', desc: '按 4 大组物理排布，对应教室内学生实际课桌方位', scene: '讲台对照座位提问与巡课' },
+            { key: '🏆 PK榜视图', pos: '顶部视图Tab 3', desc: '四大小组总 EXP 动态竞速跑道与实时排行', scene: '小组积分合作竞争与抢答对抗课' },
+            { key: '🔍 缩放控制', pos: '顶部及底部操作坞', desc: '80%~175% 卡片尺寸调节及预设弹出菜单', scene: '适配 65/75/86 寸一体机及不同人数排版' },
+            { key: '🎲 抽选点名', pos: '顶部右侧/底部中间', desc: '全屏动态随机滚动抽选一名学生，自动弹出其萌宠', scene: '课堂点名提问、互动发言' },
+            { key: '💡 操作指引', pos: '顶部右侧', desc: '打开当前这份全套按键操作与教学实战向导', scene: '新手教师快速上手与查阅功能' },
+            { key: '⛶ 全屏切换', pos: '顶部右侧', desc: '无缝进入/退出无边框沉浸全屏模式 (快捷键F11)', scene: '课堂常驻投影或一体机大屏展示' },
+            { key: '🎨 护眼主题', pos: '顶部最右下拉', desc: '提供经典米白、暗夜、橙红、森林、深海 5 套主题', scene: '根据教室光线和投影明暗随时切换' },
+            { key: '萌宠卡片点击', pos: '大屏中央卡片', desc: '进入学生专属治愈宠物空间 (抚摸/投喂/喝水等6种互动) 或 破壳认领', scene: '课间互动、课上表扬学生上台触控' },
+            { key: '⬇️ 屏幕下沉', pos: '右下角黄色大按键', desc: '将所有卡片舞台平滑沉降至下半屏，便于矮个触控', scene: '黑板/一体机挂载过高够不着时' }
+        ];
+
+        let currentTourStep = 1;
+
+        function openGuidedTourModal() {
+            currentTourStep = 1;
+            renderTourStep();
+            document.getElementById('modalGuidedTour').style.display = 'flex';
+        }
+
+        function closeGuidedTourModal() {
+            document.getElementById('modalGuidedTour').style.display = 'none';
+        }
+
+        function switchTourTab(tab) {
+            document.getElementById('btnTourTabStep').classList.toggle('active', tab === 'step');
+            document.getElementById('btnTourTabStep').style.background = tab === 'step' ? 'var(--accent)' : 'var(--bg-secondary)';
+            document.getElementById('btnTourTabStep').style.color = tab === 'step' ? 'white' : 'var(--text-primary)';
+
+            document.getElementById('btnTourTabOverview').classList.toggle('active', tab === 'overview');
+            document.getElementById('btnTourTabOverview').style.background = tab === 'overview' ? 'var(--accent)' : 'var(--bg-secondary)';
+            document.getElementById('btnTourTabOverview').style.color = tab === 'overview' ? 'white' : 'var(--text-primary)';
+
+            document.getElementById('tourStepView').style.display = tab === 'step' ? 'block' : 'none';
+            document.getElementById('tourOverviewView').style.display = tab === 'overview' ? 'block' : 'none';
+
+            if (tab === 'overview') renderTourOverview();
+        }
+
+        function goToTourStep(step) {
+            currentTourStep = Math.max(1, Math.min(step, BIGSCREEN_TOUR_STEPS.length));
+            renderTourStep();
+        }
+
+        function nextTourStep() {
+            if (currentTourStep >= BIGSCREEN_TOUR_STEPS.length) {
+                closeGuidedTourModal();
+                return;
+            }
+            currentTourStep++;
+            renderTourStep();
+        }
+
+        function prevTourStep() {
+            if (currentTourStep <= 1) return;
+            currentTourStep--;
+            renderTourStep();
+        }
+
+        function renderTourStep() {
+            const data = BIGSCREEN_TOUR_STEPS[currentTourStep - 1];
+            document.getElementById('tourStepIndicator').textContent = `步骤 ${currentTourStep} / ${BIGSCREEN_TOUR_STEPS.length}`;
+            
+            // 更新小圆点
+            document.querySelectorAll('#tourStepDots .tour-dot').forEach((dot, idx) => {
+                dot.classList.toggle('active', idx + 1 === currentTourStep);
+            });
+
+            // 更新上一步按钮可用性
+            document.getElementById('btnTourPrev').disabled = currentTourStep === 1;
+            document.getElementById('btnTourPrev').style.opacity = currentTourStep === 1 ? '0.4' : '1';
+            document.getElementById('btnTourNext').textContent = currentTourStep === BIGSCREEN_TOUR_STEPS.length ? '完成并开始体验 ✓' : '下一步 →';
+
+            const container = document.getElementById('tourStepContent');
+            container.innerHTML = `
+                <div class="tour-step-card">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; border-bottom: 2px solid var(--border); padding-bottom: 8px;">
+                        <span style="font-size: 32px;">${data.icon}</span>
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: 900; margin: 0;">${data.title}</h3>
+                            <span style="font-size: 11px; background: var(--warning); border: 1px solid var(--border); padding: 1px 6px; font-family: monospace; font-weight: 800;">
+                                🎯 目标对象：${data.targetBadge}
+                            </span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-secondary);">
+                        📍 <strong>所在位置：</strong> ${data.position}
+                    </div>
+                    <div style="background: var(--card-bg); border: 2px solid var(--border); padding: 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.6; font-weight: 700;">
+                        ${data.feature}
+                    </div>
+                    <div style="background: #FEF9C3; border: 1.5px solid #CA8A04; padding: 10px 12px; font-size: 12px; color: #854D0E; font-weight: 800;">
+                        🏫 <strong>课堂实战建议：</strong> ${data.classroomTip}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTourOverview() {
+            const tbody = document.getElementById('tourOverviewTableBody');
+            tbody.innerHTML = BIGSCREEN_OVERVIEW_LIST.map(item => `
+                <tr style="border-bottom: 1px solid var(--border); background: var(--card-bg);">
+                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-weight: 900; color: var(--accent);">${item.key}</td>
+                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-family: monospace; font-size: 11px;">${item.pos}</td>
+                    <td style="padding: 8px 10px; border-right: 1px solid var(--border); font-weight: 700;">${item.desc}</td>
+                    <td style="padding: 8px 10px; color: #854D0E; font-weight: 700;">${item.scene}</td>
+                </tr>
+            `).join('');
+        }
+
+        function scoreGroup(g, d) {
+            const list = store.students.filter(s => s.group === g && !s.isArchived);
+            store.batchScore(list.map(s => s.id), d, `第${g}大组${d>0?'奖励':'扣分'}`);
+            if (d > 0) store.audio.playDing();
+            else store.audio.playDeduct();
+            renderAll();
+        }
+
+        function quickModalScore(delta, reason) {
+            if (!activeModalStudent) return;
+            store.scoreStudent(activeModalStudent.id, delta, reason);
+            refreshModal();
+            renderAll();
+        }
+
+        // ==========================================
+        // ==========================================
+        // 电子宠物破壳认领中心逻辑
+        // ==========================================
+        function openHatchModal(studentId) {
+            closeDetailsModal();
+            const s = store.students.find(x => x.id === studentId);
+            if (!s) return;
+            hatchTargetStudentId = studentId;
+            currentSelectedHatchSpecies = 'cat';
+
+            document.getElementById('hatchStudentTitle').textContent = `🐣 电子宠物破壳认领中心 · ${s.name} (#${s.no})`;
+            document.getElementById('hatchStudentSub').textContent = `恭喜积攒满 ${s.exp} EXP！破壳在即，请挑选心仪的电子宠物完成认领：`;
+
+            const catalog = window.PET_SPECIES_CATALOG || {};
+            const grid = document.getElementById('hatchSpeciesGrid');
+            grid.innerHTML = Object.keys(catalog).map(key => {
+                const item = catalog[key];
+                const isSel = key === currentSelectedHatchSpecies;
+                const previewImg = window.getPetImagePath ? window.getPetImagePath(key, 1) : '';
+                return `
+                    <div class="hatch-card-option ${isSel ? 'selected' : ''}" id="hatchCard_${key}" onclick="selectHatchSpecies('${key}')">
+                        <div class="hatch-pet-preview">
+                            <img src="${previewImg}" alt="${item.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+                            <span style="font-size: 38px; display: none;">${item.icon}</span>
+                        </div>
+                        <strong style="font-size: 14px; margin-bottom: 2px;">${item.name}</strong>
+                        <span style="font-size: 11px; color: var(--text-secondary); line-height: 1.3;">${item.motto}</span>
+                    </div>
+                `;
+            }).join('');
+
+            updateHatchSelectedBar();
+            document.getElementById('modalHatchCenter').style.display = 'flex';
+        }
+
+        function selectHatchSpecies(spKey) {
+            currentSelectedHatchSpecies = spKey;
+            document.querySelectorAll('.hatch-card-option').forEach(el => el.classList.remove('selected'));
+            const card = document.getElementById(`hatchCard_${spKey}`);
+            if (card) card.classList.add('selected');
+            updateHatchSelectedBar();
+        }
+
+        function updateHatchSelectedBar() {
+            const info = (window.PET_SPECIES_CATALOG || {})[currentSelectedHatchSpecies] || {};
+            document.getElementById('selectedSpeciesNameText').textContent = `${info.name || '猫咪'} (${currentSelectedHatchSpecies})`;
+            document.getElementById('selectedSpeciesMottoText').textContent = info.motto || '';
+        }
+
+        function closeHatchModal() {
+            document.getElementById('modalHatchCenter').style.display = 'none';
+        }
+
+        function confirmHatchPet() {
+            if (!hatchTargetStudentId) return;
+            const hatched = store.hatchStudentPet(hatchTargetStudentId, currentSelectedHatchSpecies);
+            closeHatchModal();
+            if (hatched) {
+                const sIdx = store.students.findIndex(x => x.id === hatchTargetStudentId);
+                triggerSpotlightCelebration(Math.max(0, sIdx), 1, '🐣 恭喜破壳诞生！成功认领专属电子宠物！');
+            }
+            renderAll();
+        }
+
+        // ==========================================
+        // 学生详情空间与治愈互动
+        // ==========================================
+        function openStudentDetailsModal(id) {
+            const s = store.students.find(x => x.id === id);
+            if (!s) return;
+            activeModalStudent = s;
+            activeModalSubject = s.activeSubject || 'chinese';
+            refreshModal();
+            document.getElementById('modalStudentDetails').style.display = 'flex';
+        }
+
+        function refreshModal() {
+            if (!activeModalStudent) return;
+            const s = activeModalStudent;
+            const pet = s.pets[activeModalSubject] || s.pets.chinese;
+
+            document.getElementById('modalStudentName').textContent = `${s.name} · #${s.no}`;
+            document.getElementById('modalStudentSub').textContent = `三年级二班 · 第 ${s.group} 大组 · ${pet.subject}专属空间`;
+            
+            const heroImg = document.getElementById('heroPetImg');
+            const heroIcon = document.getElementById('heroPetIcon');
+            const petSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(pet.species, pet.visualStage) : '');
+            heroImg.src = petSrc;
+            heroImg.style.display = 'inline';
+            heroIcon.textContent = pet.icon;
+            heroIcon.style.display = 'none';
+
+            document.getElementById('heroPetName').textContent = !s.isHatched ? '神秘宠物蛋 (待破壳)' : `${pet.name} (Stage ${pet.visualStage} 形态)`;
+            document.getElementById('heroPetLevel').textContent = !s.isHatched ? 'Lv.0' : `LV.${pet.level}`;
+
+            const currentMin = s.minExpForCurrentLevel || 0;
+            const nextMax = s.nextLevelExp || 1250;
+            const percent = Math.min(100, Math.max(0, Math.round(((pet.exp - currentMin) / Math.max(1, nextMax - currentMin)) * 100)));
+
+            document.getElementById('heroExpText').textContent = `当前经验：${pet.exp} EXP · 下级阈值：${nextMax} EXP`;
+            document.getElementById('heroProgressBar').style.width = percent + '%';
+
+            // 更新今日互动收益提示
+            const todayKey = 'classpet_daily_interact_' + new Date().toISOString().slice(0, 10);
+            let dailyRecord = {};
+            try { dailyRecord = JSON.parse(localStorage.getItem(todayKey) || '{}'); } catch (e) {}
+            const todayUsed = dailyRecord[s.id] || 0;
+            document.getElementById('interactionDailyTip').textContent = `今日互动收益：${todayUsed}/5 EXP ${todayUsed >= 5 ? '(已达上限)' : ''}`;
+        }
+
+        function switchModalSubject(sub) {
+            activeModalSubject = sub;
+            ['Chinese', 'Math', 'English'].forEach(k => {
+                const btn = document.getElementById('tabSubj' + k);
+                const isTarget = k.toLowerCase() === sub;
+                btn.style.background = isTarget ? 'var(--accent)' : 'var(--bg-secondary)';
+                btn.style.color = isTarget ? 'white' : 'var(--text-primary)';
+            });
+            refreshModal();
+        }
+
+        function triggerInteraction(key, actionName, exp) {
+            if (!activeModalStudent) return;
+            const now = Date.now();
+            if (interactCooldowns[key] && interactCooldowns[key] > now) {
+                return; // 还在冷却中
+            }
+
+            // 设置 15 秒冷却
+            interactCooldowns[key] = now + 15000;
+            const btn = document.getElementById('btnInteract_' + key);
+            const label = document.getElementById('label_' + key);
+            const originalText = label.textContent;
+
+            // 倒计时刷新
+            const cdInterval = setInterval(() => {
+                const remaining = Math.ceil((interactCooldowns[key] - Date.now()) / 1000);
+                if (remaining <= 0) {
+                    clearInterval(cdInterval);
+                    btn.disabled = false;
+                    label.textContent = originalText;
+                } else {
+                    btn.disabled = true;
+                    label.textContent = `⏳ 冷却 (${remaining}s)`;
+                }
+            }, 500);
+
+            const result = store.doPetInteraction(activeModalStudent.id, actionName, exp);
+            if (result && result.quote) {
+                const bubble = document.getElementById('heroSpeechBubble');
+                bubble.textContent = `“${result.quote}”`;
+                bubble.style.display = 'block';
+
+                if (bubbleHideTimer) clearTimeout(bubbleHideTimer);
+                bubbleHideTimer = setTimeout(() => {
+                    bubble.style.display = 'none';
+                }, 4500);
+            }
+
+            refreshModal();
+            renderAll();
+        }
+
+        function startRandomPicker() {
+            const activeList = store.students.filter(s => !s.isArchived);
+            if (activeList.length === 0) {
+                showClassroomAlert('当前班级暂无学生数据，请先前往教师工作台录入学生名单！', '班级提示', '👥');
+                return;
+            }
+            const chosen = store.startRandomPick();
+            if (chosen) openStudentDetailsModal(chosen.id);
+        }
+
+        function toggleReachability() {
+            const w = document.getElementById('stageWrapper');
+            const isActive = w.classList.toggle('reachability-active');
+            document.getElementById('reachIcon').textContent = isActive ? '⬆️' : '⬇️';
+            document.getElementById('reachText').textContent = isActive ? '还原大屏原位' : '屏幕下沉';
+        }
+
+        function sortCards(by) {
+            if (by === 'no') store.students.sort((a, b) => a.no.localeCompare(b.no));
+            else store.students.sort((a, b) => b.level - a.level || b.exp - a.exp);
+            renderGrid();
+        }
+
+        function closeDetailsModal() { document.getElementById('modalStudentDetails').style.display = 'none'; }
+
+        function triggerSpotlightCelebration(index, lvl, customMsg) {
+            const s = store.students[index] || store.students[0];
+            const pet = s.pets[s.activeSubject] || s.pets.chinese;
+            const imgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(pet.species, pet.visualStage) : '');
+            document.getElementById('spotPetIcon').innerHTML = `<img src="${imgSrc}" style="width:130px;height:130px;object-fit:contain;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.18));animation: petHeroFloat 2.6s ease-in-out infinite;" onerror="this.outerHTML='<span style=\\'font-size:72px;\\'>${pet.icon}</span>'" />`;
+            document.getElementById('spotStudentName').textContent = `${s.name} (#${s.no})`;
+            document.getElementById('spotLevelMsg').textContent = customMsg || `成功晋升至 Lv.${lvl} 进阶期！`;
+            store.audio.playFanfare();
+            document.getElementById('spotlightModal').style.display = 'flex';
+        }
+
+        function closeSpotlightCelebration() { document.getElementById('spotlightModal').style.display = 'none'; }
+
+        let fireworksRunning = false;
+        let fireworksAnimationId = null;
+
+        function triggerFullFireworksCelebration(studentIndex = 4) {
+            const s = store.students[studentIndex] || store.students[4];
+            document.getElementById('fireworksStudentName').textContent = `${s.name} (#${s.no})`;
+            document.getElementById('fireworksPetMsg').textContent = `恭喜达成 Lv.20 满级大师形态！`;
+            document.getElementById('fireworksLayer').style.display = 'flex';
+            store.audio.playFanfare();
+
+            const canvas = document.getElementById('fireworksCanvas');
+            if (!canvas) return;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const ctx = canvas.getContext('2d');
+
+            fireworksRunning = true;
+            let particles = [];
+            let rockets = [];
+
+            function loop() {
+                if (!fireworksRunning) return;
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.globalCompositeOperation = 'lighter';
+
+                if (Math.random() < 0.18) {
+                    rockets.push({
+                        x: Math.random() * canvas.width,
+                        y: canvas.height,
+                        targetY: 80 + Math.random() * (canvas.height * 0.45),
+                        speed: 8 + Math.random() * 5,
+                        color: `hsl(${Math.random() * 360}, 100%, 65%)`
+                    });
+                }
+
+                for (let i = rockets.length - 1; i >= 0; i--) {
+                    const r = rockets[i];
+                    r.y -= r.speed;
+                    ctx.beginPath();
+                    ctx.arc(r.x, r.y, 3.5, 0, Math.PI * 2);
+                    ctx.fillStyle = r.color;
+                    ctx.fill();
+
+                    if (r.y <= r.targetY) {
+                        for (let j = 0; j < 65; j++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const speed = Math.random() * 6 + 1.5;
+                            particles.push({
+                                x: r.x, y: r.y,
+                                vx: Math.cos(angle) * speed,
+                                vy: Math.sin(angle) * speed,
+                                alpha: 1, color: r.color,
+                                decay: Math.random() * 0.02 + 0.015
+                            });
+                        }
+                        rockets.splice(i, 1);
+                    }
+                }
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.08;
+                    p.alpha -= p.decay;
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = Math.max(0, p.alpha);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+
+                    if (p.alpha <= 0) particles.splice(i, 1);
+                }
+
+                fireworksAnimationId = requestAnimationFrame(loop);
+            }
+
+            loop();
+        }
+
+        function closeFireworksCelebration() {
+            fireworksRunning = false;
+            if (fireworksAnimationId) cancelAnimationFrame(fireworksAnimationId);
+            document.getElementById('fireworksLayer').style.display = 'none';
+        }
+
+        function toggleAppFullscreen() {
+            if (window.electronAPI && typeof window.electronAPI.toggleFullscreen === 'function') {
+                window.electronAPI.toggleFullscreen();
+            } else {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        }
+
+        function openTeacherWorkstation() {
+            if (window.electronAPI && typeof window.electronAPI.openTeacherWindow === 'function') {
+                window.electronAPI.openTeacherWindow();
+            } else {
+                window.location.href = './teacher_panel_touch_pro.html';
+            }
+        }
+
+        function goToPortal() {
+            if (window.electronAPI && typeof window.electronAPI.openPortalWindow === 'function') {
+                window.electronAPI.openPortalWindow();
+            } else {
+                window.location.href = './portal_auth.html';
+            }
+        }
+
+        // 🌟 动态卡片缩放引擎 (持久化与全自适应响应)
+        let currentCardScale = parseFloat(localStorage.getItem('classpet_card_scale')) || 1.0;
+
+        function applyCardScale(scale) {
+            scale = Math.round(scale * 100) / 100;
+            if (scale < 0.7) scale = 0.7;
+            if (scale > 1.8) scale = 1.8;
+
+            currentCardScale = scale;
+            try {
+                localStorage.setItem('classpet_card_scale', scale);
+            } catch(e) {}
+
+            const root = document.documentElement;
+            root.style.setProperty('--card-scale', scale);
+            root.style.setProperty('--card-min-w', `${Math.round(136 * scale)}px`);
+            root.style.setProperty('--card-h', `${Math.round(168 * scale)}px`);
+            root.style.setProperty('--pet-box-size', `${Math.round(66 * scale)}px`);
+            root.style.setProperty('--pet-icon-fs', `${Math.round(34 * scale)}px`);
+            root.style.setProperty('--pet-margin-b', `${Math.max(3, Math.round(6 * scale))}px`);
+            root.style.setProperty('--name-fs', `${Math.max(11, Math.round(13 * Math.sqrt(scale)))}px`);
+            root.style.setProperty('--no-fs', `${Math.max(9, Math.round(10 * Math.sqrt(scale)))}px`);
+            root.style.setProperty('--level-fs', `${Math.max(9, Math.round(10 * Math.sqrt(scale)))}px`);
+            root.style.setProperty('--bar-h', `${Math.max(4, Math.round(6 * scale))}px`);
+            root.style.setProperty('--card-gap', `${Math.round(11 * scale)}px`);
+            root.style.setProperty('--stamp-fs', `${Math.max(7, Math.round(8 * scale))}px`);
+            root.style.setProperty('--tag-fs', `${Math.max(7, Math.round(8 * scale))}px`);
+            root.style.setProperty('--card-pad', `${Math.round(9 * scale)}px ${Math.round(8 * scale)}px ${Math.round(7 * scale)}px`);
+
+            const pct = Math.round(scale * 100) + '%';
+            const topLabel = document.getElementById('topScaleLabel');
+            if (topLabel) topLabel.textContent = pct;
+            const dockLabel = document.getElementById('dockScaleLabel');
+            if (dockLabel) dockLabel.textContent = pct;
+
+            // 更新预设按钮激活样式
+            document.querySelectorAll('.scale-preset-item').forEach(btn => {
+                const pVal = parseFloat(btn.getAttribute('data-preset'));
+                if (Math.abs(pVal - scale) < 0.06) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        function adjustScale(delta) {
+            applyCardScale(currentCardScale + delta);
+        }
+
+        function resetScale() {
+            applyCardScale(1.0);
+        }
+
+        function selectScalePreset(val) {
+            applyCardScale(val);
+            closeAllScaleMenus();
+        }
+
+        function toggleHeaderScaleMenu(event) {
+            if (event) event.stopPropagation();
+            const headerMenu = document.getElementById('headerScaleMenu');
+            const dockMenu = document.getElementById('dockScaleMenu');
+            if (dockMenu) dockMenu.style.display = 'none';
+            if (headerMenu) {
+                headerMenu.style.display = headerMenu.style.display === 'flex' ? 'none' : 'flex';
+            }
+        }
+
+        function toggleDockScaleMenu(event) {
+            if (event) event.stopPropagation();
+            const headerMenu = document.getElementById('headerScaleMenu');
+            const dockMenu = document.getElementById('dockScaleMenu');
+            if (headerMenu) headerMenu.style.display = 'none';
+            if (dockMenu) {
+                dockMenu.style.display = dockMenu.style.display === 'flex' ? 'none' : 'flex';
+            }
+        }
+
+        function closeAllScaleMenus() {
+            const h = document.getElementById('headerScaleMenu');
+            const d = document.getElementById('dockScaleMenu');
+            if (h) h.style.display = 'none';
+            if (d) d.style.display = 'none';
+        }
+
+        document.addEventListener('click', (e) => {
+            const h = document.getElementById('headerScaleMenu');
+            const d = document.getElementById('dockScaleMenu');
+            const tb = document.getElementById('topScaleBadge');
+            const db = document.getElementById('dockScaleBadge');
+            if (h && h.style.display === 'flex' && !h.contains(e.target) && (!tb || !tb.contains(e.target))) {
+                h.style.display = 'none';
+            }
+            if (d && d.style.display === 'flex' && !d.contains(e.target) && (!db || !db.contains(e.target))) {
+                d.style.display = 'none';
+            }
+        });
+
+        applyCardScale(currentCardScale);
+        updateHeaderClassInfo();
+        renderAll();
+    </script>
+</body>
+</html>

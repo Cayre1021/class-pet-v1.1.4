@@ -1,0 +1,700 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UX 与 UI：本质、界定与重构之道 · 归藏编辑墨水 Deck</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0a0a0b;
+    --paper: #f1efea;
+    --paper-tint: #e8e5de;
+    --ink-tint: #18181a;
+  }
+  * { box-sizing: border-box; border-radius: 0 !important; }
+  body {
+    font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+    background: #000000;
+    color: var(--ink);
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .display { font-family: 'Playfair Display', 'Noto Serif SC', serif; }
+  .body-serif { font-family: 'Playfair Display', 'Noto Serif SC', serif; font-style: italic; }
+  .kicker { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; }
+  .hairline { border: 0; border-top: 1px solid currentColor; opacity: 0.25; }
+  .hairline-thick { border: 0; border-top: 2px solid currentColor; opacity: 0.9; }
+  .folio { font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 600; }
+
+  /* 舞台与幻灯片容器 */
+  .stage {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    gap: 36px;
+  }
+  
+  .slide-container {
+    width: 100%;
+    max-width: 1280px;
+    aspect-ratio: 16 / 9;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #222;
+  }
+
+  .slide {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .paper { background: var(--paper); color: var(--ink); }
+  .ink { background: var(--ink); color: var(--paper); }
+  .paper-tint { background: var(--paper-tint); color: var(--ink); }
+  .ink-tint { background: var(--ink-tint); color: var(--paper); }
+
+  /* 演示模式全屏控制 */
+  .presentation-mode {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #050505;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .presentation-mode.active {
+    display: flex;
+  }
+  .presentation-slide-wrapper {
+    width: min(96vw, 170.66vh);
+    aspect-ratio: 16 / 9;
+    box-shadow: 0 0 50px rgba(0,0,0,0.9);
+  }
+
+  /* 底部悬浮控制条 */
+  .deck-controls {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0a0a0b;
+    border: 1px solid #333;
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 1100;
+    color: #f1efea;
+  }
+
+  button, input, select { border-radius: 0 !important; }
+</style>
+</head>
+<body>
+
+<!-- 页面顶部工具栏 -->
+<aside class="fixed top-0 left-0 right-0 h-11 bg-[#0a0a0b] border-b border-[#222] z-50 flex items-center justify-between px-6 text-[#888] text-xs">
+  <div class="flex items-center gap-3">
+    <span class="text-[#f1efea] font-medium tracking-wider text-sm">OPEN DESIGN</span>
+    <span class="text-[#444]">|</span>
+    <span class="kicker text-[11px] text-[#aaa]">Guizang Editorial E-Ink Deck (Monocle)</span>
+  </div>
+  <div class="flex items-center gap-4 text-xs">
+    <span>快捷键: <kbd class="px-1.5 py-0.5 border border-[#444] text-[#ccc]">←</kbd> <kbd class="px-1.5 py-0.5 border border-[#444] text-[#ccc]">→</kbd> 翻页</span>
+    <span><kbd class="px-1.5 py-0.5 border border-[#444] text-[#ccc]">F</kbd> 全屏演示</span>
+    <button id="btn-toggle-present" class="px-3.5 py-1 bg-[#f1efea] text-[#0a0a0b] font-semibold hover:bg-[#fff] transition-colors text-xs">
+      全屏演播
+    </button>
+  </div>
+</aside>
+
+<!-- 主舞台 (流式与幻灯片展示) -->
+<main class="stage pt-16 pb-24" id="deck-flow">
+
+  <!-- ==================== SLIDE 01: HERO COVER (L01) ==================== -->
+  <article class="slide-container" id="slide-1" data-index="1">
+    <section class="slide paper flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-70">
+        <span>OPEN ESSAY · ISSUE №08</span>
+        <span>PRODUCT PHILOSOPHY &amp; INTERACTION</span>
+        <span class="folio">01 / 12</span>
+      </header>
+
+      <div class="my-auto py-4">
+        <div class="kicker text-[#6b665b] mb-4">ESSAY &amp; INTERACTION ARCHITECTURE</div>
+        <h1 class="display leading-[0.96] text-[#0a0a0b]" style="font-size:clamp(46px,6.5vw,96px); font-weight:500;">
+          UX 与 UI：<br/>
+          <span class="body-serif">骨架、皮囊</span> 与重构之道。
+        </h1>
+        <hr class="hairline-thick my-6" />
+        <p class="text-[19px] leading-relaxed max-w-3xl text-[#2a2824]">
+          从概念本质、认知边界到多方案推演。为什么业务需求绝非唯一的交互解法？当面对真实反馈时，如何从 UX 根因出发完成架构级重构？
+        </p>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60 text-[#3a382f]">
+        <span>AUTHOR: ANTIGRAVITY &amp; OP7418</span>
+        <span class="body-serif normal-case tracking-normal text-sm">Style A: Monocle Ink · 2026 Edition</span>
+        <span>SCROLL OR USE ARROWS</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 02: HERO QUESTION (L07) ==================== -->
+  <article class="slide-container" id="slide-2" data-index="2">
+    <section class="slide ink flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-60">
+        <span>THE CORE DILEMMA</span>
+        <span>ACT 0 · PROVOCATION</span>
+        <span class="folio">02 / 12</span>
+      </header>
+
+      <div class="my-auto">
+        <div class="kicker opacity-50 mb-4">PROVOCATION / 核心困惑</div>
+        <h2 class="display leading-[1.14]" style="font-size:clamp(34px,5vw,72px); font-weight:500;">
+          “甲方已经给了一套操作流程，<br/>
+          UX 是不是就<span class="body-serif text-[#e8e5de]">只有一种解法</span>了？<br/>
+          UI 难道只能在表面<span class="body-serif text-[#e8e5de]">调调颜色</span>吗？”
+        </h2>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>A CRITICAL COGNITIVE TRAP</span>
+        <span class="body-serif normal-case tracking-normal text-sm">打破“业务诉求 = 唯一交互路径”的假象。</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 03: ACT DIVIDER I (L02) ==================== -->
+  <article class="slide-container" id="slide-3" data-index="3">
+    <section class="slide ink flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-60">
+        <span>PART ONE</span>
+        <span>FOUNDATION</span>
+        <span class="folio">03 / 12</span>
+      </header>
+
+      <div class="my-auto">
+        <div class="kicker opacity-70 mb-3">第一章 · 本质溯源</div>
+        <h2 class="display leading-[0.95]" style="font-size:clamp(54px,8vw,124px); font-weight:500;">
+          UX 解决生死，<br/>
+          <span class="body-serif text-[#e8e5de]">UI 创造溢价</span>。
+        </h2>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>THE DUAL NATURE OF DIGITAL PRODUCTS</span>
+        <span class="body-serif normal-case tracking-normal text-sm">骨骼与皮囊的辩证统一</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 04: CONTRAST / COMPARISON (L09) [字号放大升级] ==================== -->
+  <article class="slide-container" id="slide-4" data-index="4">
+    <section class="slide paper flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-70">
+        <span>ESSENCE DECONSTRUCTION</span>
+        <span>HOW IT WORKS VS HOW IT LOOKS</span>
+        <span class="folio">04 / 12</span>
+      </header>
+
+      <div class="grid grid-cols-2 gap-12 my-auto">
+        <!-- 左列：UX -->
+        <div class="border-t-2 border-[#0a0a0b] pt-6">
+          <div class="kicker text-[#6b665b] mb-1">DIMENSION 01 · 逻辑与动线</div>
+          <h3 class="display text-4xl font-semibold mt-1 mb-4">UX 用户体验</h3>
+          <p class="text-lg font-bold leading-snug mb-5 text-[#0a0a0b] border-l-2 border-[#0a0a0b] pl-3">
+            核心关注：好不好用、流不流畅、解没解决问题
+          </p>
+          <ul class="space-y-3 text-[16px] text-[#2a2824] leading-normal list-square list-inside">
+            <li><strong>任务链路闭环</strong>：前置条件、分支判断与状态流转</li>
+            <li><strong>认知负荷控制</strong>：米勒定律（7±2 负荷控制）、渐进式呈现</li>
+            <li><strong>防御性与容错</strong>：弱网、报错、空数据与异常边缘穷举</li>
+            <li><strong>终极价值</strong>：决定产品的<span class="body-serif font-bold text-lg">功能下限与留存生死</span></li>
+          </ul>
+        </div>
+
+        <!-- 右列：UI -->
+        <div class="border-t-2 border-[#0a0a0b] pt-6">
+          <div class="kicker text-[#6b665b] mb-1">DIMENSION 02 · 视觉与感知</div>
+          <h3 class="display text-4xl font-semibold mt-1 mb-4">UI 用户界面</h3>
+          <p class="text-lg font-bold leading-snug mb-5 text-[#0a0a0b] border-l-2 border-[#0a0a0b] pl-3">
+            核心关注：好不好看、抓不抓眼、建不建立信任
+          </p>
+          <ul class="space-y-3 text-[16px] text-[#2a2824] leading-normal list-square list-inside">
+            <li><strong>视觉层级引导</strong>：首屏焦点、字阶对比（H1-H6）与留白节奏</li>
+            <li><strong>设计系统规范</strong>：4px/8px 严格栅格、WCAG 对比度安全</li>
+            <li><strong>品牌质感传达</strong>：排版调性、品牌色传达、微交互即时反馈</li>
+            <li><strong>终极价值</strong>：决定产品的<span class="body-serif font-bold text-lg">第一印象与商业溢价</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>ARCHITECT VS SCULPTOR</span>
+        <span class="body-serif normal-case tracking-normal text-sm">两者相辅相成，缺一不可</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 05: BIG QUOTE (L08) ==================== -->
+  <article class="slide-container" id="slide-5" data-index="5">
+    <section class="slide paper flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-70">
+        <span>THE AXIOM</span>
+        <span>CORE TRUTH</span>
+        <span class="folio">05 / 12</span>
+      </header>
+
+      <div class="my-auto py-6">
+        <blockquote class="display leading-[1.18] text-[#0a0a0b]" style="font-size:clamp(32px,4.8vw,68px); font-weight:500;">
+          “没有好 UX，产品是中看不中用的<span class="body-serif">废品</span>；<br/>
+          没有好 UI，产品是无人问津的<span class="body-serif">毛坯房</span>。”
+        </blockquote>
+        <hr class="hairline my-6" />
+        <p class="body-serif text-xl text-[#555] max-w-2xl">
+          “Without great UX, a product is a useless ornament; without great UI, it is an abandoned wasteland.”
+        </p>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>PRODUCT ERGONOMICS LAW №1</span>
+        <span>2026 ESSAY</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 06: ACT DIVIDER II (L02) ==================== -->
+  <article class="slide-container" id="slide-6" data-index="6">
+    <section class="slide ink flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-60">
+        <span>PART TWO</span>
+        <span>DEMARCATION</span>
+        <span class="folio">06 / 12</span>
+      </header>
+
+      <div class="my-auto">
+        <div class="kicker opacity-70 mb-3">第二章 · 边界界定</div>
+        <h2 class="display leading-[0.95]" style="font-size:clamp(50px,7.8vw,116px); font-weight:500;">
+          三个法则，<br/>
+          <span class="body-serif text-[#e8e5de]">一秒分清</span> UI 与 UX。
+        </h2>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>HOW TO DISTINGUISH WITH ABSOLUTE CLARITY</span>
+        <span class="body-serif normal-case tracking-normal text-sm">拒绝模糊地带与术语混淆</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 07: 3 LITMUS TESTS (L06 Pipeline) [字号放大升级] ==================== -->
+  <article class="slide-container" id="slide-7" data-index="7">
+    <section class="slide paper flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-70">
+        <span>LITMUS TESTS</span>
+        <span>THREE METHODS OF DISTINCTION</span>
+        <span class="folio">07 / 12</span>
+      </header>
+
+      <div class="my-auto grid grid-cols-3 gap-8">
+        <!-- 测试 1 -->
+        <div class="border-t-2 border-[#0a0a0b] pt-5">
+          <div class="display text-4xl font-medium mb-1">№ 01</div>
+          <div class="kicker text-[#6b665b] text-sm mb-3">黑白线框图测试</div>
+          <div class="text-[16px] leading-relaxed text-[#1a1814] space-y-2">
+            <p><strong>去掉所有色彩、投影与插画：</strong></p>
+            <p>依然存在的是 <span class="body-serif font-bold text-lg">UX</span>（步骤几步、左右分栏、先点哪再点哪）；</p>
+            <p>彻底消失的是 <span class="body-serif font-bold text-lg">UI</span>（主色调、圆角值、阴影与描边质感）。</p>
+          </div>
+        </div>
+
+        <!-- 测试 2 -->
+        <div class="border-t-2 border-[#0a0a0b] pt-5">
+          <div class="display text-4xl font-medium mb-1">№ 02</div>
+          <div class="kicker text-[#6b665b] text-sm mb-3">提问动词测试</div>
+          <div class="text-[16px] leading-relaxed text-[#1a1814] space-y-2">
+            <p><strong>问 How it works 是 UX：</strong><br/>“为什么放这里？操作顺不顺？输错了如何引导？”</p>
+            <p><strong>问 How it looks 是 UI：</strong><br/>“抓不抓眼球？排版是否拥挤？是否符合品牌调性？”</p>
+          </div>
+        </div>
+
+        <!-- 测试 3 -->
+        <div class="border-t-2 border-[#0a0a0b] pt-5">
+          <div class="display text-4xl font-medium mb-1">№ 03</div>
+          <div class="kicker text-[#6b665b] text-sm mb-3">挑刺争论焦点</div>
+          <div class="text-[16px] leading-relaxed text-[#1a1814] space-y-2">
+            <p><strong>争论操作效率是 UX 问题：</strong><br/>“太繁琐、找不到入口、容易误触”；</p>
+            <p><strong>争论审美感官是 UI 问题：</strong><br/>“太素了、颜色不好看、字太小、不够高级”。</p>
+          </div>
+        </div>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>OBJECTIVE CRITERIA</span>
+        <span class="body-serif normal-case tracking-normal text-sm">用工效学视角审视每一个设计决策</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 08: SKELETON LAYER (L04 Quote + Diagram) [字号放大升级] ==================== -->
+  <article class="slide-container" id="slide-8" data-index="8">
+    <section class="slide paper flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-70">
+        <span>THE INTERSECTION</span>
+        <span>SKELETON &amp; INTERACTION PATTERNS</span>
+        <span class="folio">08 / 12</span>
+      </header>
+
+      <div class="grid grid-cols-12 gap-8 my-auto items-center">
+        <!-- 左侧解释 (7 cols) -->
+        <div class="col-span-7 pr-2">
+          <div class="kicker text-[#6b665b] mb-2">交界地带解析</div>
+          <h3 class="display text-4xl font-semibold leading-tight mb-4">
+            “步骤条、紧凑表格、左右分栏”<br/>
+            到底属于 UX 还是 UI？
+          </h3>
+          <p class="text-[17px] leading-relaxed text-[#2a2824] mb-4">
+            它们处于经典五层模型中的<strong>【框架/骨架层（Skeleton）】</strong>：
+          </p>
+          <div class="border-l-2 border-[#0a0a0b] pl-4 py-2 space-y-3 text-[16px] text-[#2a2824]">
+            <p><strong>作为 UX 决策</strong>：决定<em>“为什么选分栏”</em>（左看右填减少跨页记忆负荷）、决定<em>“回车连续跳行”</em>（提高录入效率）。</p>
+            <p><strong>作为 UI 表达</strong>：决定分栏是 1px 细灰线还是立体卡片，决定表头字阶比例与斑马纹色值。</p>
+          </div>
+        </div>
+
+        <!-- 右侧矢量骨架示意 (5 cols) -->
+        <div class="col-span-5 border-2 border-[#0a0a0b] p-5 bg-[#e8e5de] text-[13px]">
+          <div class="kicker text-xs text-[#555] mb-4 font-bold">SKELETON SCHEMATICS / 骨架示意</div>
+          
+          <!-- 示意 1: 步骤条 -->
+          <div class="border border-[#0a0a0b] bg-[#f1efea] p-3 mb-3">
+            <div class="flex justify-between items-center text-xs text-[#444] border-b border-[#ccc] pb-2 mb-2">
+              <span class="font-bold">[1.客户] ──● [2.商品] ──○ [3.提交]</span>
+              <span class="text-[11px] font-bold bg-[#0a0a0b] text-[#f1efea] px-1">WIZARD</span>
+            </div>
+            <div class="h-6 bg-[#ddd] flex items-center px-2 text-xs font-medium">STEP 1: 基础信息填报区</div>
+          </div>
+
+          <!-- 示意 2: 左右分栏 -->
+          <div class="border border-[#0a0a0b] bg-[#f1efea] p-3">
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="border border-dashed border-[#666] p-2 bg-[#fff]">
+                <span class="font-bold">LEFT: 历史物料库</span>
+                <div class="mt-2 h-5 bg-[#eee]"></div>
+              </div>
+              <div class="border border-dashed border-[#666] p-2 bg-[#fff]">
+                <span class="font-bold">RIGHT: 编辑表单</span>
+                <div class="mt-2 h-5 bg-[#eee]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>JESSE JAMES GARRETT MODEL</span>
+        <span class="body-serif normal-case tracking-normal text-sm">结构层 ➔ 框架层 ➔ 表现层</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 09: ACT DIVIDER III (L02) ==================== -->
+  <article class="slide-container" id="slide-9" data-index="9">
+    <section class="slide ink flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-60">
+        <span>PART THREE</span>
+        <span>RECONSTRUCTION</span>
+        <span class="folio">09 / 12</span>
+      </header>
+
+      <div class="my-auto">
+        <div class="kicker opacity-70 mb-3">第三章 · 多版本重构</div>
+        <h2 class="display leading-[0.95]" style="font-size:clamp(48px,7.5vw,114px); font-weight:500;">
+          同一业务需求，<br/>
+          <span class="body-serif text-[#e8e5de]">三种完全不同</span>的<br/>
+          UX 衍生模型。
+        </h2>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>DIVERGENT DESIGN STRATEGY</span>
+        <span class="body-serif normal-case tracking-normal text-sm">业务目标 ≠ 唯一交互解法</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 10: 3 UX VARIANTS (L05 Image/Card Grid) [字号放大升级] ==================== -->
+  <article class="slide-container" id="slide-10" data-index="10">
+    <section class="slide paper flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-70">
+        <span>CASE STUDY: ORDER ENTRY &amp; APPROVAL</span>
+        <span>THREE ARCHITECTURAL SOLUTIONS</span>
+        <span class="folio">10 / 12</span>
+      </header>
+
+      <div class="grid grid-cols-3 gap-6 my-auto">
+        <!-- 方案 1 -->
+        <article class="border-2 border-[#0a0a0b] p-6 bg-[#f8f7f4] flex flex-col justify-between h-full">
+          <div>
+            <div class="kicker text-[#6b665b]">VARIANT A · 防错稳健</div>
+            <h4 class="display text-2xl font-bold mt-2 mb-3">向导步骤流 (Wizard)</h4>
+            <hr class="hairline mb-4" />
+            <p class="text-[15px] text-[#2a2824] leading-relaxed mb-4">
+              将订单录入严格拆解为 3 步（客户 ➔ 明细 ➔ 审批人）。每一步聚焦单一任务与单向校验。
+            </p>
+          </div>
+          <div class="bg-[#e8e5de] p-3 text-[13px] text-[#111] border border-[#ccc]">
+            <div class="font-bold">适用：新手、低频、容错要求极高</div>
+            <div class="text-[#555] mt-1">UI: 居中大卡片、步进条、明显 CTA</div>
+          </div>
+        </article>
+
+        <!-- 方案 2 -->
+        <article class="border-2 border-[#0a0a0b] p-6 bg-[#f8f7f4] flex flex-col justify-between h-full">
+          <div>
+            <div class="kicker text-[#6b665b]">VARIANT B · 极速专业</div>
+            <h4 class="display text-2xl font-bold mt-2 mb-3">高密网格流 (Grid)</h4>
+            <hr class="hairline mb-4" />
+            <p class="text-[15px] text-[#2a2824] leading-relaxed mb-4">
+              类似 Excel 在线平铺表格，支持 Tab / Enter 键连续录入，行内即时校验并一键批量提交。
+            </p>
+          </div>
+          <div class="bg-[#e8e5de] p-3 text-[13px] text-[#111] border border-[#ccc]">
+            <div class="font-bold">适用：熟练工、批量录入（效率+80%）</div>
+            <div class="text-[#555] mt-1">UI: 紧凑行高、快捷键栏、即时编辑框</div>
+          </div>
+        </article>
+
+        <!-- 方案 3 -->
+        <article class="border-2 border-[#0a0a0b] p-6 bg-[#f8f7f4] flex flex-col justify-between h-full">
+          <div>
+            <div class="kicker text-[#6b665b]">VARIANT C · 对照决策</div>
+            <h4 class="display text-2xl font-bold mt-2 mb-3">双栏工作台 (Split)</h4>
+            <hr class="hairline mb-4" />
+            <p class="text-[15px] text-[#2a2824] leading-relaxed mb-4">
+              左侧陈列历史模版与物料库（可一键克隆），右侧实时表单并动态计算利润率与合规校验。
+            </p>
+          </div>
+          <div class="bg-[#e8e5de] p-3 text-[13px] text-[#111] border border-[#ccc]">
+            <div class="font-bold">适用：需对照历史策略的复杂商务谈判</div>
+            <div class="text-[#555] mt-1">UI: 4:6 分割视图、联动侧抽屉面板</div>
+          </div>
+        </article>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>SAME BUSINESS LOGIC, VASTLY DIFFERENT UX</span>
+        <span class="body-serif normal-case tracking-normal text-sm">向上级与客户汇报商业与效率的权衡</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 11: CLIENT WORKFLOW (L10 Mixed Media) [字号放大升级] ==================== -->
+  <article class="slide-container" id="slide-11" data-index="11">
+    <section class="slide paper flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-70">
+        <span>CLIENT COLLABORATION METHODOLOGY</span>
+        <span>TRANSLATION &amp; DIAGNOSIS</span>
+        <span class="folio">11 / 12</span>
+      </header>
+
+      <div class="grid grid-cols-12 gap-8 my-auto items-center">
+        <!-- 左侧 7 列 -->
+        <div class="col-span-7 pr-2">
+          <div class="kicker text-[#6b665b] mb-1">实战方法论</div>
+          <h3 class="display text-4xl font-semibold leading-tight mb-4">
+            如何将甲方反馈<br/>
+            转译为专业的 UX 重构方案？
+          </h3>
+          <ol class="space-y-3 text-[16px] text-[#2a2824] leading-relaxed list-decimal list-inside">
+            <li><strong>需求转译（5 Whys）</strong>：剥离甲方的表层解法，挖掘背后的真实使用卡点。</li>
+            <li><strong>圈定手术范围</strong>：判断是“局部节点动线微调”还是“全局信息架构重构”。</li>
+            <li><strong>双轨差异化提案</strong>：同时输出【平滑改良版】（低学习成本）与【深度重构版】（极致效率）。</li>
+            <li><strong>溯源结构汇报</strong>：以“问题 ➔ 根因 ➔ 方案权衡”汇报，建立专业话语权。</li>
+          </ol>
+        </div>
+
+        <!-- 右侧 5 列：转译实例卡 -->
+        <div class="col-span-5 border-2 border-[#0a0a0b] p-5 bg-[#f8f7f4] text-[14px] space-y-3">
+          <div class="kicker text-xs text-[#6b665b] border-b border-[#0a0a0b] pb-2 font-bold">
+            TRANSFORMATION EXAMPLE / 转译对照
+          </div>
+          <div>
+            <div class="text-[#777] text-xs">甲方表层反馈：</div>
+            <div class="font-bold text-[#b91c1c] text-base mt-0.5">“在首页加一个大红色醒目按钮！”</div>
+          </div>
+          <div class="border-t border-dashed border-[#ccc] pt-2">
+            <div class="text-[#777] text-xs">挖掘真实根因：</div>
+            <div class="text-[#222] font-medium mt-0.5">核心高频业务入口层级过深，认知检索耗时长。</div>
+          </div>
+          <div class="border-t-2 border-[#0a0a0b] pt-2.5 bg-[#e8e5de] p-3">
+            <div class="text-[#0a0a0b] text-xs font-bold">专业 UX 重构解法：</div>
+            <div class="font-bold text-[#0a0a0b] text-[15px] mt-0.5">提升信息架构优先级 + 顶部常驻快捷任务胶囊</div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>FROM PASSIVE LISTENER TO STRATEGIC CONSULTANT</span>
+        <span class="body-serif normal-case tracking-normal text-sm">做顾问式产品设计师</span>
+      </footer>
+    </section>
+  </article>
+
+  <!-- ==================== SLIDE 12: EPILOGUE (L01 Hero Outro) ==================== -->
+  <article class="slide-container" id="slide-12" data-index="12">
+    <section class="slide ink flex flex-col justify-between p-12 lg:p-16">
+      <header class="flex items-baseline justify-between kicker opacity-60">
+        <span>OPEN ESSAY · ISSUE №08</span>
+        <span>EPILOGUE &amp; SUMMARY</span>
+        <span class="folio">12 / 12</span>
+      </header>
+
+      <div class="my-auto py-4">
+        <div class="kicker opacity-50 mb-3">CONCLUSION</div>
+        <h2 class="display leading-[0.95]" style="font-size:clamp(44px,6.2vw,92px); font-weight:500;">
+          做骨架的<span class="body-serif text-[#e8e5de]">架构师</span>，<br/>
+          亦做皮囊的<span class="body-serif text-[#e8e5de]">雕刻家</span>。
+        </h2>
+        <hr class="hairline my-6" />
+        <p class="text-[19px] leading-relaxed max-w-2xl opacity-80">
+          从业务痛点中推演多元 UX 路径，在精致 UI 中注入严谨工效。设计不是在既定流程上画皮，而是探索解决问题的最优解。
+        </p>
+      </div>
+
+      <footer class="flex items-baseline justify-between kicker opacity-60">
+        <span>DESIGNED WITH GUIZANG EDITORIAL DECK</span>
+        <span class="body-serif normal-case tracking-normal text-sm">End of Deck · Thank you.</span>
+      </footer>
+    </section>
+  </article>
+
+</main>
+
+<!-- 全屏演示模态层 -->
+<div class="presentation-mode" id="modal-present">
+  <div class="presentation-slide-wrapper" id="present-slide-holder">
+    <!-- 当前活动幻灯片克隆插入于此 -->
+  </div>
+</div>
+
+<!-- 底部控制浮条 -->
+<nav class="deck-controls text-sm">
+  <button id="btn-prev" class="hover:text-white px-3 py-1.5 bg-[#18181a] border border-[#333] font-medium">◀ 上一张</button>
+  <span id="slide-indicator" class="folio font-semibold tracking-wider px-2">01 / 12</span>
+  <button id="btn-next" class="hover:text-white px-3 py-1.5 bg-[#18181a] border border-[#333] font-medium">下一张 ▶</button>
+  <span class="text-[#444]">|</span>
+  <button id="btn-fullscreen" class="hover:text-white px-3 py-1.5 bg-[#18181a] border border-[#333] font-medium">⛶ 全屏演播 (F)</button>
+</nav>
+
+<script>
+  let currentIndex = 1;
+  const totalSlides = 12;
+  let isPresenting = false;
+
+  const indicator = document.getElementById('slide-indicator');
+  const modalPresent = document.getElementById('modal-present');
+  const presentHolder = document.getElementById('present-slide-holder');
+
+  function updateSlide(index) {
+    if (index < 1) index = 1;
+    if (index > totalSlides) index = totalSlides;
+    currentIndex = index;
+
+    indicator.textContent = String(currentIndex).padStart(2, '0') + ' / ' + String(totalSlides).padStart(2, '0');
+    window.location.hash = '#' + currentIndex;
+
+    if (!isPresenting) {
+      const target = document.getElementById('slide-' + currentIndex);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else {
+      renderPresentationSlide();
+    }
+  }
+
+  function renderPresentationSlide() {
+    const source = document.getElementById('slide-' + currentIndex);
+    if (source && isPresenting) {
+      presentHolder.innerHTML = source.innerHTML;
+      presentHolder.className = 'presentation-slide-wrapper ' + (source.querySelector('.slide').classList.contains('ink') ? 'ink' : 'paper');
+    }
+  }
+
+  function togglePresentation(enable) {
+    isPresenting = enable !== undefined ? enable : !isPresenting;
+    if (isPresenting) {
+      modalPresent.classList.add('active');
+      renderPresentationSlide();
+      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } else {
+      modalPresent.classList.remove('active');
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      updateSlide(currentIndex);
+    }
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      updateSlide(currentIndex + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') {
+      e.preventDefault();
+      updateSlide(currentIndex - 1);
+    } else if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault();
+      togglePresentation();
+    } else if (e.key === 'Escape') {
+      if (isPresenting) {
+        togglePresentation(false);
+      }
+    } else if (e.key === 'Home') {
+      updateSlide(1);
+    } else if (e.key === 'End') {
+      updateSlide(totalSlides);
+    }
+  });
+
+  document.getElementById('btn-prev').addEventListener('click', () => updateSlide(currentIndex - 1));
+  document.getElementById('btn-next').addEventListener('click', () => updateSlide(currentIndex + 1));
+  document.getElementById('btn-fullscreen').addEventListener('click', () => togglePresentation(true));
+  document.getElementById('btn-toggle-present').addEventListener('click', () => togglePresentation(true));
+  modalPresent.addEventListener('click', (e) => {
+    const rect = modalPresent.getBoundingClientRect();
+    if (e.clientX > rect.width * 0.6) {
+      updateSlide(currentIndex + 1);
+    } else if (e.clientX < rect.width * 0.4) {
+      updateSlide(currentIndex - 1);
+    }
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const hash = parseInt(window.location.hash.replace('#', ''));
+    if (hash && hash >= 1 && hash <= totalSlides) {
+      updateSlide(hash);
+    } else {
+      updateSlide(1);
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindFlow Canvas · 智绘导图</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Editorial & Clean Modern Typefaces -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --ink: #0a0a0b;
+      --paper: #f1efea;
+      --accent: #38bdf8;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --serif-en: "Playfair Display", Georgia, serif;
+      --serif-zh: "Noto Serif SC", serif;
+      --sans-zh: "Inter", "Noto Sans SC", sans-serif;
+
+      --card-bg: rgba(14, 16, 20, 0.72);
+      --card-hover-bg: rgba(20, 24, 32, 0.92);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --card-hover-border: rgba(255, 255, 255, 0.35);
+      --card-radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      width: 100%;
+      min-height: 100vh;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--sans-zh);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    /* WebGL Background Canvas */
+    canvas#bg-dark {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      display: block;
+      pointer-events: none;
+    }
+
+    /* Dark Overlay */
+    .viewport-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(10, 10, 11, 0.4) 0%, rgba(10, 10, 11, 0.1) 40%, rgba(10, 10, 11, 0.75) 100%);
+    }
+
+    .kicker {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      opacity: 0.75;
+    }
+    .display-title {
+      font-family: var(--serif-zh);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .display-en {
+      font-family: var(--serif-en);
+      font-style: italic;
+    }
+
+    /* Rectangular Project Card */
+    .zen-project-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--card-radius);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .zen-project-card:hover {
+      background: var(--card-hover-bg);
+      border-color: var(--card-hover-border);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.05);
+    }
+
+    /* Mini SVG Thumbnail Preview */
+    .preview-svg-box {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col justify-between relative selection:bg-white/20 selection:text-white">
+
+  <!-- WebGL Holographic Dispersion Flow Background -->
+  <canvas id="bg-dark"></canvas>
+  <div class="viewport-overlay"></div>
+
+  <!-- Main Content Container -->
+  <div class="relative z-10 max-w-6xl mx-auto px-6 py-10 w-full flex-1 flex flex-col justify-between">
+    
+    <!-- Header -->
+    <header class="flex items-center justify-between pb-8 border-b border-white/10">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center">
+          <i data-lucide="network" class="w-4 h-4 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-base tracking-wide text-white">MindFlow Canvas</span>
+            <span class="kicker text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">Hub</span>
+          </div>
+          <div class="text-xs text-slate-400 font-mono">智绘导图 · 极简无限节点思维空间</div>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2.5">
+        <button id="btn-open-settings" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 hover:text-white flex items-center space-x-1.5 transition">
+          <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span>偏好设置</span>
+        </button>
+
+        <button id="btn-import-project" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 hover:text-white flex items-center space-x-1.5 transition">
+          <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span>导入 JSON</span>
+          <input id="hub-json-upload" type="file" accept=".json" class="hidden">
+        </button>
+
+        <button id="btn-create-blank" class="px-4 py-1.5 rounded-lg bg-white text-black hover:bg-slate-200 text-xs font-semibold shadow-md flex items-center space-x-1.5 transition transform active:scale-95">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>新建画布</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Body Area -->
+    <main class="py-10 space-y-12 flex-1">
+      
+      <!-- Hero Intro & Curated Blueprints -->
+      <section class="space-y-5">
+        <div>
+          <div class="kicker text-slate-400 mb-2">№ 01 · CREATIVE MINDMAP SUITE</div>
+          <h1 class="display-title text-3xl md:text-5xl text-white leading-tight">
+            思维的流向，<span class="display-en text-slate-400 font-normal">在此无垠延展。</span>
+          </h1>
+          <p class="text-sm md:text-base text-slate-300 mt-2.5 font-light max-w-2xl leading-relaxed">
+            纯粹、克制、无干扰的无限节点思维导图与业务流工作区。
+          </p>
+        </div>
+
+        <!-- Quick Launch Blueprints -->
+        <div class="flex flex-wrap items-center gap-2.5 pt-1">
+          <span class="text-xs text-slate-500 font-mono">官方模板:</span>
+          <button onclick="launchTemplate('creative_pipeline')" class="px-3.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 hover:text-white flex items-center space-x-2 transition">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+            <span>创意影视管线</span>
+          </button>
+          <button onclick="launchTemplate('mindmap_tree')" class="px-3.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 hover:text-white flex items-center space-x-2 transition">
+            <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+            <span>商业产品矩阵</span>
+          </button>
+          <button onclick="launchTemplate('decision_arch')" class="px-3.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 hover:text-white flex items-center space-x-2 transition">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span>系统架构决策树</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Projects Section -->
+      <section class="space-y-5">
+        
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center space-x-2.5">
+            <span class="font-bold text-base text-white">我的项目工程</span>
+            <span id="stat-project-count" class="text-xs px-2 py-0.5 rounded bg-white/5 text-slate-400 font-mono">3</span>
+          </div>
+
+          <div class="relative">
+            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+            <input id="search-input" type="text" placeholder="搜索工程..." class="pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-white/30 transition w-48">
+          </div>
+        </div>
+
+        <!-- Rectangular Cards Grid (3 Columns) with Dynamic SVG Real Previews -->
+        <div id="projects-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Dynamically Populated with Real Mindmap Previews -->
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="pt-8 pb-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+      <div class="flex items-center space-x-2">
+        <span class="text-slate-400 font-mono">MindFlow Canvas Suite</span>
+        <span>·</span>
+        <span class="text-slate-400 font-mono">极简钛金流转</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button onclick="document.getElementById('btn-open-settings').click()" class="hover:text-slate-300 transition">路径与存储设置</button>
+        <a href="AGENT_INSTRUCTIONS.md" target="_blank" class="hover:text-slate-300 transition">Agent 指南</a>
+        <a href="README.md" target="_blank" class="hover:text-slate-300 transition">使用说明</a>
+      </div>
+    </footer>
+
+  </div>
+
+
+  <!-- ================= PREFERENCES SETTINGS MODAL ================= -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div class="zen-project-card w-full max-w-lg p-6 shadow-2xl space-y-6 bg-[#0c0d12] border-white/15">
+      
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-white"></i>
+          <h3 class="text-sm font-semibold text-white">偏好设置</h3>
+        </div>
+        <button id="btn-close-settings" class="p-1 text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        
+        <!-- Canvas Path -->
+        <div class="space-y-1.5">
+          <label class="block text-slate-300 font-medium">画布编辑器 (canvas.html) 关联路径：</label>
+          <input id="setting-canvas-path" type="text" value="canvas.html" 
+            class="w-full px-3 py-2 rounded-lg bg-black/50 border border-white/10 text-slate-200 font-mono text-xs outline-none focus:border-white/30">
+          <p class="text-[11px] text-slate-500">同目录下直接保持 "canvas.html" 即可；若将 index.html 单独挪到桌面可填入完整绝对路径。</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1">
+            <label class="block text-slate-300 font-medium">存档目录：</label>
+            <input id="setting-saves-path" type="text" value="saves/" class="w-full px-2.5 py-1.5 rounded-lg bg-black/50 border border-white/10 text-slate-200 font-mono text-xs outline-none">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-slate-300 font-medium">导出目录：</label>
+            <input id="setting-exports-path" type="text" value="exports/" class="w-full px-2.5 py-1.5 rounded-lg bg-black/50 border border-white/10 text-slate-200 font-mono text-xs outline-none">
+          </div>
+        </div>
+
+        <!-- Full Backup -->
+        <div class="pt-2 border-t border-white/5 flex items-center justify-between">
+          <span class="text-slate-400 text-xs">备份全部项目工程</span>
+          <button id="btn-export-all-bundle" class="px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs">
+            导出 JSON 备份
+          </button>
+        </div>
+
+      </div>
+
+      <div class="flex items-center justify-end space-x-2 pt-2 border-t border-white/5">
+        <button id="btn-save-settings" class="px-5 py-2 rounded-lg bg-white text-black font-semibold text-xs hover:bg-slate-200 transition">
+          保存配置
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ================= WEBGL HOLOGRAPHIC DISPERSION FLUID FLOW ENGINE ================= -->
+  <script>
+    const VS = `attribute vec2 position;void main(){gl_Position=vec4(position,0.0,1.0);}`;
+
+    const FS_DARK = `precision highp float;
+    uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+    vec3 palette(float t,vec3 a,vec3 b,vec3 c,vec3 d){return a+b*cos(6.28318*(c*t+d));}
+    void main(){
+      vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+      vec2 p=uv*2.0-1.0;p.x*=u_resolution.x/u_resolution.y;
+      vec2 m=u_mouse*2.0-1.0;m.x*=u_resolution.x/u_resolution.y;
+      float md=length(p-m);
+      float mr=sin(md*15.0-u_time*4.0)*exp(-md*3.0);p+=mr*0.08;
+      vec2 p0=p;
+      for(float i=1.0;i<4.0;i++){
+        p.x+=0.1/i*sin(i*3.0*p.y+u_time*0.4)+0.05;
+        p.y+=0.1/i*cos(i*2.0*p.x+u_time*0.3)-0.05;
+      }
+      float r=length(p);float ang=atan(p.y,p.x);
+      vec3 a=vec3(0.12,0.12,0.13);
+      vec3 b=vec3(0.03,0.04,0.05);
+      vec3 c=vec3(1.0,1.0,1.0);
+      vec3 d=vec3(0.1,0.2,0.4);
+      vec3 col=palette(r*1.5+p0.x*0.5+u_time*0.1,a,b,c,d);
+      float disp=sin(r*25.0-u_time*1.5+ang*2.0)*0.5+0.5;
+      col+=vec3(disp*0.015,disp*0.01,disp*0.02);
+      float hi=pow(sin(p.x*4.0+p.y*3.0+u_time)*0.5+0.5,8.0);
+      col+=hi*0.08;
+      vec3 base=vec3(0.05,0.05,0.06);
+      col=mix(base,col,0.85);
+      gl_FragColor=vec4(col,1.0);
+    }`;
+
+    const mouse = { x: 0.5, y: 0.5 };
+    addEventListener('mousemove', e => {
+      mouse.x = e.clientX / innerWidth;
+      mouse.y = e.clientY / innerHeight;
+    });
+
+    function bootGL(canvasId, fsSrc) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return () => false;
+      const gl = canvas.getContext('webgl', { alpha: false, antialias: true });
+      if (!gl) return () => false;
+
+      const mk = (t, s) => {
+        const sh = gl.createShader(t);
+        gl.shaderSource(sh, s);
+        gl.compileShader(sh);
+        return sh;
+      };
+      const prog = gl.createProgram();
+      gl.attachShader(prog, mk(gl.VERTEX_SHADER, VS));
+      gl.attachShader(prog, mk(gl.FRAGMENT_SHADER, fsSrc));
+      gl.linkProgram(prog);
+      gl.useProgram(prog);
+
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+      const pos = gl.getAttribLocation(prog, 'position');
+      gl.enableVertexAttribArray(pos);
+      gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+
+      const lRes = gl.getUniformLocation(prog, 'u_resolution');
+      const lT = gl.getUniformLocation(prog, 'u_time');
+      const lM = gl.getUniformLocation(prog, 'u_mouse');
+
+      const resize = () => {
+        const d = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = innerWidth * d;
+        canvas.height = innerHeight * d;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      };
+      addEventListener('resize', resize);
+      resize();
+
+      return (tSec) => {
+        gl.uniform2f(lRes, canvas.width, canvas.height);
+        gl.uniform1f(lT, tSec);
+        gl.uniform2f(lM, mouse.x, 1 - mouse.y);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        return true;
+      };
+    }
+
+    const drawDark = bootGL('bg-dark', FS_DARK);
+    const t0 = Date.now();
+    (function loop() {
+      const t = (Date.now() - t0) / 1000;
+      if (drawDark) drawDark(t);
+      requestAnimationFrame(loop);
+    })();
+  </script>
+
+  <!-- ================= PROJECT HUB & DYNAMIC THUMBNAIL ENGINE ================= -->
+  <script>
+    const HUB_STORAGE_KEY = 'mindflow_canvas_projects_registry';
+    const SETTINGS_KEY = 'mindflow_canvas_settings';
+
+    // Built-in Seed Data with full node topology so thumbnails look gorgeous from the start!
+    const BUILTIN_PROJECT_PAYLOADS = {
+      "tpl-creative-pipeline": {
+        id: "tpl-creative-pipeline",
+        projectTitle: "创意影视创作管线",
+        description: "剧本生成 -> 分镜控制 -> 电影镜头调色 -> 质量检测 -> 4K 输出",
+        nodes: [
+          { id: "t-1", shape: "ai_prompt", x: 60, y: 120, width: 180, height: 100, title: "故事剧本", color: "cyan" },
+          { id: "t-2", shape: "card", x: 300, y: 50, width: 160, height: 80, title: "分镜设定", color: "purple" },
+          { id: "t-3", shape: "card", x: 300, y: 170, width: 160, height: 80, title: "镜头调色", color: "amber" },
+          { id: "t-4", shape: "diamond", x: 520, y: 100, width: 140, height: 100, title: "质量检验", color: "rose" },
+          { id: "t-5", shape: "circle", x: 720, y: 90, width: 140, height: 110, title: "4K 输出", color: "emerald" }
+        ],
+        wires: [
+          { fromNode: "t-1", toNode: "t-2", color: "cyan" },
+          { fromNode: "t-1", toNode: "t-3", color: "cyan" },
+          { fromNode: "t-2", toNode: "t-4", color: "purple" },
+          { fromNode: "t-3", toNode: "t-4", color: "amber" },
+          { fromNode: "t-4", toNode: "t-5", color: "emerald" }
+        ]
+      },
+      "tpl-mindmap-tree": {
+        id: "tpl-mindmap-tree",
+        projectTitle: "商业产品矩阵与思维导图",
+        description: "核心产品维度、创作者端、企业级多模态管线与增长飞轮",
+        nodes: [
+          { id: "m-1", shape: "circle", x: 60, y: 120, width: 160, height: 120, title: "🚀 商业矩阵", color: "cyan" },
+          { id: "m-2", shape: "card", x: 280, y: 40, width: 160, height: 70, title: "1. 创作者端", color: "purple" },
+          { id: "m-3", shape: "card", x: 280, y: 140, width: 160, height: 70, title: "2. 企业管线", color: "emerald" },
+          { id: "m-4", shape: "card", x: 280, y: 240, width: 160, height: 70, title: "3. 算力调度", color: "amber" }
+        ],
+        wires: [
+          { fromNode: "m-1", toNode: "m-2", color: "purple" },
+          { fromNode: "m-1", toNode: "m-3", color: "emerald" },
+          { fromNode: "m-1", toNode: "m-4", color: "amber" }
+        ]
+      },
+      "tpl-decision-arch": {
+        id: "tpl-decision-arch",
+        projectTitle: "系统架构与自动化决策流程",
+        description: "API Gateway 网关鉴权 -> VIP 条件判断分支 -> 高速计算集群调度",
+        nodes: [
+          { id: "d-1", shape: "rect", x: 60, y: 110, width: 150, height: 70, title: "API Gateway", color: "cyan" },
+          { id: "d-2", shape: "diamond", x: 270, y: 85, width: 130, height: 110, title: "VIP 鉴权？", color: "amber" },
+          { id: "d-3", shape: "rect", x: 470, y: 40, width: 150, height: 70, title: "专属集群", color: "emerald" },
+          { id: "d-4", shape: "rect", x: 470, y: 170, width: 150, height: 70, title: "排队池", color: "purple" }
+        ],
+        wires: [
+          { fromNode: "d-1", toNode: "d-2", color: "cyan" },
+          { fromNode: "d-2", toNode: "d-3", color: "emerald" },
+          { fromNode: "d-2", toNode: "d-4", color: "purple" }
+        ]
+      }
+    };
+
+    const SEED_PROJECTS = [
+      {
+        id: "tpl-creative-pipeline",
+        title: "创意影视创作管线",
+        description: "剧本生成 -> 分镜控制 -> 电影镜头调色 -> 质量检测 -> 4K 输出",
+        nodeCount: 5,
+        wireCount: 5,
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: "tpl-mindmap-tree",
+        title: "商业产品矩阵与思维导图",
+        description: "核心产品维度、创作者端、企业级多模态管线与增长飞轮",
+        nodeCount: 4,
+        wireCount: 3,
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: "tpl-decision-arch",
+        title: "系统架构与自动化决策流程",
+        description: "API Gateway 网关鉴权 -> VIP 条件判断分支 -> 高速计算集群调度",
+        nodeCount: 4,
+        wireCount: 3,
+        updatedAt: new Date().toISOString()
+      }
+    ];
+
+    // Auto-clean stale localStorage values on boot to eliminate ERR_FILE_NOT_FOUND
+    function sanitizeLocalStorage() {
+      try {
+        localStorage.removeItem('tapnow_canvas_settings');
+        localStorage.removeItem('tapnow_canvas_projects_registry');
+        const s = localStorage.getItem(SETTINGS_KEY);
+        if (s && s.includes('tapnow_canvas_suite')) {
+          localStorage.setItem(SETTINGS_KEY, s.replace(/tapnow_canvas_suite/g, 'mindflow_canvas_suite'));
+        }
+      } catch (e) {}
+    }
+    sanitizeLocalStorage();
+
+    function getSettings() {
+      const DEFAULT_SETTINGS = {
+        canvasPath: 'canvas.html',
+        savesPath: 'saves/',
+        exportsPath: 'exports/'
+      };
+      try {
+        const saved = localStorage.getItem(SETTINGS_KEY);
+        if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+      } catch (e) {}
+      return DEFAULT_SETTINGS;
+    }
+
+    function saveSettings(settings) {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    function getProjects() {
+      try {
+        const data = localStorage.getItem(HUB_STORAGE_KEY);
+        if (data) return JSON.parse(data);
+      } catch (e) {}
+      localStorage.setItem(HUB_STORAGE_KEY, JSON.stringify(SEED_PROJECTS));
+      return SEED_PROJECTS;
+    }
+
+    function saveProjects(projects) {
+      localStorage.setItem(HUB_STORAGE_KEY, JSON.stringify(projects));
+      renderProjects();
+    }
+
+    // --- DYNAMIC SVG MINDMAP THUMBNAIL GENERATOR ---
+    function renderProjectThumbnail(project) {
+      let payload = null;
+      try {
+        const saved = localStorage.getItem(`canvas_project_${project.id}`);
+        if (saved) payload = JSON.parse(saved);
+        else if (BUILTIN_PROJECT_PAYLOADS[project.id]) payload = BUILTIN_PROJECT_PAYLOADS[project.id];
+      } catch (e) {}
+
+      if (!payload || !payload.nodes || payload.nodes.length === 0) {
+        return `
+          <div class="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-black/40">
+            <i data-lucide="plus-circle" class="w-6 h-6 mb-1 opacity-40"></i>
+            <span class="text-[10px] font-mono opacity-60">空白画卷 · 点击开启创作</span>
+          </div>
+        `;
+      }
+
+      const nodes = payload.nodes;
+      const wires = payload.wires || [];
+
+      // Calculate Bounding Box
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      nodes.forEach(n => {
+        minX = Math.min(minX, n.x);
+        minY = Math.min(minY, n.y);
+        maxX = Math.max(maxX, n.x + (n.width || 180));
+        maxY = Math.max(maxY, n.y + (n.height || 100));
+      });
+
+      const padX = 40, padY = 30;
+      minX -= padX; minY -= padY; maxX += padX; maxY += padY;
+      const w = Math.max(maxX - minX, 200);
+      const h = Math.max(maxY - minY, 125);
+
+      const colorMap = {
+        cyan: '#38bdf8', purple: '#a855f7', emerald: '#10b981', amber: '#f59e0b', rose: '#f43f5e', slate: '#94a3b8'
+      };
+
+      let wiresSvg = '';
+      wires.forEach(wire => {
+        const f = nodes.find(n => n.id === wire.fromNode);
+        const t = nodes.find(n => n.id === wire.toNode);
+        if (f && t) {
+          const x1 = f.x + (f.width || 180), y1 = f.y + (f.height || 100) / 2;
+          const x2 = t.x, y2 = t.y + (t.height || 100) / 2;
+          const dx = Math.abs(x2 - x1) * 0.5;
+          const c = colorMap[wire.color] || '#38bdf8';
+          wiresSvg += `<path d="M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}" fill="none" stroke="${c}" stroke-width="2.5" opacity="0.6"/>`;
+        }
+      });
+
+      let nodesSvg = '';
+      nodes.forEach(node => {
+        const nx = node.x, ny = node.y, nw = node.width || 180, nh = node.height || 100;
+        const c = colorMap[node.color] || '#38bdf8';
+        const titleSafe = (node.title || '节点').replace(/[<>&"]/g, '');
+        const r = node.shape === 'circle' ? nh / 2 : (node.shape === 'pill' ? nh / 2 : 10);
+
+        nodesSvg += `
+          <g transform="translate(${nx}, ${ny})">
+            <rect width="${nw}" height="${nh}" rx="${r}" fill="#10121a" stroke="${c}" stroke-width="1.6" opacity="0.9"/>
+            <circle cx="16" cy="${nh/2}" r="3.5" fill="${c}"/>
+            <text x="26" y="${nh/2 + 4}" fill="#f1f5f9" font-family="sans-serif" font-size="13" font-weight="600">${titleSafe}</text>
+          </g>
+        `;
+      });
+
+      return `
+        <svg viewBox="${minX} ${minY} ${w} ${h}" preserveAspectRatio="xMidYMid meet" class="preview-svg-box">
+          <defs>
+            <pattern id="dot-${project.id}" width="16" height="16" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.08)"/>
+            </pattern>
+          </defs>
+          <rect x="${minX}" y="${minY}" width="${w}" height="${h}" fill="#090a0e"/>
+          <rect x="${minX}" y="${minY}" width="${w}" height="${h}" fill="url(#dot-${project.id})"/>
+          ${wiresSvg}
+          ${nodesSvg}
+        </svg>
+      `;
+    }
+
+    // --- ACCURATE URL RESOLUTION (Zero ERR_FILE_NOT_FOUND) ---
+    function resolveCanvasUrl(paramString) {
+      const settings = getSettings();
+      
+      // If we are currently running in the browser, determine current base URL dynamically
+      const currentUrl = window.location.href.split('?')[0].split('#')[0];
+      if (currentUrl.endsWith('index.html')) {
+        return currentUrl.replace('index.html', 'canvas.html') + paramString;
+      }
+
+      // If settings.canvasPath is explicitly configured
+      if (settings.canvasPath && settings.canvasPath !== 'canvas.html') {
+        const cleanBase = settings.canvasPath.split('?')[0].replace(/tapnow_canvas_suite/g, 'mindflow_canvas_suite');
+        return cleanBase + paramString;
+      }
+
+      // Default relative path
+      return 'canvas.html' + paramString;
+    }
+
+    function launchProject(id) {
+      window.location.href = resolveCanvasUrl(`?project=${id}`);
+    }
+
+    function launchTemplate(templateKey) {
+      const newId = `proj-${Date.now()}`;
+      const templateTitles = {
+        creative_pipeline: "创意影视创作管线",
+        mindmap_tree: "商业产品矩阵与思维导图",
+        decision_arch: "系统架构与自动化决策流程"
+      };
+
+      const projects = getProjects();
+      projects.unshift({
+        id: newId,
+        title: templateTitles[templateKey] || "新思维导图",
+        description: "从官方模板创建的项目",
+        nodeCount: 5,
+        wireCount: 4,
+        updatedAt: new Date().toISOString()
+      });
+      saveProjects(projects);
+
+      // Preload payload so thumbnail immediately exists
+      if (BUILTIN_PROJECT_PAYLOADS[`tpl-${templateKey.replace('_', '-')}`]) {
+        const orig = BUILTIN_PROJECT_PAYLOADS[`tpl-${templateKey.replace('_', '-')}`];
+        localStorage.setItem(`canvas_project_${newId}`, JSON.stringify({ ...orig, id: newId }));
+      }
+
+      window.location.href = resolveCanvasUrl(`?project=${newId}&template=${templateKey}`);
+    }
+
+    function renderProjects(filterText = '') {
+      const projects = getProjects();
+      const grid = document.getElementById('projects-grid');
+      grid.innerHTML = '';
+
+      const filtered = projects.filter(p => {
+        if (!filterText) return true;
+        return p.title.toLowerCase().includes(filterText.toLowerCase()) || 
+               (p.description && p.description.toLowerCase().includes(filterText.toLowerCase()));
+      });
+
+      document.getElementById('stat-project-count').textContent = projects.length;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-16 text-center text-xs text-slate-500 flex flex-col items-center justify-center space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-8">
+            <i data-lucide="folder-plus" class="w-8 h-8 text-slate-600"></i>
+            <div>暂无项目工程</div>
+            <button onclick="document.getElementById('btn-create-blank').click()" class="px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 text-xs transition">
+              + 新建第一个画布
+            </button>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      filtered.forEach((p, idx) => {
+        const card = document.createElement('div');
+        card.className = 'zen-project-card flex flex-col justify-between overflow-hidden group cursor-pointer';
+        
+        const dateStr = new Date(p.updatedAt || Date.now()).toLocaleDateString('zh-CN', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        const thumbnailHtml = renderProjectThumbnail(p);
+
+        card.innerHTML = `
+          <!-- Top Rectangular Miniature Box (16:10) with Dynamic Real SVG Preview -->
+          <div class="relative w-full aspect-[16/10] bg-black/50 border-b border-white/10 flex items-center justify-center overflow-hidden" onclick="launchProject('${p.id}')">
+            
+            ${thumbnailHtml}
+
+            <div class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm border border-white/10 text-[10px] text-slate-400 font-mono">
+              № ${String(idx + 1).padStart(2, '0')}
+            </div>
+
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+              <span class="px-3.5 py-1.5 rounded-lg bg-white text-black text-xs font-semibold flex items-center space-x-1.5 shadow-lg transform group-hover:scale-105 transition">
+                <span>进入画布</span>
+                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+              </span>
+            </div>
+          </div>
+
+          <!-- Bottom Information Area -->
+          <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+            <div>
+              <h3 class="font-medium text-sm md:text-base text-slate-100 group-hover:text-white transition line-clamp-1">${p.title}</h3>
+              <p class="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed font-light">${p.description || '暂无描述'}</p>
+            </div>
+
+            <div class="pt-2.5 border-t border-white/5 flex items-center justify-between text-xs text-slate-500">
+              <div class="flex items-center space-x-2.5 font-mono text-[11px]">
+                <span>${p.nodeCount || 0} 节点</span>
+                <span>·</span>
+                <span>${dateStr}</span>
+              </div>
+
+              <div class="flex items-center space-x-1" onclick="event.stopPropagation()">
+                <button onclick="duplicateProject('${p.id}')" title="复制副本" class="p-1 text-slate-400 hover:text-white rounded">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteProject('${p.id}')" title="删除" class="p-1 text-slate-400 hover:text-rose-400 rounded">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    function duplicateProject(id) {
+      const projects = getProjects();
+      const target = projects.find(p => p.id === id);
+      if (target) {
+        const newId = `proj-${Date.now()}`;
+        const newProj = {
+          ...target,
+          id: newId,
+          title: `${target.title} (副本)`,
+          updatedAt: new Date().toISOString()
+        };
+
+        const payload = localStorage.getItem(`canvas_project_${id}`);
+        if (payload) {
+          const parsed = JSON.parse(payload);
+          parsed.id = newId;
+          parsed.projectTitle = newProj.title;
+          localStorage.setItem(`canvas_project_${newId}`, JSON.stringify(parsed));
+        }
+
+        projects.unshift(newProj);
+        saveProjects(projects);
+      }
+    }
+
+    function deleteProject(id) {
+      if (confirm("确定要删除该项目吗？")) {
+        let projects = getProjects();
+        projects = projects.filter(p => p.id !== id);
+        localStorage.removeItem(`canvas_project_${id}`);
+        saveProjects(projects);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderProjects();
+      lucide.createIcons();
+
+      const settingsModal = document.getElementById('settings-modal');
+      document.getElementById('btn-open-settings').addEventListener('click', () => {
+        const cur = getSettings();
+        document.getElementById('setting-canvas-path').value = cur.canvasPath;
+        document.getElementById('setting-saves-path').value = cur.savesPath;
+        document.getElementById('setting-exports-path').value = cur.exportsPath;
+        settingsModal.classList.remove('hidden');
+        lucide.createIcons();
+      });
+      document.getElementById('btn-close-settings').addEventListener('click', () => {
+        settingsModal.classList.add('hidden');
+      });
+
+      document.getElementById('btn-save-settings').addEventListener('click', () => {
+        const cur = getSettings();
+        cur.canvasPath = document.getElementById('setting-canvas-path').value.trim() || 'canvas.html';
+        cur.savesPath = document.getElementById('setting-saves-path').value.trim();
+        cur.exportsPath = document.getElementById('setting-exports-path').value.trim();
+        saveSettings(cur);
+        settingsModal.classList.add('hidden');
+      });
+
+      document.getElementById('btn-export-all-bundle').addEventListener('click', () => {
+        const projects = getProjects();
+        const allData = {
+          exportDate: new Date().toISOString(),
+          projectsSummary: projects,
+          projectsData: {}
+        };
+        projects.forEach(p => {
+          const detail = localStorage.getItem(`canvas_project_${p.id}`);
+          if (detail) allData.projectsData[p.id] = JSON.parse(detail);
+        });
+        const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `MindFlow_Projects_Backup_${Date.now()}.json`;
+        a.click();
+      });
+
+      // New Blank Project Creation: Immediately registers in project library!
+      document.getElementById('btn-create-blank').addEventListener('click', () => {
+        const newId = `proj-${Date.now()}`;
+        const projects = getProjects();
+        projects.unshift({
+          id: newId,
+          title: "新建思维导图",
+          description: "空白画卷创作",
+          nodeCount: 1,
+          wireCount: 0,
+          updatedAt: new Date().toISOString()
+        });
+        saveProjects(projects);
+        window.location.href = resolveCanvasUrl(`?project=${newId}&template=blank`);
+      });
+
+      document.getElementById('search-input').addEventListener('input', (e) => {
+        renderProjects(e.target.value.trim());
+      });
+
+      const importBtn = document.getElementById('btn-import-project');
+      const importInput = document.getElementById('hub-json-upload');
+      importBtn.addEventListener('click', () => importInput.click());
+      importInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              const data = JSON.parse(ev.target.result);
+              const newId = `proj-${Date.now()}`;
+              localStorage.setItem(`canvas_project_${newId}`, ev.target.result);
+              
+              const projects = getProjects();
+              projects.unshift({
+                id: newId,
+                title: data.projectTitle || file.name.replace('.json', ''),
+                description: data.description || "导入的工程文件",
+                nodeCount: data.nodes ? data.nodes.length : 0,
+                wireCount: data.wires ? data.wires.length : 0,
+                updatedAt: new Date().toISOString()
+              });
+              saveProjects(projects);
+              window.location.href = resolveCanvasUrl(`?project=${newId}`);
+            } catch (err) {
+              alert("JSON 格式错误，无法导入！");
+            }
+          };
+          reader.readAsText(file);
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

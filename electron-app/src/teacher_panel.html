@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="classic">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教师赋分工作台 (全功能完备旗舰版: 考勤置灰·自尊心保护·Excel与模板·大组管理·自定义行为·审计日志) - Class Pet V1-Lite</title>
+    <!-- 引入 SheetJS 库以支持真实解析 .xlsx / .xls 表格 -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="classic"] {
+            --bg-primary: #FFFEF9;
+            --bg-secondary: #F5F3EF;
+            --text-primary: #0A0A0A;
+            --text-secondary: #525252;
+            --border: #0A0A0A;
+            --accent: #0066FF;
+            --accent-hover: #0052CC;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #16A34A;
+            --warning: #FFD60A;
+            --error: #FF3B30;
+            --tag-bg: #E8F0FE;
+            --shadow-color: #0A0A0A;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .top-navbar {
+            background: var(--card-bg);
+            border-bottom: 3.5px solid var(--border);
+            padding: 6px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 52px;
+            z-index: 10;
+        }
+
+        .btn-header {
+            padding: 6px 11px;
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-weight: 800;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            transition: transform 0.1s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-header:active { transform: translate(1px, 1px); box-shadow: 0 0 0; }
+
+        .btn-undo-permanent {
+            background: var(--warning);
+            color: #0A0A0A;
+            border: 2px solid var(--border);
+            padding: 6px 12px;
+            font-weight: 900;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-undo-permanent:disabled { opacity: 0.4; cursor: not-allowed; background: var(--bg-secondary); }
+
+        .btn-mode-toggle {
+            padding: 6px 12px;
+            border: 2px solid var(--border);
+            font-weight: 900;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-mode-toggle.active {
+            background: #FEE2E2;
+            border-color: var(--error);
+            color: #991B1B;
+            box-shadow: 0 0 0;
+            transform: translate(1px, 1px);
+        }
+
+        .workspace-layout { flex: 1; display: flex; overflow: hidden; }
+
+        /* 左侧学生列表 */
+        .student-column {
+            width: 390px;
+            background: var(--card-bg);
+            border-right: 3.5px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .list-toolbar { padding: 8px 12px; border-bottom: 2.5px solid var(--border); background: var(--bg-secondary); }
+        .search-input {
+            width: 100%;
+            padding: 7px 10px;
+            border: 2px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 700;
+            outline: none;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            margin-bottom: 6px;
+        }
+
+        .student-scroll-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .student-row-card {
+            display: flex;
+            align-items: center;
+            padding: 7px 10px;
+            border: 2px solid var(--border);
+            background: var(--bg-primary);
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            transition: transform 0.1s;
+        }
+        .student-row-card:hover { transform: translate(-1px, -1px); box-shadow: 3.5px 3.5px 0 var(--shadow-color); }
+        .student-row-card.selected { border-color: var(--accent); background: var(--tag-bg); box-shadow: 2.5px 2.5px 0 var(--accent); }
+        .student-row-card.absent { opacity: 0.4; filter: grayscale(85%); background: #E5E7EB; border-style: dashed; }
+
+        .nb-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+            margin-right: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .student-row-card.selected .nb-checkbox { background: var(--accent); color: var(--accent-text); }
+
+        .student-avatar-box {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 9px;
+            flex-shrink: 0;
+        }
+
+        /* 右侧操作主面板 */
+        .ops-main-panel {
+            flex: 1;
+            padding: 14px 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .selected-banner-bar {
+            background: var(--tag-bg);
+            border: 2.5px solid var(--border);
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            padding: 9px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nb-section-box {
+            background: var(--card-bg);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--shadow-color);
+            padding: 14px 18px;
+            position: relative;
+        }
+
+        .section-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .section-header-tag {
+            display: inline-block;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            padding: 3px 10px;
+            font-weight: 900;
+            font-size: 12px;
+            font-family: monospace;
+            border: 2px solid var(--border);
+        }
+
+        /* ≥52px 宽大舒适触控按钮网格 */
+        .score-button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 10px;
+        }
+
+        .btn-score-card {
+            min-height: 56px;
+            padding: 8px 10px;
+            border: 2.5px solid var(--border);
+            font-weight: 900;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            transition: transform 0.08s, box-shadow 0.08s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .btn-score-card:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--shadow-color); }
+        .btn-score-card:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--shadow-color); }
+
+        .btn-score-card.pos { background: #F0FDF4; color: #166534; }
+        .btn-score-card.pos .score-val { font-size: 22px; font-family: monospace; color: #15803D; font-weight: 900; }
+
+        .btn-score-card.neg { background: #FEF2F2; color: #991B1B; }
+        .btn-score-card.neg .score-val { font-size: 22px; font-family: monospace; color: #DC2626; font-weight: 900; }
+
+        .btn-delete-rule {
+            position: absolute;
+            top: 3px;
+            right: 5px;
+            font-size: 11px;
+            color: #888;
+            cursor: pointer;
+            display: none;
+        }
+        .btn-score-card:hover .btn-delete-rule { display: block; }
+        .btn-delete-rule:hover { color: #DC2626; font-weight: 900; }
+
+        /* 模态框通用 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 800;
+        }
+        .modal-box {
+            background: var(--card-bg);
+            border: 4px solid var(--border);
+            box-shadow: 8px 8px 0 var(--shadow-color);
+            width: 100%;
+            max-width: 640px;
+            padding: 22px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .excel-dropzone {
+            border: 2.5px dashed var(--border);
+            background: var(--bg-secondary);
+            padding: 22px;
+            text-align: center;
+            cursor: pointer;
+            margin: 10px 0;
+            box-shadow: 3px 3px 0 var(--shadow-color);
+        }
+        .excel-dropzone:hover { background: #E8F0FE; border-color: var(--accent); }
+
+        .form-label { display: block; font-size: 12px; font-weight: 900; margin: 8px 0 3px; }
+        .form-control {
+            width: 100%;
+            padding: 8px 10px;
+            border: 2px solid var(--border);
+            font-size: 13px;
+            font-weight: 800;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部导航栏 -->
+    <div class="top-navbar">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <a href="./index.html" class="btn-header">← 导航主页</a>
+            <h1 style="font-size: 15px; font-weight: 900;">教师快速赋分控制台</h1>
+            <span style="font-size: 10px; font-family: monospace; font-weight: 800; background: var(--tag-bg); padding: 2px 6px; border: 1.5px solid var(--border);">三年级二班 (语文)</span>
+            <span style="font-size: 10px; font-weight: 900; color: var(--success); font-family: monospace;">● 实时双屏互联</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <button class="btn-undo-permanent" id="btnUndo" disabled onclick="executeUndo()">
+                <span>↩ 撤销上一笔</span>
+                <span id="undoDetailTag" style="font-size: 10px; font-weight: 700; color: #555;">(暂无记录)</span>
+            </button>
+            <button class="btn-header" style="background: var(--warning); color: #000;" onclick="triggerBigScreenRandomPick()">🎲 触发大屏随机抽选</button>
+            <button class="btn-mode-toggle" id="btnAttendanceMode" onclick="toggleAttendanceMode()">📋 考勤登记模式</button>
+            <button class="btn-header" style="background: #16A34A; color: white;" onclick="openExcelModal()">📊 名单导入(Excel)</button>
+            <button class="btn-header" onclick="openAuditLogModal()">📄 审计日志</button>
+            <button class="btn-header" onclick="location.href='./display_bigscreen.html'">🖥️ 打开大屏</button>
+        </div>
+    </div>
+
+    <div class="workspace-layout">
+
+        <!-- 左侧学生列表 -->
+        <div class="student-column">
+            <div class="list-toolbar">
+                <input type="text" class="search-input" id="searchBox" placeholder="🔍 键入姓名 / 学号实时模糊过滤..." oninput="handleSearch()">
+                <div style="display: flex; gap: 3px; margin-bottom: 4px;">
+                    <button class="btn-header" style="flex: 1; justify-content: center; font-size: 11px; padding: 4px 2px;" id="tabGAll" onclick="filterGroup('all')">全班(42)</button>
+                    <button class="btn-header" style="flex: 1; justify-content: center; font-size: 11px; padding: 4px 2px;" onclick="filterGroup(1)">1组(11)</button>
+                    <button class="btn-header" style="flex: 1; justify-content: center; font-size: 11px; padding: 4px 2px;" onclick="filterGroup(2)">2组(10)</button>
+                    <button class="btn-header" style="flex: 1; justify-content: center; font-size: 11px; padding: 4px 2px;" onclick="filterGroup(3)">3组(11)</button>
+                    <button class="btn-header" style="flex: 1; justify-content: center; font-size: 11px; padding: 4px 2px;" onclick="filterGroup(4)">4组(10)</button>
+                </div>
+            </div>
+
+            <!-- 考勤模式提示条 (默认隐藏，开启考勤模式时出现) -->
+            <div id="attendanceNoticeBar" style="display: none; background: #FEE2E2; border-bottom: 2px solid var(--error); padding: 6px 12px; font-size: 11px; font-weight: 800; color: #991B1B;">
+                ⚠️ 考勤模式已激活：直接点击学生卡片即可一键标记【请假/出勤】并置灰大屏。
+            </div>
+
+            <!-- 分组管理工具条 -->
+            <div style="padding: 6px 12px; background: var(--bg-primary); border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800;">
+                <span>已勾选：<strong id="selectedNum" style="color: var(--accent);">0</strong> 人</span>
+                <div style="display: flex; gap: 6px;">
+                    <span style="color: var(--accent); cursor: pointer;" onclick="toggleSelectGroup()">全选 / 清空当前组</span>
+                    <span style="color: #666; cursor: pointer;" onclick="openGroupMoveModal()">📦 划分大组...</span>
+                </div>
+            </div>
+
+            <div class="student-scroll-list" id="studentListContainer"></div>
+        </div>
+
+        <!-- 右侧操作主面板 -->
+        <div class="ops-main-panel">
+            <div class="selected-banner-bar">
+                <div>
+                    <strong style="font-size: 13px;">✓ 当前已选中 <span id="bannerCount" style="color: var(--accent);">0</span> 名学生</strong>
+                    <span style="font-size: 11px; color: var(--text-secondary); margin-left: 8px;">点击下方行为按键即可一键批量赋分</span>
+                </div>
+                <button class="btn-header" onclick="clearSelection()" style="padding: 2px 6px; font-size: 11px;">清空选择</button>
+            </div>
+
+            <!-- 正向行为加分 (≥52px 舒适触控卡片) -->
+            <div class="nb-section-box">
+                <div class="section-header-row">
+                    <span class="section-header-tag">课堂正向表现 (秒级极速直达)</span>
+                    <button class="btn-header" style="padding: 2px 8px; font-size: 11px;" onclick="openCustomRuleModal('positive')">➕ 新增加分项</button>
+                </div>
+                <div class="score-button-grid" id="posRulesGrid"></div>
+            </div>
+
+            <!-- 负向行为扣分 (含自尊心保护) -->
+            <div class="nb-section-box">
+                <div class="section-header-row">
+                    <span class="section-header-tag" style="background: var(--error);">课堂纪律关注 (扣分留档)</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                            <input type="checkbox" id="chkProtectDignity" checked>
+                            <span>🔒 保护学生自尊心（大屏静音留档）</span>
+                        </label>
+                        <button class="btn-header" style="padding: 2px 8px; font-size: 11px;" onclick="openCustomRuleModal('negative')">➕ 新增扣分项</button>
+                    </div>
+                </div>
+                <div class="score-button-grid" id="negRulesGrid"></div>
+                <div style="margin-top: 6px; font-size: 11px; color: var(--text-secondary); font-family: monospace;">
+                    * 官方规则保证：扣分只减经验，绝不降低学生已有等级或退化已解锁宠物形态。
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 📊 模态框 1：Excel 表格智能表头识别导入器与模板下载 -->
+    <!-- ========================================================= -->
+    <div class="modal-overlay" id="modalExcelImport">
+        <div class="modal-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">📊 上传 Excel 表格识别花名册与大组</h3>
+                <button class="btn-header" onclick="closeExcelModal()">✕</button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0 4px;">
+                <span style="font-size: 12px; font-weight: 800;">第一步：选择或拖拽学生表格文件</span>
+                <button class="btn-header" style="background: #FEF3C7; font-size: 11px;" onclick="downloadStandardTemplate()">📥 下载标准 Excel 模板</button>
+            </div>
+
+            <div class="excel-dropzone" onclick="document.getElementById('excelFileInput').click()">
+                <div style="font-size: 36px; margin-bottom: 4px;">📂</div>
+                <strong style="font-size: 14px;">点击选择或拖拽上传 Excel 表格文件</strong>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">支持 .xlsx, .xls, .csv 格式（自动智能识别姓名列、学号列与组别列）</p>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleExcelFileUpload(event)">
+            </div>
+
+            <!-- 表头字段映射匹配区 -->
+            <div id="mappingConfigArea" style="display: none; border-top: 2px solid var(--border); padding-top: 10px;">
+                <div style="font-weight: 900; font-size: 13px; margin-bottom: 6px;">🎯 第二步：智能表头字段匹配确认：</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label class="form-label">姓名所在列：</label>
+                        <select class="form-control" id="colSelectName"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">学号所在列：</label>
+                        <select class="form-control" id="colSelectNo"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">分组所在列 (可选)：</label>
+                        <select class="form-control" id="colSelectGroup"></select>
+                    </div>
+                </div>
+
+                <div style="font-weight: 800; font-size: 12px; margin-top: 10px;">📋 识别结果前 5 行预览（共检测到 <span id="detectedRowsCount" style="color:var(--accent);">0</span> 名学生）：</div>
+                <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px; font-family: monospace;">
+                    <thead><tr style="background: var(--bg-secondary);">
+                        <th style="border:1.5px solid #000; padding:4px 6px;">学号</th>
+                        <th style="border:1.5px solid #000; padding:4px 6px;">姓名</th>
+                        <th style="border:1.5px solid #000; padding:4px 6px;">所属大组</th>
+                    </tr></thead>
+                    <tbody id="previewTableBody"></tbody>
+                </table>
+
+                <div style="display: flex; gap: 8px; margin-top: 10px;">
+                    <button class="btn-header" style="flex: 1; background: var(--accent); color: white; justify-content: center; padding: 9px;" onclick="confirmExcelImport()">确认导入并同步大屏</button>
+                    <button class="btn-header" style="flex: 1; justify-content: center;" onclick="closeExcelModal()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 2：批量移动大组操作弹窗 -->
+    <div class="modal-overlay" id="modalGroupMove">
+        <div class="modal-box" style="max-width: 440px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">📦 调整学生所属大组</h3>
+                <button class="btn-header" onclick="closeGroupMoveModal()">✕</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 10px 0;">当前已勾选 <strong id="groupMoveCount" style="color:var(--accent);">0</strong> 名学生：</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <button class="btn-header" style="justify-content: center; padding: 10px;" onclick="applyMoveGroup(1)">移至 第 1 大组 (窗边)</button>
+                <button class="btn-header" style="justify-content: center; padding: 10px;" onclick="applyMoveGroup(2)">移至 第 2 大组 (中左)</button>
+                <button class="btn-header" style="justify-content: center; padding: 10px;" onclick="applyMoveGroup(3)">移至 第 3 大组 (中右)</button>
+                <button class="btn-header" style="justify-content: center; padding: 10px;" onclick="applyMoveGroup(4)">移至 第 4 大组 (门边)</button>
+            </div>
+            <div style="border-top: 2px dashed var(--border); margin-top: 12px; padding-top: 10px;">
+                <button class="btn-header" style="width: 100%; justify-content: center; background: #FEF3C7;" onclick="autoDistribute4Groups()">⚡ 按学号顺序自动均分 4 大组</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 3：审计日志 -->
+    <div class="modal-overlay" id="modalAuditLog">
+        <div class="modal-box" style="max-width: 580px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">📄 课堂赋分与操作审计流水日志</h3>
+                <button class="btn-header" onclick="closeAuditLogModal()">✕</button>
+            </div>
+            <div style="margin: 10px 0; max-height: 360px; overflow-y: auto;" id="auditLogList"></div>
+            <button class="btn-header" style="width: 100%; justify-content: center; margin-top: 8px;" onclick="closeAuditLogModal()">关闭</button>
+        </div>
+    </div>
+
+    <!-- 模态框 4：自定义加减分项 -->
+    <div class="modal-overlay" id="modalCustomRule">
+        <div class="modal-box" style="max-width: 480px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-weight: 900;">➕ 添加自定义常用加减分项</h3>
+                <button class="btn-header" onclick="closeCustomRuleModal()">✕</button>
+            </div>
+            <div>
+                <label class="form-label">规则类型：</label>
+                <div style="display: flex; gap: 8px;">
+                    <label style="font-size: 12px; font-weight: 800; cursor: pointer;">
+                        <input type="radio" name="ruleType" value="positive" checked> 正向加分 (Positive)
+                    </label>
+                    <label style="font-size: 12px; font-weight: 800; cursor: pointer;">
+                        <input type="radio" name="ruleType" value="negative"> 负向扣分 (Negative)
+                    </label>
+                </div>
+
+                <label class="form-label">行为名称 (如：晨读响亮、书写工整)：</label>
+                <input type="text" class="form-control" id="ruleNameInput" placeholder="输入常用表现行为名称...">
+
+                <label class="form-label">分值变动 (Points)：</label>
+                <input type="number" class="form-control" id="rulePointsInput" value="5" min="1" max="50">
+
+                <div style="display: flex; gap: 8px; margin-top: 14px;">
+                    <button class="btn-header" style="flex: 1; background: var(--accent); color: white; justify-content: center; padding: 9px;" onclick="saveCustomRule()">保存并加入快捷栏</button>
+                    <button class="btn-header" style="flex: 1; justify-content: center;" onclick="closeCustomRuleModal()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./classpet_core.js"></script>
+
+    <script>
+        const store = window.classPetRuntime;
+        let selectedIds = new Set();
+        let currentGroup = 'all';
+        let searchQuery = '';
+        let lastUndoRecord = null;
+        let isAttendanceMode = false;
+        let auditLogs = [];
+        let parsedExcelRawData = [];
+
+        store.subscribe((event) => {
+            if (event === 'SYNC' || event === 'STORAGE_UPDATE') renderStudentList();
+            if (event === 'RULES_UPDATE') renderRules();
+        });
+
+        function getFilteredStudents() {
+            return store.students.filter(s => {
+                const matchG = currentGroup === 'all' || s.group === currentGroup;
+                const matchQ = !searchQuery || s.name.includes(searchQuery) || s.no.includes(searchQuery);
+                return matchG && matchQ;
+            });
+        }
+
+        // 渲染极度清爽且符合教学直觉的学生列表
+        function renderStudentList() {
+            const list = getFilteredStudents();
+            const container = document.getElementById('studentListContainer');
+
+            container.innerHTML = list.map(s => {
+                const isSelected = selectedIds.has(s.id);
+                const pet = s.pets[s.activeSubject];
+                return `
+                    <div class="student-row-card ${isSelected ? 'selected' : ''} ${s.isAbsent ? 'absent' : ''}" onclick="handleStudentRowClick(${s.id})">
+                        <div class="nb-checkbox">${isSelected ? '✓' : (s.isAbsent ? '假' : '')}</div>
+                        <div class="student-avatar-box">${pet.icon}</div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="font-size: 13px;">${s.name} <span style="font-family: monospace; font-size: 10px; color: var(--text-secondary);">#${s.no} (${s.group}组)</span></strong>
+                                ${s.isAbsent ? `<span style="font-size: 10px; color: var(--error); font-weight: 800;">[请假中]</span>` : ''}
+                            </div>
+                            <div style="font-size: 10px; font-weight: 800; color: var(--accent); margin-top: 1px;">LV.${s.level} · EXP ${s.exp}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('selectedNum').textContent = selectedIds.size;
+            document.getElementById('bannerCount').textContent = selectedIds.size;
+        }
+
+        // 渲染 ≥52px 大靶区触控按键
+        function renderRules() {
+            const posContainer = document.getElementById('posRulesGrid');
+            const negContainer = document.getElementById('negRulesGrid');
+
+            const posRules = store.behaviorRules.filter(r => r.type === 'positive');
+            const negRules = store.behaviorRules.filter(r => r.type === 'negative');
+
+            posContainer.innerHTML = posRules.map(r => `
+                <div class="btn-score-card pos" onclick="triggerScore(${r.points}, '${r.name}')">
+                    ${!r.isPreset ? `<span class="btn-delete-rule" onclick="event.stopPropagation(); deleteRule('${r.id}')">✕</span>` : ''}
+                    <span class="score-val">+${Math.abs(r.points)}</span>
+                    <span style="font-size: 12px; margin-top: 2px;">${r.name}</span>
+                </div>
+            `).join('');
+
+            negContainer.innerHTML = negRules.map(r => `
+                <div class="btn-score-card neg" onclick="triggerScore(${r.points}, '${r.name}')">
+                    ${!r.isPreset ? `<span class="btn-delete-rule" onclick="event.stopPropagation(); deleteRule('${r.id}')">✕</span>` : ''}
+                    <span class="score-val">${r.points}</span>
+                    <span style="font-size: 12px; margin-top: 2px;">${r.name}</span>
+                </div>
+            `).join('');
+        }
+
+        function handleStudentRowClick(id) {
+            if (isAttendanceMode) {
+                store.toggleAttendance(id);
+                renderStudentList();
+            } else {
+                toggleSelect(id);
+            }
+        }
+
+        function toggleSelect(id) {
+            if (selectedIds.has(id)) selectedIds.delete(id);
+            else selectedIds.add(id);
+            renderStudentList();
+        }
+
+        function toggleSelectGroup() {
+            const list = getFilteredStudents();
+            const allSelected = list.every(s => selectedIds.has(s.id));
+            if (allSelected) list.forEach(s => selectedIds.delete(s.id));
+            else list.forEach(s => selectedIds.add(s.id));
+            renderStudentList();
+        }
+
+        function clearSelection() {
+            selectedIds.clear();
+            renderStudentList();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('searchBox').value.trim();
+            renderStudentList();
+        }
+
+        function filterGroup(g) {
+            currentGroup = g;
+            renderStudentList();
+        }
+
+        // 考勤登记模式切换
+        function toggleAttendanceMode() {
+            isAttendanceMode = !isAttendanceMode;
+            const btn = document.getElementById('btnAttendanceMode');
+            btn.classList.toggle('active', isAttendanceMode);
+            document.getElementById('attendanceNoticeBar').style.display = isAttendanceMode ? 'block' : 'none';
+        }
+
+        // 触发赋分 (含自尊心保护)
+        function triggerScore(delta, label) {
+            if (selectedIds.size === 0) {
+                alert('⚠️ 请先在左侧列表中勾选至少一名学生！');
+                return;
+            }
+
+            const targetIds = Array.from(selectedIds);
+            const targetNames = store.students.filter(s => targetIds.includes(s.id)).map(s => s.name).join('、');
+            const isDignityProtected = delta < 0 && document.getElementById('chkProtectDignity').checked;
+
+            store.batchScore(targetIds, delta, label, isDignityProtected);
+
+            const record = {
+                time: new Date().toLocaleTimeString(),
+                names: targetNames,
+                targetIds,
+                delta,
+                label,
+                isDignityProtected
+            };
+            lastUndoRecord = record;
+            auditLogs.unshift(record);
+
+            const btnUndo = document.getElementById('btnUndo');
+            btnUndo.disabled = false;
+            document.getElementById('undoDetailTag').textContent = `(最近: ${targetNames} ${delta>0?'+':''}${delta}分)`;
+
+            renderStudentList();
+        }
+
+        // 撤销上一笔
+        function executeUndo() {
+            if (!lastUndoRecord) return;
+            store.batchScore(lastUndoRecord.targetIds, -lastUndoRecord.delta, '撤销操作');
+            auditLogs.unshift({
+                time: new Date().toLocaleTimeString(),
+                names: lastUndoRecord.names,
+                delta: -lastUndoRecord.delta,
+                label: '【撤销操作】',
+                isDignityProtected: false
+            });
+
+            const undone = lastUndoRecord.names;
+            lastUndoRecord = null;
+            document.getElementById('btnUndo').disabled = true;
+            document.getElementById('undoDetailTag').textContent = '(已撤销)';
+            alert(`✅ 已成功撤销对 [${undone}] 的赋分变更！`);
+            renderStudentList();
+        }
+
+        // 触发大屏随机抽选
+        function triggerBigScreenRandomPick() {
+            store.startRandomPick();
+            alert('🎲 已向教室大屏发送随机点名指令！大屏端已开始抽选！');
+        }
+
+        // 分组管理弹窗
+        function openGroupMoveModal() {
+            if (selectedIds.size === 0) {
+                alert('⚠️ 请先在左侧列表中勾选学生！');
+                return;
+            }
+            document.getElementById('groupMoveCount').textContent = selectedIds.size;
+            document.getElementById('modalGroupMove').style.display = 'flex';
+        }
+
+        function closeGroupMoveModal() {
+            document.getElementById('modalGroupMove').style.display = 'none';
+        }
+
+        function applyMoveGroup(g) {
+            store.students.forEach(s => {
+                if (selectedIds.has(s.id)) s.group = g;
+            });
+            store.save();
+            store.broadcast('STATE_SYNC', { students: store.students });
+            closeGroupMoveModal();
+            renderStudentList();
+            alert(`✅ 已将选中的 ${selectedIds.size} 名学生划分至 [第 ${g} 大组]！`);
+        }
+
+        function autoDistribute4Groups() {
+            store.students.forEach((s, i) => s.group = (i % 4) + 1);
+            store.save();
+            store.broadcast('STATE_SYNC', { students: store.students });
+            closeGroupMoveModal();
+            renderStudentList();
+            alert('✅ 全班已按学号均分为 4 大组！');
+        }
+
+        // 审计日志弹窗
+        function openAuditLogModal() {
+            const list = document.getElementById('auditLogList');
+            if (auditLogs.length === 0) {
+                list.innerHTML = `<div style="text-align:center;color:#888;padding:20px;">本节课暂无赋分记录</div>`;
+            } else {
+                list.innerHTML = auditLogs.map(l => `
+                    <div style="border-bottom:1px solid #ddd;padding:6px 0;font-size:12px;">
+                        <span style="color:#666;font-family:monospace;">[${l.time}]</span>
+                        <strong>${l.names}</strong>
+                        <span style="font-weight:900;color:${l.delta>0?'#15803D':'#DC2626'};">${l.delta>0?'+':''}${l.delta}分</span>
+                        <span>(${l.label})</span>
+                        ${l.isDignityProtected ? `<span style="color:#666;font-size:10px;">[大屏静音留档]</span>` : ''}
+                    </div>
+                `).join('');
+            }
+            document.getElementById('modalAuditLog').style.display = 'flex';
+        }
+
+        function closeAuditLogModal() { document.getElementById('modalAuditLog').style.display = 'none'; }
+
+        // =========================================================
+        // 📊 Excel 表格智能识别与标准模板下载
+        // =========================================================
+        function openExcelModal() {
+            document.getElementById('mappingConfigArea').style.display = 'none';
+            document.getElementById('modalExcelImport').style.display = 'flex';
+        }
+
+        function closeExcelModal() { document.getElementById('modalExcelImport').style.display = 'none'; }
+
+        function downloadStandardTemplate() {
+            const csvContent = "学号,姓名,组别\n01,张三,第1组\n02,李四,第2组\n03,王五,第3组\n04,赵六,第4组\n05,孙七,第1组";
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "班级花名册标准导入模板.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function handleExcelFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    let workbook = null;
+                    if (typeof XLSX !== 'undefined') {
+                        workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        parsedExcelRawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    } else {
+                        const text = new TextDecoder().decode(data);
+                        parsedExcelRawData = text.split('\n').map(l => l.split(/[,\t]/).map(c => c.trim()));
+                    }
+
+                    if (!parsedExcelRawData || parsedExcelRawData.length < 2) {
+                        alert('⚠️ 表格为空或格式不正确！');
+                        return;
+                    }
+                    setupColumnMappingUI(parsedExcelRawData[0], parsedExcelRawData.slice(1));
+                } catch(err) {
+                    alert('⚠️ 解析表格失败：' + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function setupColumnMappingUI(headers, rows) {
+            const selectName = document.getElementById('colSelectName');
+            const selectNo = document.getElementById('colSelectNo');
+            const selectGroup = document.getElementById('colSelectGroup');
+
+            selectName.innerHTML = headers.map((h, i) => `<option value="${i}">${h || `列${i+1}`}</option>`).join('');
+            selectNo.innerHTML = headers.map((h, i) => `<option value="${i}">${h || `列${i+1}`}</option>`).join('');
+            selectGroup.innerHTML = `<option value="-1">-- 自动平均分配 --</option>` + headers.map((h, i) => `<option value="${i}">${h || `列${i+1}`}</option>`).join('');
+
+            headers.forEach((h, i) => {
+                const str = String(h).toLowerCase();
+                if (str.includes('名') || str.includes('name') || str.includes('学生')) selectName.value = i;
+                if (str.includes('学号') || str.includes('no') || str.includes('序号') || str.includes('编号')) selectNo.value = i;
+                if (str.includes('组') || str.includes('group') || str.includes('队')) selectGroup.value = i;
+            });
+
+            document.getElementById('detectedRowsCount').textContent = rows.filter(r => r.length && r[0]).length;
+            updatePreviewTable(headers, rows);
+
+            selectName.onchange = () => updatePreviewTable(headers, rows);
+            selectNo.onchange = () => updatePreviewTable(headers, rows);
+            selectGroup.onchange = () => updatePreviewTable(headers, rows);
+
+            document.getElementById('mappingConfigArea').style.display = 'block';
+        }
+
+        function updatePreviewTable(headers, rows) {
+            const nameIdx = parseInt(document.getElementById('colSelectName').value, 10);
+            const noIdx = parseInt(document.getElementById('colSelectNo').value, 10);
+            const groupIdx = parseInt(document.getElementById('colSelectGroup').value, 10);
+
+            const validRows = rows.filter(r => r && r[nameIdx]).slice(0, 5);
+            const tbody = document.getElementById('previewTableBody');
+
+            tbody.innerHTML = validRows.map((r, i) => {
+                const no = r[noIdx] ? String(r[noIdx]).padStart(2, '0') : String(i+1).padStart(2, '0');
+                const name = r[nameIdx] || '未知';
+                let group = (i % 4) + 1;
+                if (groupIdx !== -1 && r[groupIdx]) {
+                    const match = String(r[groupIdx]).match(/\d+/);
+                    if (match) group = parseInt(match[0], 10);
+                }
+                return `<tr><td style="border:1.5px solid #000;padding:4px 6px;">#${no}</td><td style="border:1.5px solid #000;padding:4px 6px;"><strong>${name}</strong></td><td style="border:1.5px solid #000;padding:4px 6px;">第 ${group} 组</td></tr>`;
+            }).join('');
+        }
+
+        function confirmExcelImport() {
+            const nameIdx = parseInt(document.getElementById('colSelectName').value, 10);
+            const noIdx = parseInt(document.getElementById('colSelectNo').value, 10);
+            const groupIdx = parseInt(document.getElementById('colSelectGroup').value, 10);
+
+            const rows = parsedExcelRawData.slice(1).filter(r => r && r[nameIdx]);
+            if (rows.length === 0) {
+                alert('⚠️ 未找到有效的学生数据！');
+                return;
+            }
+
+            const petIcons = ['🐱', '🐶', '🦊', '🐼', '🐰', '🐯', '🦁', '🐨'];
+            store.students = rows.map((r, idx) => {
+                const no = r[noIdx] ? String(r[noIdx]).padStart(2, '0') : String(idx + 1).padStart(2, '0');
+                const name = String(r[nameIdx]).trim();
+                let group = (idx % 4) + 1;
+                if (groupIdx !== -1 && r[groupIdx]) {
+                    const match = String(r[groupIdx]).match(/\d+/);
+                    if (match) group = parseInt(match[0], 10);
+                }
+
+                return {
+                    id: idx + 1,
+                    no,
+                    name,
+                    level: 1,
+                    exp: 15,
+                    minExpForCurrentLevel: 0,
+                    nextLevelExp: 35,
+                    visualStage: 1,
+                    stamp: '',
+                    group: group,
+                    isAbsent: false,
+                    activeSubject: 'chinese',
+                    pets: {
+                        chinese: { subject: '语文', name: '灵猫', icon: petIcons[idx % petIcons.length], level: 1, exp: 15, visualStage: 1, affection: 80, fullness: 70, energy: 90 },
+                        math: { subject: '数学', name: '猎犬', icon: '🐶', level: 1, exp: 15, visualStage: 1, affection: 75, fullness: 70, energy: 80 },
+                        english: { subject: '英语', name: '灵狐', icon: '🦊', level: 1, exp: 15, visualStage: 1, affection: 70, fullness: 65, energy: 85 }
+                    }
+                };
+            });
+
+            store.save();
+            store.broadcast('STATE_SYNC', { students: store.students });
+            closeExcelModal();
+            renderStudentList();
+            alert(`🎉 成功解析并导入 ${store.students.length} 名学生！大屏已毫秒级同步刷新！`);
+        }
+
+        // 自定义加减分行为项
+        function openCustomRuleModal(defaultType = 'positive') {
+            document.querySelector(`input[name="ruleType"][value="${defaultType}"]`).checked = true;
+            document.getElementById('ruleNameInput').value = '';
+            document.getElementById('rulePointsInput').value = defaultType === 'positive' ? '5' : '3';
+            document.getElementById('modalCustomRule').style.display = 'flex';
+        }
+
+        function closeCustomRuleModal() { document.getElementById('modalCustomRule').style.display = 'none'; }
+
+        function saveCustomRule() {
+            const type = document.querySelector('input[name="ruleType"]:checked').value;
+            const name = document.getElementById('ruleNameInput').value.trim();
+            const points = parseInt(document.getElementById('rulePointsInput').value, 10);
+
+            if (!name) { alert('⚠️ 请输入行为名称！'); return; }
+            if (!points || points <= 0) { alert('⚠️ 请输入有效分值！'); return; }
+
+            store.addCustomRule(name, points, type);
+            closeCustomRuleModal();
+            renderRules();
+        }
+
+        function deleteRule(id) {
+            if (confirm('确定删除该自定义行为项吗？')) {
+                store.deleteCustomRule(id);
+                renderRules();
+            }
+        }
+
+        renderStudentList();
+        renderRules();
+    </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MindFlowCanvasProject",
+  "description": "Standard JSON schema for MindFlow Canvas projects. Agents should emit this topology.",
+  "type": "object",
+  "required": ["id", "projectTitle", "nodes", "wires"],
+  "properties": {
+    "id": { "type": "string" },
+    "projectTitle": { "type": "string" },
+    "description": { "type": "string" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "viewport": {
+      "type": "object",
+      "properties": {
+        "panX": { "type": "number" },
+        "panY": { "type": "number" },
+        "zoom": { "type": "number", "minimum": 0.15, "maximum": 3 }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "shape", "x", "y", "width", "height", "title"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string", "enum": ["card", "circle", "rect", "diamond", "sticky", "pill", "frame", "ai_prompt"] },
+          "shape": { "type": "string", "enum": ["card", "circle", "rect", "diamond", "sticky", "pill", "frame", "ai_prompt"] },
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "width": { "type": "number" },
+          "height": { "type": "number" },
+          "title": { "type": "string" },
+          "content": { "type": "string" },
+          "color": { "type": "string", "enum": ["cyan", "purple", "emerald", "amber", "rose", "slate"], "default": "cyan" },
+          "tag": { "type": "string" },
+          "icon": { "type": "string" },
+          "zIndex": { "type": "number", "default": 10 },
+          "collapsedPorts": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["top", "right", "bottom", "left"] },
+            "description": "Ports whose child branches are collapsed"
+          }
+        }
+      }
+    },
+    "wires": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "fromNode", "fromPort", "toNode", "toPort"],
+        "properties": {
+          "id": { "type": "string" },
+          "fromNode": { "type": "string" },
+          "fromPort": { "type": "string", "enum": ["top", "right", "bottom", "left"] },
+          "toNode": { "type": "string" },
+          "toPort": { "type": "string", "enum": ["top", "right", "bottom", "left"] },
+          "label": { "type": "string" },
+          "style": { "type": "string", "enum": ["bezier", "orthogonal", "straight"], "default": "bezier" },
+          "color": { "type": "string", "enum": ["cyan", "purple", "emerald", "amber", "rose", "slate"], "default": "cyan" },
+          "animated": { "type": "boolean", "default": true }
+        }
+      }
+    }
+  }
+}
