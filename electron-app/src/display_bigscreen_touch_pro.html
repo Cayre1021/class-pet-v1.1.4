@@ -110,34 +110,34 @@
         .stage-header-pro {
             background: var(--card-bg);
             border-bottom: 2.5px solid var(--border);
-            padding: 0 14px;
+            padding: 0 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 48px;
-            min-height: 48px;
+            height: 56px;
+            min-height: 56px;
             z-index: 100;
             box-shadow: 0 2px 0 rgba(0,0,0,0.06);
             overflow: visible;
             box-sizing: border-box;
         }
 
-        /* 顶部大靶区触控按键 (高度34px，字号13px，紧凑排布) */
+        /* 顶部大靶区触控按键 (高度42px，字号14px，触控友好) */
         .btn-header-touch {
-            height: 34px;
-            padding: 0 12px;
-            border: 2px solid var(--border);
+            height: 42px;
+            padding: 0 14px;
+            border: 2.5px solid var(--border);
             background: var(--bg-secondary);
             color: var(--text-primary);
             font-weight: 900;
-            font-size: 13px;
+            font-size: 14px;
             cursor: pointer;
-            box-shadow: 2px 2px 0 var(--shadow-color);
+            box-shadow: 2.5px 2.5px 0 var(--shadow-color);
             transition: transform 0.08s, box-shadow 0.08s;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
             white-space: nowrap;
             flex-shrink: 0;
             box-sizing: border-box;
@@ -147,11 +147,11 @@
 
         .view-mode-tabs-pro {
             display: flex;
-            gap: 3px;
+            gap: 4px;
             background: var(--bg-secondary);
-            padding: 2px;
+            padding: 3px;
             border: 2px solid var(--border);
-            height: 34px;
+            height: 42px;
             align-items: center;
             flex-shrink: 0;
             white-space: nowrap;
@@ -160,11 +160,11 @@
         }
 
         .btn-view-tab-pro {
-            height: 28px;
-            padding: 0 10px;
+            height: 34px;
+            padding: 0 12px;
             border: 1.5px solid transparent;
             background: transparent;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 900;
             color: var(--text-primary);
             cursor: pointer;
@@ -447,21 +447,21 @@
             align-items: center;
             background: var(--bg-secondary);
             border: 2px solid var(--border);
-            height: 34px;
-            padding: 2px 6px;
-            gap: 4px;
+            height: 42px;
+            padding: 2px 8px;
+            gap: 5px;
             box-shadow: 1.5px 1.5px 0 var(--shadow-color);
             position: relative;
             box-sizing: border-box;
             border-radius: 4px;
         }
         .btn-scale-step {
-            width: 26px;
-            height: 26px;
+            width: 32px;
+            height: 32px;
             border: 1.5px solid var(--border);
             background: var(--card-bg);
             color: var(--text-primary);
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 900;
             cursor: pointer;
             display: flex;
@@ -477,20 +477,20 @@
             box-shadow: 0 0 0 var(--shadow-color);
         }
         .btn-scale-value {
-            height: 26px;
-            min-width: 56px;
+            height: 32px;
+            min-width: 62px;
             padding: 0 6px;
             border: 1.5px solid var(--border);
             background: var(--card-bg);
             color: var(--text-primary);
             font-family: monospace;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 900;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 2px;
+            gap: 3px;
             box-shadow: 1px 1px 0 var(--shadow-color);
             user-select: none;
             border-radius: 3px;
@@ -800,15 +800,15 @@
 </head>
 <body>
 
-    <!-- 顶部操作横条 (高度 48px，精简紧凑) -->
+    <!-- 顶部操作横条 (高度 56px，大靶区舒适触控) -->
     <div class="stage-header-pro">
         <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;">
             <button class="btn-header-touch" onclick="goToPortal()">← 门户</button>
             <button class="btn-header-touch" style="background: var(--accent); color: white;" onclick="openTeacherWorkstation()">⚡ 工作台</button>
-            <h1 style="font-size: 17px; font-weight: 900; white-space: nowrap; margin: 0 4px; display: inline-flex; align-items: center; gap: 6px;">
+            <h1 style="font-size: 18px; font-weight: 900; white-space: nowrap; margin: 0 4px; display: inline-flex; align-items: center; gap: 6px;">
                 <span>🐾 电子宠物 · 学生大屏</span>
             </h1>
-            <span id="headerClassBadge" style="font-size: 12px; font-family: monospace; font-weight: 900; background: var(--tag-bg); padding: 3px 8px; border: 1.5px solid var(--border); white-space: nowrap;">班级加载中...</span>
+            <span id="headerClassBadge" style="font-size: 12px; font-family: monospace; font-weight: 900; background: var(--tag-bg); padding: 4px 8px; border: 1.5px solid var(--border); white-space: nowrap;">班级加载中...</span>
 
             <div class="view-mode-tabs-pro">
                 <button class="btn-view-tab-pro active" id="tabGrid" onclick="switchView('grid')">🔲 卡片</button>
@@ -818,9 +818,15 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;">
+            <!-- 🔢 学号排序 / ⭐ 等级排行 切换组件 (仅卡片视图显示) -->
+            <div id="gridSortButtonGroup" style="display: flex; gap: 6px;">
+                <button class="btn-header-touch active" id="btnSortNo" style="background: var(--accent); color: white;" onclick="handleCardSort('no')" title="按学生学号 1~42 顺序排列">🔢 学号</button>
+                <button class="btn-header-touch" id="btnSortLevel" onclick="handleCardSort('level')" title="按等级与经验由高到低排行">⭐ 排行</button>
+            </div>
+
             <!-- 顶部卡片尺寸快捷微调 -->
             <div class="scale-control-box">
-                <span style="font-size: 12px; font-weight: 900; margin: 0 1px;">🔍</span>
+                <span style="font-size: 13px; font-weight: 900; margin: 0 1px;">🔍</span>
                 <button class="btn-scale-step" onclick="adjustScale(-0.1)" title="卡片缩小">➖</button>
                 <button class="btn-scale-value" id="topScaleBadge" onclick="toggleHeaderScaleMenu(event)" title="点击切换缩放预设档位">
                     <span id="topScaleLabel">100%</span>
@@ -839,7 +845,7 @@
             </div>
 
             <button class="btn-header-touch" onclick="toggleAppFullscreen()">⛶ 全屏</button>
-            <select class="btn-header-touch" style="outline: none; cursor: pointer; height: 34px; padding: 0 8px; font-size: 13px;" id="themeSelect" onchange="setGlobalTheme(this.value, event)">
+            <select class="btn-header-touch" style="outline: none; cursor: pointer; height: 42px; padding: 0 10px; font-size: 13px;" id="themeSelect" onchange="setGlobalTheme(this.value, event)">
                 <option value="classic">🎨 经典</option>
                 <option value="dark">🌙 暗夜</option>
                 <option value="orange">🍊 橙红</option>
@@ -861,12 +867,12 @@
             <div class="seat-group-col"><div id="groupList4"></div></div>
         </div>
 
-        <!-- 模式 3：四组 PK 赛道 (支持竖向行情柱状图 VS 横向赛跑赛道双向切换，第8点) -->
-        <div id="pkRaceView" style="display:none; padding:14px; flex-direction:column; gap:10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border: 3px solid var(--border); box-shadow: 4px 4px 0 var(--shadow-color); padding: 10px 18px;">
+        <!-- 模式 3：四组 PK 赛道 (第8点：双模态天梯榜/赛跑道) -->
+        <div id="pkRaceView" style="display:none; padding:14px; flex-direction:column; gap:12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border: 3px solid var(--border); padding: 10px 16px; box-shadow: 3px 3px 0 var(--shadow-color);">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 20px;">🏆</span>
-                    <strong style="font-size: 16px; font-weight: 900;">四大组团队竞速 PK 榜</strong>
+                    <span style="font-size: 18px;">🏁</span>
+                    <strong style="font-size: 15px;">四大组成长竞速争霸榜</strong>
                     <span style="font-size: 12px; color: var(--text-secondary); margin-left: 6px;">(支持即时组加减分与看板形态切换)</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
@@ -880,6 +886,12 @@
             <div id="raceTracksContainer" style="display: none;"></div>
         </div>
     </div>
+
+    <!-- 🌟 右下角屏幕沉降大靶区按键 (黑板过高时一键平滑沉降便于矮个/学生触控) -->
+    <button class="btn-reachability-trigger-pro" id="btnReachabilityTrigger" onclick="toggleReachability()" title="将上排宠物卡片平滑沉降至讲台易触碰高度">
+        <span id="reachIcon" style="font-size: 20px;">⬇️</span>
+        <span id="reachText">屏幕下沉</span>
+    </button>
 
     <!-- 🐾 讲台一体机防误触：悬浮可拖拽操作小球与圆形辐射轮盘菜单 (第5点：极简释放大屏空间，随时收回) -->
     <div id="floatingBallContainer" class="floating-ball-container">
@@ -1394,6 +1406,10 @@
                 box.style.display = v === 'grid' ? 'flex' : 'none';
             });
 
+            // 排序按键组仅在卡片模式下展示
+            const sortGroup = document.getElementById('gridSortButtonGroup');
+            if (sortGroup) sortGroup.style.display = v === 'grid' ? 'flex' : 'none';
+
             renderAll();
         }
 
@@ -1852,9 +1868,29 @@
             if (text) text.textContent = isActive ? '还原大屏原位' : '屏幕下沉';
         }
 
+        let currentSortBy = 'no';
+        function handleCardSort(by) {
+            currentSortBy = by;
+            const bNo = document.getElementById('btnSortNo');
+            const bLvl = document.getElementById('btnSortLevel');
+            if (bNo) {
+                bNo.style.background = by === 'no' ? 'var(--accent)' : 'var(--bg-secondary)';
+                bNo.style.color = by === 'no' ? 'white' : 'var(--text-primary)';
+            }
+            if (bLvl) {
+                bLvl.style.background = by === 'level' ? 'var(--accent)' : 'var(--bg-secondary)';
+                bLvl.style.color = by === 'level' ? 'white' : 'var(--text-primary)';
+            }
+            sortCards(by);
+            showClassroomToast(`已按【${by === 'no' ? '学号顺序' : '等级经验排行'}】重排卡片`, by === 'no' ? '🔢' : '⭐');
+        }
+
         function sortCards(by) {
-            if (by === 'no') store.students.sort((a, b) => a.no.localeCompare(b.no));
-            else store.students.sort((a, b) => b.level - a.level || b.exp - a.exp);
+            if (by === 'no') {
+                store.students.sort((a, b) => (parseInt(a.no, 10) || 0) - (parseInt(b.no, 10) || 0) || String(a.no).localeCompare(String(b.no)));
+            } else {
+                store.students.sort((a, b) => (b.level || 0) - (a.level || 0) || (b.exp || 0) - (a.exp || 0));
+            }
             renderGrid();
         }
 
