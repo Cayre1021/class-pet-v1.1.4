@@ -799,187 +799,93 @@
         </div>
     </div>
 
-    <!-- 模态框 8：电子宠物升级经验值与阶段进阶设置 (教师友好精简版) -->
-    <div class="modal-overlay" id="modalLevelThresholds" style="display: none;">
-        <div class="modal-box" style="max-width: 660px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 8px;">
-                <h3 style="font-weight: 900; display: flex; align-items: center; gap: 8px;">
-                    <span>⚙️ 电子宠物升级经验阈值与进阶节奏</span>
+    <!-- 模态框 8：电子宠物升级经验与进阶节奏设置 (第16点：极简大字号教师触控版) -->
+    <div class="modal-overlay" id="modalLevelThresholds" style="display: none; z-index: 2000;">
+        <div class="modal-box" style="max-width: 620px; border-width: 3.5px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 10px;">
+                <h3 style="font-size: 18px; font-weight: 900; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <span>⚙️ 电子宠物升级节奏与经验设置</span>
                 </h3>
-                <button class="btn-header-touch" style="height:34px;" onclick="closeLevelThresholdsModal()">✕</button>
+                <button class="btn-header-touch" style="height: 36px; padding: 0 12px;" onclick="closeLevelThresholdsModal()">✕</button>
             </div>
             
-            <div style="margin: 12px 0;">
-                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
-                    💡 <strong>老师请选择适合本班的升级节奏</strong>：您只需点击下方常用模式，或微调破壳分与每级递增分，全班学生和萌宠形象将即刻智能重算并同步至大屏！
-                </p>
-
-                <!-- 1. 常用教学节奏卡片 (一键套用) -->
-                <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 12px; margin-bottom: 12px;">
-                    <div style="font-size: 13px; font-weight: 900; margin-bottom: 8px;">
-                        ⚡ 常用教学模式 (点击直接生效)：
+            <div style="margin: 16px 0 6px;">
+                <!-- 1. 常用教学节奏一键套用 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-size: 14px; font-weight: 900; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                        <span>⚡</span> 常用教学模式 (点击直接套用)：
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                        <button type="button" class="btn-header-touch" style="justify-content: flex-start; flex-direction: column; text-align: left; padding: 10px; height: auto; border: 2.5px solid var(--border);" onclick="applyThresholdPreset('fast')">
-                            <strong style="display: block; font-size: 13px; color: #DC2626;">⚡ 极速示范档</strong>
-                            <span style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">10分破壳 · 10分/级</span>
-                            <span style="font-size: 10px; color: #DC2626; margin-top: 2px;">适合公开课 / 单周竞速</span>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <button type="button" class="btn-header-touch" style="justify-content: center; flex-direction: column; text-align: center; padding: 12px 8px; height: auto; border: 2.5px solid var(--border);" onclick="applyThresholdPreset('fast')">
+                            <strong style="display: block; font-size: 14px; color: #DC2626;">⚡ 极速示范档</strong>
+                            <span style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 800;">10分破壳 · 10分/级</span>
+                            <span style="font-size: 11px; color: #DC2626; margin-top: 2px;">适合公开课 / 快速演示</span>
                         </button>
-                        <button type="button" class="btn-header-touch" style="justify-content: flex-start; flex-direction: column; text-align: left; padding: 10px; height: auto; border: 2.5px solid var(--accent); background: #EFF6FF;" onclick="applyThresholdPreset('regular')">
-                            <strong style="display: block; font-size: 13px; color: var(--accent);">🎯 学期平稳档 (推荐)</strong>
-                            <span style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">15分破壳 · 20分/级</span>
-                            <span style="font-size: 10px; color: var(--accent); margin-top: 2px;">日常最常用 · 持续动力</span>
+                        <button type="button" class="btn-header-touch" style="justify-content: center; flex-direction: column; text-align: center; padding: 12px 8px; height: auto; border: 3px solid var(--accent); background: #EFF6FF;" onclick="applyThresholdPreset('regular')">
+                            <strong style="display: block; font-size: 14px; color: var(--accent);">🎯 学期平稳档 (推荐)</strong>
+                            <span style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 800;">15分破壳 · 20分/级</span>
+                            <span style="font-size: 11px; color: var(--accent); margin-top: 2px;">日常最常用 · 进阶平稳</span>
                         </button>
-                        <button type="button" class="btn-header-touch" style="justify-content: flex-start; flex-direction: column; text-align: left; padding: 10px; height: auto; border: 2.5px solid var(--border);" onclick="applyThresholdPreset('long')">
-                            <strong style="display: block; font-size: 13px; color: #059669;">🏔️ 学年长跑档</strong>
-                            <span style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">20分破壳 · 50分/级</span>
-                            <span style="font-size: 10px; color: #059669; margin-top: 2px;">整学年慢慢养成</span>
+                        <button type="button" class="btn-header-touch" style="justify-content: center; flex-direction: column; text-align: center; padding: 12px 8px; height: auto; border: 2.5px solid var(--border);" onclick="applyThresholdPreset('long')">
+                            <strong style="display: block; font-size: 14px; color: #059669;">🏔️ 学年长跑档</strong>
+                            <span style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 800;">20分破壳 · 50分/级</span>
+                            <span style="font-size: 11px; color: #059669; margin-top: 2px;">整学年慢慢养成</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- 2. 简明 2 核心参数微调 (方块加减按键) -->
-                <div style="background: var(--card-bg); border: 2.5px solid var(--border); padding: 14px; margin-bottom: 12px; box-shadow: 2px 2px 0 var(--shadow-color);">
-                    <div style="font-size: 13px; font-weight: 900; margin-bottom: 10px;">
-                        🛠️ 或自主设定加分节奏 (使用大方块按钮加减，防止误触)：
+                <!-- 2. 核心参数微调 (大靶区加减步进) -->
+                <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 16px; margin-bottom: 14px; box-shadow: 3px 3px 0 var(--shadow-color); border-radius: 6px;">
+                    <div style="font-size: 14px; font-weight: 900; margin-bottom: 12px;">
+                        🛠️ 自主调整节奏参数 (点击大方块按钮增减)：
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-                        <div>
-                            <label style="font-size: 12px; font-weight: 900; display: block; margin-bottom: 6px;">🐣 萌宠破壳所需经验：</label>
-                            <div class="stepper-box">
-                                <button type="button" class="stepper-btn" onclick="stepHatchExp(-5)">−</button>
-                                <input type="text" id="quickHatchExp" class="stepper-val" value="15" readonly />
-                                <button type="button" class="stepper-btn" onclick="stepHatchExp(+5)">+</button>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div style="background: var(--card-bg); border: 2px solid var(--border); padding: 12px; border-radius: 6px;">
+                            <label style="font-size: 13px; font-weight: 900; display: block; margin-bottom: 8px;">🐣 萌宠破壳所需经验：</label>
+                            <div class="stepper-box" style="height: 46px;">
+                                <button type="button" class="stepper-btn" style="width: 44px; font-size: 20px;" onclick="stepHatchExp(-5)">−</button>
+                                <input type="text" id="quickHatchExp" class="stepper-val" style="font-size: 17px; font-weight: 900;" value="15" readonly />
+                                <button type="button" class="stepper-btn" style="width: 44px; font-size: 20px;" onclick="stepHatchExp(+5)">+</button>
                             </div>
-                            <span style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 4px;">满此分数即可自选神兽破壳</span>
+                            <span style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 6px; font-weight: 700;">满此分数即可认领专属神兽</span>
                         </div>
-                        <div>
-                            <label style="font-size: 12px; font-weight: 900; display: block; margin-bottom: 6px;">📈 之后每升一级所需经验：</label>
-                            <div class="stepper-box">
-                                <button type="button" class="stepper-btn" onclick="stepStepExp(-5)">−</button>
-                                <input type="text" id="quickStepExp" class="stepper-val" value="20" readonly />
-                                <button type="button" class="stepper-btn" onclick="stepStepExp(+5)">+</button>
+                        <div style="background: var(--card-bg); border: 2px solid var(--border); padding: 12px; border-radius: 6px;">
+                            <label style="font-size: 13px; font-weight: 900; display: block; margin-bottom: 8px;">📈 之后每升一级递增经验：</label>
+                            <div class="stepper-box" style="height: 46px;">
+                                <button type="button" class="stepper-btn" style="width: 44px; font-size: 20px;" onclick="stepStepExp(-5)">−</button>
+                                <input type="text" id="quickStepExp" class="stepper-val" style="font-size: 17px; font-weight: 900;" value="20" readonly />
+                                <button type="button" class="stepper-btn" style="width: 44px; font-size: 20px;" onclick="stepStepExp(+5)">+</button>
                             </div>
-                            <span style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 4px;">每积攒此分数自动升一级</span>
+                            <span style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 6px; font-weight: 700;">每积攒此分数自动升一级</span>
                         </div>
                     </div>
-                    <button type="button" class="btn-header-touch" style="width: 100%; justify-content: center; background: #FEF3C7; color: #000; height: 38px; margin-top: 12px; font-size: 13px;" onclick="generateLinearThresholds()">
-                        ⚡ 按上方参数生成整套升级规则
-                    </button>
                 </div>
 
-                <!-- 3. 直观演化时间线预览 (老师一眼看懂) -->
-                <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 12px; margin-bottom: 12px;">
-                    <div style="font-size: 12px; font-weight: 900; margin-bottom: 6px;">🐾 萌宠形态阶段演化预览：</div>
-                    <div id="timelinePreviewBar" style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 800; background: var(--card-bg); border: 2px solid var(--border); padding: 8px 10px; border-radius: 4px; gap: 4px; overflow-x: auto;">
+                <!-- 3. 阶段形态演化里程碑预览 -->
+                <div style="background: var(--card-bg); border: 2.5px solid var(--border); padding: 12px 14px; margin-bottom: 16px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
+                    <div style="font-size: 13px; font-weight: 900; margin-bottom: 8px;">🐾 形态进阶预估时间线：</div>
+                    <div id="timelinePreviewBar" style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 900; background: var(--bg-secondary); border: 2px solid var(--border); padding: 10px 12px; border-radius: 4px; gap: 4px; overflow-x: auto;">
                         <span>🐣 破壳 (<span id="prevHatchExp">15</span>分)</span>
                         <span>➔</span>
-                        <span>🐾 少年期 (<span id="prevStage2Text">Lv.4</span>)</span>
+                        <span>🐾 少年 (<span id="prevStage2Text">Lv.4 (75分)</span>)</span>
                         <span>➔</span>
-                        <span>🦊 进阶期 (<span id="prevStage3Text">Lv.8</span>)</span>
+                        <span>🦊 进阶 (<span id="prevStage3Text">Lv.8 (155分)</span>)</span>
                         <span>➔</span>
-                        <span>🦄 青年期 (<span id="prevStage4Text">Lv.13</span>)</span>
+                        <span>🦄 青年 (<span id="prevStage4Text">Lv.13 (255分)</span>)</span>
                         <span>➔</span>
-                        <span style="color: #DC2626;">👑 究极神兽 (<span id="prevStage5Text">Lv.20</span>)</span>
+                        <span style="color: #DC2626;">👑 神兽 (<span id="prevStage5Text">Lv.20 (395分)</span>)</span>
                     </div>
                 </div>
 
-                <!-- 4. 高级逐级微调折叠面板 (默认折叠，不打扰老师) -->
-                <details style="border: 2px dashed var(--border); padding: 8px 12px; background: var(--card-bg); margin-bottom: 12px; border-radius: 4px;">
-                    <summary style="cursor: pointer; font-size: 12px; font-weight: 900; color: var(--text-secondary);">
-                        🔧 高级自定义 (逐级精细微调 1~20 级数值，选填)
-                    </summary>
-                    <div style="margin-top: 10px;">
-                        <!-- 阶段里程碑等级设定：2行x2列宽幅网格 (阶段4和阶段5移至阶段2和阶段3下方，Stage 5解封，触控友好) -->
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px;">
-                            <!-- 第一行左：Stage 2 少年期 -->
-                            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 10px 12px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <strong style="font-size: 13px; display: flex; align-items: center; gap: 4px;">🐾 Stage 2 (少年期)</strong>
-                                    <span style="font-size: 11px; color: var(--accent); font-weight: 800;" id="stage2ExpHint">约需 75 分</span>
-                                </div>
-                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">变身等级：</span>
-                                    <div class="stepper-box mini" style="flex: 1; max-width: 140px; justify-content: space-between;">
-                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(2, -1)" title="减少 1 级">−</button>
-                                        <input type="text" id="stageMinLevel2" class="stepper-val" style="flex:1; width:auto;" value="4" readonly />
-                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(2, 1)" title="增加 1 级">+</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 第一行右：Stage 3 进阶形态 -->
-                            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 10px 12px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <strong style="font-size: 13px; display: flex; align-items: center; gap: 4px;">🦊 Stage 3 (进阶形态)</strong>
-                                    <span style="font-size: 11px; color: var(--accent); font-weight: 800;" id="stage3ExpHint">约需 155 分</span>
-                                </div>
-                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">变身等级：</span>
-                                    <div class="stepper-box mini" style="flex: 1; max-width: 140px; justify-content: space-between;">
-                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(3, -1)" title="减少 1 级">−</button>
-                                        <input type="text" id="stageMinLevel3" class="stepper-val" style="flex:1; width:auto;" value="8" readonly />
-                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(3, 1)" title="增加 1 级">+</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 第二行左：Stage 4 青年进阶 -->
-                            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 10px 12px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <strong style="font-size: 13px; display: flex; align-items: center; gap: 4px;">🦄 Stage 4 (青年进阶)</strong>
-                                    <span style="font-size: 11px; color: var(--accent); font-weight: 800;" id="stage4ExpHint">约需 255 分</span>
-                                </div>
-                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">变身等级：</span>
-                                    <div class="stepper-box mini" style="flex: 1; max-width: 140px; justify-content: space-between;">
-                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(4, -1)" title="减少 1 级">−</button>
-                                        <input type="text" id="stageMinLevel4" class="stepper-val" style="flex:1; width:auto;" value="13" readonly />
-                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(4, 1)" title="增加 1 级">+</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 第二行右：Stage 5 究极神兽 (彻底解封，支持自由设定变身门槛) -->
-                            <div style="background: #FEF2F2; border: 2.5px solid #DC2626; padding: 10px 12px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <strong style="font-size: 13px; display: flex; align-items: center; gap: 4px; color: #B91C1C;">👑 Stage 5 (究极神兽)</strong>
-                                    <span style="font-size: 11px; color: #DC2626; font-weight: 800;" id="stage5ExpHint">约需 395 分</span>
-                                </div>
-                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                                    <span style="font-size: 11px; color: #991B1B; font-weight: 700;">变身等级 (最高20)：</span>
-                                    <div class="stepper-box mini" style="flex: 1; max-width: 140px; justify-content: space-between; border-color: #DC2626;">
-                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(5, -1)" title="减少 1 级">−</button>
-                                        <input type="text" id="stageMinLevel5" class="stepper-val" style="flex:1; width:auto; color:#DC2626; border-color: #DC2626;" value="20" readonly />
-                                        <button type="button" class="stepper-btn" onclick="stepStageLevel(5, 1)" title="增加 1 级">+</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 20 级累积阈值精细表格 (全量实装大方块加减按键) -->
-                        <div style="border: 2.5px solid var(--border); padding: 10px 12px; background: var(--bg-primary); max-height: 280px; overflow-y: auto; box-shadow: 3px 3px 0 var(--shadow-color); border-radius: 4px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 2px solid var(--border); padding-bottom: 6px;">
-                                <div style="font-size: 12px; font-weight: 900; display: flex; align-items: center; gap: 4px;">
-                                    <span>📋 各等级累计所需经验值清单 (Lv.1 ~ Lv.20 方块加减步进)：</span>
-                                </div>
-                                <div style="font-size: 11px; color: var(--text-secondary); font-weight: 700;">
-                                    💡 点击 [−][+] 按键按 5 分步进，也可点击中间数值直接修改
-                                </div>
-                            </div>
-                            <div id="thresholdInputsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 8px;"></div>
-                        </div>
-                    </div>
-                </details>
-
-                <div style="display: flex; gap: 8px; margin-top: 14px;">
-                    <button class="btn-header-touch" style="flex: 2; background: var(--accent); color: white; justify-content: center; height: 44px; font-size: 14px;" onclick="saveCustomThresholds()">
+                <!-- 4. 底部大靶区操作按钮 -->
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-header-touch" style="flex: 2; background: var(--accent); color: white; justify-content: center; height: 46px; font-size: 15px;" onclick="saveCustomThresholds()">
                         💾 保存并应用到全班
                     </button>
-                    <button class="btn-header-touch" style="flex: 1; justify-content: center; height: 44px; font-size: 13px;" onclick="resetToDefaultThresholds()">
-                        ↺ 恢复官方默认
+                    <button class="btn-header-touch" style="flex: 1; justify-content: center; height: 46px; font-size: 13px;" onclick="resetToDefaultThresholds()">
+                        ↺ 恢复默认
                     </button>
-                    <button class="btn-header-touch" style="flex: 1; justify-content: center; height: 44px; font-size: 13px;" onclick="closeLevelThresholdsModal()">
+                    <button class="btn-header-touch" style="flex: 1; justify-content: center; height: 46px; font-size: 13px;" onclick="closeLevelThresholdsModal()">
                         取消
                     </button>
                 </div>
@@ -1042,6 +948,7 @@
     </div>
 
     <script src="./classpet_core.js"></script>
+    <script src="./fireworks_engine.js"></script>
 
     <script>
         const store = window.classPetRuntime;
@@ -1510,10 +1417,10 @@
 
                     if (dbSuccess) {
                         s.exp = Math.max(0, s.exp - delta);
-                        s.level = store.calculateLevel(s.exp);
-                        s.visualStage = store.getVisualStage(s.level);
-                        s.minExpForCurrentLevel = store.getCurrentLevelMinExp(s.level);
-                        s.nextLevelExp = store.getNextLevelThreshold(s.level);
+                        s.level = typeof store.calcLevel === 'function' ? store.calcLevel(s.exp) : (typeof store.calculateLevel === 'function' ? store.calculateLevel(s.exp) : 0);
+                        s.visualStage = typeof store.calcVisualStage === 'function' ? store.calcVisualStage(s.level) : (typeof store.getVisualStage === 'function' ? store.getVisualStage(s.level) : 0);
+                        s.minExpForCurrentLevel = typeof store.getCurrentLevelMinExp === 'function' ? store.getCurrentLevelMinExp(s.level) : 0;
+                        s.nextLevelExp = typeof store.getNextLevelThreshold === 'function' ? store.getNextLevelThreshold(s.level) : 15;
                         if (s.activeSubject && s.pets[s.activeSubject]) {
                             s.pets[s.activeSubject].exp = s.exp;
                             s.pets[s.activeSubject].level = s.level;
@@ -1910,27 +1817,18 @@
         }
 
         // ==========================================
-        // 电子宠物升级经验阈值与阶段进阶设置控制器
+        // 电子宠物升级经验阈值与阶段进阶设置控制器 (第16点：极简触控版)
         // ==========================================
         function openLevelThresholdsModal() {
             const curThresholds = store.getLevelThresholds();
-            const curStages = store.getStageMinLevels();
-            
             const hatchVal = curThresholds[1] || 15;
             const stepVal = (curThresholds[2] && curThresholds[1]) ? Math.max(5, curThresholds[2] - curThresholds[1]) : 20;
+            
             const qH = document.getElementById('quickHatchExp');
             if (qH) qH.value = hatchVal;
             const qS = document.getElementById('quickStepExp');
             if (qS) qS.value = stepVal;
-            const prevH = document.getElementById('prevHatchExp');
-            if (prevH) prevH.textContent = hatchVal;
 
-            document.getElementById('stageMinLevel2').value = curStages[2]?.minLevel || 4;
-            document.getElementById('stageMinLevel3').value = curStages[3]?.minLevel || 8;
-            document.getElementById('stageMinLevel4').value = curStages[4]?.minLevel || 13;
-            document.getElementById('stageMinLevel5').value = curStages[5]?.minLevel || 20;
-
-            renderThresholdInputs(curThresholds);
             updateStageEvolutionPreview();
             document.getElementById('modalLevelThresholds').style.display = 'flex';
         }
@@ -1939,299 +1837,87 @@
             document.getElementById('modalLevelThresholds').style.display = 'none';
         }
 
-        // 🌟 动态三方联动更新器：实时同步时间线（含等级与经验分）、阶段卡片经验预估与 20 级变身标签
         function updateStageEvolutionPreview() {
-            const s2 = parseInt(document.getElementById('stageMinLevel2')?.value, 10) || 4;
-            const s3 = parseInt(document.getElementById('stageMinLevel3')?.value, 10) || 8;
-            const s4 = parseInt(document.getElementById('stageMinLevel4')?.value, 10) || 13;
-            const s5 = parseInt(document.getElementById('stageMinLevel5')?.value, 10) || 20;
+            const hatchExp = parseInt(document.getElementById('quickHatchExp')?.value, 10) || 15;
+            const stepExp = parseInt(document.getElementById('quickStepExp')?.value, 10) || 20;
 
-            // 1. 读取 20 级输入框数值以展示对应阶段所需累计经验分
-            const getExpAtLevel = (lvl) => {
-                const inp = document.getElementById(`thresh_input_${lvl}`);
-                if (inp) return parseInt(inp.value, 10) || 0;
-                return 0;
-            };
-
-            // 2. 实时更新顶部演化时间线：展示等级与对应累计经验分
+            const p1 = document.getElementById('prevHatchExp');
             const p2 = document.getElementById('prevStage2Text');
             const p3 = document.getElementById('prevStage3Text');
             const p4 = document.getElementById('prevStage4Text');
             const p5 = document.getElementById('prevStage5Text');
-            if (p2) p2.textContent = `Lv.${s2} (${getExpAtLevel(s2)}分)`;
-            if (p3) p3.textContent = `Lv.${s3} (${getExpAtLevel(s3)}分)`;
-            if (p4) p4.textContent = `Lv.${s4} (${getExpAtLevel(s4)}分)`;
-            if (p5) p5.textContent = `Lv.${s5} (${getExpAtLevel(s5)}分)`;
 
-            const h2 = document.getElementById('stage2ExpHint');
-            const h3 = document.getElementById('stage3ExpHint');
-            const h4 = document.getElementById('stage4ExpHint');
-            const h5 = document.getElementById('stage5ExpHint');
-            if (h2) h2.textContent = `达到 Lv.${s2} (约需 ${getExpAtLevel(s2)} 分)`;
-            if (h3) h3.textContent = `达到 Lv.${s3} (约需 ${getExpAtLevel(s3)} 分)`;
-            if (h4) h4.textContent = `达到 Lv.${s4} (约需 ${getExpAtLevel(s4)} 分)`;
-            if (h5) h5.textContent = `达到 Lv.${s5} (约需 ${getExpAtLevel(s5)} 分)`;
-
-            // 3. 实时高亮下方 20 级卡片中的变身阶段彩色标签
-            for (let l = 1; l <= 20; l++) {
-                const tag = document.getElementById(`thresh_tag_${l}`);
-                if (tag) {
-                    if (l === 1) {
-                        tag.innerHTML = `Lv.1 <span style="color:#D97706; font-size:10px; font-weight:900;">🐣破壳</span>`;
-                    } else if (l === s2) {
-                        tag.innerHTML = `Lv.${l} <span style="color:#2563EB; font-size:10px; font-weight:900;">🐾少年</span>`;
-                    } else if (l === s3) {
-                        tag.innerHTML = `Lv.${l} <span style="color:#7C3AED; font-size:10px; font-weight:900;">🦊进阶</span>`;
-                    } else if (l === s4) {
-                        tag.innerHTML = `Lv.${l} <span style="color:#059669; font-size:10px; font-weight:900;">🦄青年</span>`;
-                    } else if (l === s5) {
-                        tag.innerHTML = `Lv.${l} <span style="color:#DC2626; font-size:10px; font-weight:900;">👑神兽</span>`;
-                    } else {
-                        tag.textContent = `Lv.${l}`;
-                    }
-                }
-            }
+            if (p1) p1.textContent = `${hatchExp}`;
+            if (p2) p2.textContent = `Lv.4 (${hatchExp + 3 * stepExp}分)`;
+            if (p3) p3.textContent = `Lv.8 (${hatchExp + 7 * stepExp}分)`;
+            if (p4) p4.textContent = `Lv.13 (${hatchExp + 12 * stepExp}分)`;
+            if (p5) p5.textContent = `Lv.20 (${hatchExp + 19 * stepExp}分)`;
         }
 
-        // 🌟 核心级联推挤算法 (Cascade Adjustment)：
-        // 确保 1 < s2 < s3 < s4 < s5 <= 20，调整前置阶段时自动同步后推后置阶段，绝不发生阶段倒挂
-        function stepStageLevel(stageNum, delta) {
-            let s2 = parseInt(document.getElementById('stageMinLevel2')?.value, 10) || 4;
-            let s3 = parseInt(document.getElementById('stageMinLevel3')?.value, 10) || 8;
-            let s4 = parseInt(document.getElementById('stageMinLevel4')?.value, 10) || 13;
-            let s5 = parseInt(document.getElementById('stageMinLevel5')?.value, 10) || 20;
-
-            if (delta > 0) {
-                // 正向推挤：撞击到后置阶段时，连锁推动后置阶段
-                if (stageNum === 2) {
-                    s2++;
-                    if (s2 >= s3) s3 = s2 + 1;
-                    if (s3 >= s4) s4 = s3 + 1;
-                    if (s4 >= s5) s5 = s4 + 1;
-                    if (s5 > 20) {
-                        showClassroomToast('⚠️ 各阶段无法继续后移 (满级上限为 Lv.20)');
-                        return;
-                    }
-                } else if (stageNum === 3) {
-                    s3++;
-                    if (s3 >= s4) s4 = s3 + 1;
-                    if (s4 >= s5) s5 = s4 + 1;
-                    if (s5 > 20) {
-                        showClassroomToast('⚠️ 阶段 3 无法继续后移 (已触及神兽上限)');
-                        return;
-                    }
-                } else if (stageNum === 4) {
-                    s4++;
-                    if (s4 >= s5) s5 = s4 + 1;
-                    if (s5 > 20) {
-                        showClassroomToast('⚠️ 青年期无法继续后移 (已触及神兽上限)');
-                        return;
-                    }
-                } else if (stageNum === 5) {
-                    if (s5 < 20) s5++;
-                    else {
-                        showClassroomToast('💡 满级神兽最高设定为 Lv.20');
-                        return;
-                    }
-                }
-            } else if (delta < 0) {
-                // 逆向递减：保证单调性，绝不小于前置门槛
-                if (stageNum === 2) {
-                    if (s2 > 2) s2--;
-                    else {
-                        showClassroomToast('💡 少年期门槛最低为 Lv.2 (Lv.1固定为幼宠破壳)');
-                        return;
-                    }
-                } else if (stageNum === 3) {
-                    if (s3 > s2 + 1) s3--;
-                    else {
-                        showClassroomToast(`💡 进阶形态不能低于少年期 (Lv.${s2}) + 1 级`);
-                        return;
-                    }
-                } else if (stageNum === 4) {
-                    if (s4 > s3 + 1) s4--;
-                    else {
-                        showClassroomToast(`💡 青年期不能低于进阶形态 (Lv.${s3}) + 1 级`);
-                        return;
-                    }
-                } else if (stageNum === 5) {
-                    if (s5 > s4 + 1) s5--;
-                    else {
-                        showClassroomToast(`💡 究极神兽不能低于青年进阶 (Lv.${s4}) + 1 级`);
-                        return;
-                    }
-                }
-            }
-
-            document.getElementById('stageMinLevel2').value = s2;
-            document.getElementById('stageMinLevel3').value = s3;
-            document.getElementById('stageMinLevel4').value = s4;
-            document.getElementById('stageMinLevel5').value = s5;
-            updateStageEvolutionPreview();
-        }
-
-        function stepThreshLevel(l, delta) {
-            const input = document.getElementById(`thresh_input_${l}`);
+        function stepHatchExp(delta) {
+            const input = document.getElementById('quickHatchExp');
             if (!input) return;
-            let val = parseInt(input.value, 10) || 0;
-            val = Math.max(1, Math.min(99999, val + delta));
+            let val = parseInt(input.value, 10) || 15;
+            val = Math.max(5, Math.min(100, val + delta));
             input.value = val;
-            if (l === 1) {
-                const prevH = document.getElementById('prevHatchExp');
-                if (prevH) prevH.textContent = val;
-                const quickH = document.getElementById('quickHatchExp');
-                if (quickH) quickH.value = val;
-            }
             updateStageEvolutionPreview();
         }
 
-        function handleThreshManualInput(l) {
-            const input = document.getElementById(`thresh_input_${l}`);
+        function stepStepExp(delta) {
+            const input = document.getElementById('quickStepExp');
             if (!input) return;
-            let val = parseInt(input.value, 10);
-            if (isNaN(val) || val < 1) val = 1;
+            let val = parseInt(input.value, 10) || 20;
+            val = Math.max(5, Math.min(100, val + delta));
             input.value = val;
-            if (l === 1) {
-                const prevH = document.getElementById('prevHatchExp');
-                if (prevH) prevH.textContent = val;
-                const quickH = document.getElementById('quickHatchExp');
-                if (quickH) quickH.value = val;
-            }
-            updateStageEvolutionPreview();
-        }
-
-        function renderThresholdInputs(thresholds) {
-            const grid = document.getElementById('thresholdInputsGrid');
-            if (!grid) return;
-            grid.innerHTML = '';
-            for (let l = 1; l <= 20; l++) {
-                const val = thresholds[l] !== undefined ? thresholds[l] : (l * 20);
-                const card = document.createElement('div');
-                card.className = 'thresh-level-card';
-                card.innerHTML = `
-                    <span class="thresh-level-tag" id="thresh_tag_${l}">Lv.${l}</span>
-                    <div class="stepper-box mini">
-                        <button type="button" class="stepper-btn" onclick="stepThreshLevel(${l}, -5)" title="经验减少 5 分">−</button>
-                        <input type="text" id="thresh_input_${l}" value="${val}" class="stepper-val" onchange="handleThreshManualInput(${l})" />
-                        <button type="button" class="stepper-btn" onclick="stepThreshLevel(${l}, 5)" title="经验增加 5 分">+</button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            }
             updateStageEvolutionPreview();
         }
 
         function applyThresholdPreset(type) {
-            let t = [0];
             let hatch = 15;
             let step = 20;
-            let s2 = 4, s3 = 8, s4 = 13, s5 = 20;
-
             if (type === 'fast') {
                 hatch = 10;
                 step = 10;
-                for (let i = 1; i <= 20; i++) t.push(i * 10);
-                s2 = 3; s3 = 6; s4 = 10; s5 = 15; // 极速示范档 15 级提前封顶神兽
-            } else if (type === 'standard') {
-                hatch = 15;
-                step = 25;
-                t = [0, 15, 35, 60, 90, 125, 165, 210, 260, 315, 375, 440, 510, 585, 665, 750, 840, 935, 1035, 1140, 1250];
-                s2 = 4; s3 = 8; s4 = 13; s5 = 20;
             } else if (type === 'regular') {
                 hatch = 15;
                 step = 20;
-                t.push(15);
-                for (let i = 2; i <= 20; i++) t.push(15 + (i - 1) * 20);
-                s2 = 4; s3 = 8; s4 = 13; s5 = 20;
             } else if (type === 'long') {
                 hatch = 20;
                 step = 50;
-                t.push(20);
-                for (let i = 2; i <= 20; i++) t.push(20 + (i - 1) * 50);
-                s2 = 4; s3 = 8; s4 = 14; s5 = 20;
             }
 
-            const qHatch = document.getElementById('quickHatchExp');
-            const qStep = document.getElementById('quickStepExp');
-            if (qHatch) qHatch.value = hatch;
-            if (qStep) qStep.value = step;
-            const prevH = document.getElementById('prevHatchExp');
-            if (prevH) prevH.textContent = hatch;
+            const qH = document.getElementById('quickHatchExp');
+            const qS = document.getElementById('quickStepExp');
+            if (qH) qH.value = hatch;
+            if (qS) qS.value = step;
 
-            document.getElementById('stageMinLevel2').value = s2;
-            document.getElementById('stageMinLevel3').value = s3;
-            document.getElementById('stageMinLevel4').value = s4;
-            document.getElementById('stageMinLevel5').value = s5;
-
-            renderThresholdInputs(t);
             updateStageEvolutionPreview();
-            showClassroomToast(`⚡ 已套用 [${type === 'fast' ? '极速示范档' : (type === 'long' ? '学年长跑档' : '学期平稳档')}] 升级规则！`);
-        }
-
-        function generateLinearThresholds(showToast = true) {
-            const hatchExp = parseInt(document.getElementById('quickHatchExp').value, 10) || 15;
-            const stepExp = parseInt(document.getElementById('quickStepExp').value, 10) || 20;
-            const t = [0, hatchExp];
-            for (let i = 2; i <= 20; i++) {
-                t.push(hatchExp + (i - 1) * stepExp);
-            }
-            const prevH = document.getElementById('prevHatchExp');
-            if (prevH) prevH.textContent = hatchExp;
-            renderThresholdInputs(t);
-            updateStageEvolutionPreview();
-            if (showToast) {
-                showClassroomToast(`⚡ 已生成：破壳 ${hatchExp} 分，每级递增 ${stepExp} 分`);
-            }
+            showClassroomToast(`已套用 [${type === 'fast' ? '⚡ 极速示范档' : (type === 'long' ? '🏔️ 学年长跑档' : '🎯 学期平稳档')}] 升级规则！`);
         }
 
         function saveCustomThresholds() {
-            const t = [0];
-            for (let l = 1; l <= 20; l++) {
-                const inp = document.getElementById(`thresh_input_${l}`);
-                const val = parseInt(inp ? inp.value : '0', 10) || 0;
+            const hatchExp = parseInt(document.getElementById('quickHatchExp')?.value, 10) || 15;
+            const stepExp = parseInt(document.getElementById('quickStepExp')?.value, 10) || 20;
 
-                // 🌟 前置单调性合法性校验：严禁经验数值倒挂或零经验跨级
-                if (val <= t[l - 1]) {
-                    showClassroomAlert(
-                        `⚠️ 经验值设置不合法：\n\nLv.${l} 的经验值 (${val}分) 必须严格大于上一级 Lv.${l - 1} (${t[l - 1]}分)！\n\n请检查并修正各等级经验的递增顺序后再保存。`,
-                        '输入验证提示',
-                        '⚠️'
-                    );
-                    if (inp) {
-                        inp.focus();
-                        inp.select();
-                        // 如果在折叠面板内，确保展开
-                        const details = document.querySelector('#modalLevelThresholds details');
-                        if (details) details.open = true;
-                    }
-                    return;
-                }
-                t.push(val);
-            }
-            const s2 = parseInt(document.getElementById('stageMinLevel2').value, 10) || 4;
-            const s3 = parseInt(document.getElementById('stageMinLevel3').value, 10) || 8;
-            const s4 = parseInt(document.getElementById('stageMinLevel4').value, 10) || 13;
-            const s5 = parseInt(document.getElementById('stageMinLevel5').value, 10) || 20;
-
-            if (!(1 < s2 && s2 < s3 && s3 < s4 && s4 < s5 && s5 <= 20)) {
-                showClassroomAlert('⚠️ 阶段门槛等级设置不合法，各阶段必须满足严格单调递增关系！', '阶段验证提示', '⚠️');
-                return;
+            const t = [0, hatchExp];
+            for (let i = 2; i <= 20; i++) {
+                t.push(hatchExp + (i - 1) * stepExp);
             }
 
             const stages = [
                 { stage: 0, minLevel: 0, code: 'egg', name: '初始宠物蛋' },
                 { stage: 1, minLevel: 1, code: 'form1', name: '幼宠期' },
-                { stage: 2, minLevel: s2, code: 'form2', name: '少年期' },
-                { stage: 3, minLevel: s3, code: 'form3', name: '进阶形态' },
-                { stage: 4, minLevel: s4, code: 'form4', name: '青年进阶' },
-                { stage: 5, minLevel: s5, code: 'form5', name: '究极神兽' }
+                { stage: 2, minLevel: 4, code: 'form2', name: '少年期' },
+                { stage: 3, minLevel: 8, code: 'form3', name: '进阶形态' },
+                { stage: 4, minLevel: 13, code: 'form4', name: '青年进阶' },
+                { stage: 5, minLevel: 20, code: 'form5', name: '究极神兽' }
             ];
 
             const res = store.saveLevelThresholds(t, stages);
             if (res.success) {
                 closeLevelThresholdsModal();
                 renderStudentList();
-                showClassroomToast('✅ 升级经验阈值与阶段进阶已成功更新并应用至全班！');
+                showClassroomToast('✅ 升级节奏已成功应用至全班！大屏即刻同步！');
             } else {
                 showClassroomAlert('保存失败: ' + res.error, '保存提示', '❌');
             }
@@ -2239,10 +1925,15 @@
 
         function resetToDefaultThresholds() {
             showClassroomConfirm(
-                '确定要恢复为官方标准的 20 级经验阈值吗？\n恢复后全班学生将根据官方平滑进阶梯度重新计算等级。',
+                '确定要恢复为官方标准的 20 级经验阈值吗？\n恢复后全班学生将根据官方梯度重新计算等级。',
                 '恢复官方默认阈值',
                 () => {
                     store.resetLevelThresholds();
+                    const qH = document.getElementById('quickHatchExp');
+                    const qS = document.getElementById('quickStepExp');
+                    if (qH) qH.value = 15;
+                    if (qS) qS.value = 20;
+                    updateStageEvolutionPreview();
                     closeLevelThresholdsModal();
                     renderStudentList();
                     showClassroomToast('↺ 已恢复为官方标准等级阈值！');

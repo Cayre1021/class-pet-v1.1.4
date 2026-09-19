@@ -106,52 +106,52 @@
             transition: background 0.15s, color 0.15s;
         }
 
-        /* 🌟 顶部操作横条强化：高度加倍至 92px，按键高 54px，超大触控靶区，适配教室壁挂一体机 */
+        /* 🌟 顶部操作横条强化：精简瘦身至 48px，释放整整 44px 垂直屏幕给学生卡片 */
         .stage-header-pro {
             background: var(--card-bg);
-            border-bottom: 3.5px solid var(--border);
-            padding: 0 20px;
+            border-bottom: 2.5px solid var(--border);
+            padding: 0 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 92px;
-            min-height: 92px;
+            height: 48px;
+            min-height: 48px;
             z-index: 100;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.08);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.06);
             overflow: visible;
             box-sizing: border-box;
         }
 
-        /* 顶部大靶区触控按键 (高度54px，字号15px，不换行，永不截断) */
+        /* 顶部大靶区触控按键 (高度34px，字号13px，紧凑排布) */
         .btn-header-touch {
-            height: 54px;
-            padding: 0 16px;
-            border: 2.5px solid var(--border);
+            height: 34px;
+            padding: 0 12px;
+            border: 2px solid var(--border);
             background: var(--bg-secondary);
             color: var(--text-primary);
             font-weight: 900;
-            font-size: 15px;
+            font-size: 13px;
             cursor: pointer;
-            box-shadow: 3px 3px 0 var(--shadow-color);
+            box-shadow: 2px 2px 0 var(--shadow-color);
             transition: transform 0.08s, box-shadow 0.08s;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             white-space: nowrap;
             flex-shrink: 0;
             box-sizing: border-box;
             border-radius: 4px;
         }
-        .btn-header-touch:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow-color); }
+        .btn-header-touch:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--shadow-color); }
 
         .view-mode-tabs-pro {
             display: flex;
-            gap: 4px;
+            gap: 3px;
             background: var(--bg-secondary);
-            padding: 3px;
-            border: 2.5px solid var(--border);
-            height: 54px;
+            padding: 2px;
+            border: 2px solid var(--border);
+            height: 34px;
             align-items: center;
             flex-shrink: 0;
             white-space: nowrap;
@@ -160,11 +160,11 @@
         }
 
         .btn-view-tab-pro {
-            height: 44px;
-            padding: 0 14px;
-            border: 2px solid transparent;
+            height: 28px;
+            padding: 0 10px;
+            border: 1.5px solid transparent;
             background: transparent;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 900;
             color: var(--text-primary);
             cursor: pointer;
@@ -177,7 +177,7 @@
         .btn-view-tab-pro.active {
             background: var(--card-bg);
             border-color: var(--border);
-            box-shadow: 2px 2px 0 var(--shadow-color);
+            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
             color: var(--accent);
         }
 
@@ -441,62 +441,63 @@
             transition: height 0.15s;
         }
 
-        /* 🌟 触控缩放控制器与预设弹出菜单 (强化至 54px 高，按键 44px 高) */
+        /* 🌟 触控缩放控制器与预设弹出菜单 */
         .scale-control-box {
             display: inline-flex;
             align-items: center;
             background: var(--bg-secondary);
-            border: 2.5px solid var(--border);
-            height: 54px;
-            padding: 3px 8px;
-            gap: 6px;
-            box-shadow: 2.5px 2.5px 0 var(--shadow-color);
+            border: 2px solid var(--border);
+            height: 34px;
+            padding: 2px 6px;
+            gap: 4px;
+            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
             position: relative;
             box-sizing: border-box;
             border-radius: 4px;
         }
         .btn-scale-step {
-            width: 44px;
-            height: 44px;
-            border: 2px solid var(--border);
+            width: 26px;
+            height: 26px;
+            border: 1.5px solid var(--border);
             background: var(--card-bg);
             color: var(--text-primary);
-            font-size: 18px;
+            font-size: 13px;
             font-weight: 900;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 2px 2px 0 var(--shadow-color);
+            box-shadow: 1px 1px 0 var(--shadow-color);
             transition: transform 0.08s, box-shadow 0.08s;
             user-select: none;
             border-radius: 3px;
         }
         .btn-scale-step:active {
-            transform: translate(1.5px, 1.5px);
-            box-shadow: 0.5px 0.5px 0 var(--shadow-color);
+            transform: translate(1px, 1px);
+            box-shadow: 0 0 0 var(--shadow-color);
         }
         .btn-scale-value {
-            height: 44px;
-            min-width: 72px;
-            padding: 0 8px;
-            border: 2px solid var(--border);
+            height: 26px;
+            min-width: 56px;
+            padding: 0 6px;
+            border: 1.5px solid var(--border);
             background: var(--card-bg);
             color: var(--text-primary);
             font-family: monospace;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 900;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 3px;
-            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
+            gap: 2px;
+            box-shadow: 1px 1px 0 var(--shadow-color);
             user-select: none;
+            border-radius: 3px;
         }
         .btn-scale-value:active {
             transform: translate(1px, 1px);
-            box-shadow: 0.5px 0.5px 0 var(--shadow-color);
+            box-shadow: 0 0 0 var(--shadow-color);
         }
         .scale-preset-popover {
             position: absolute;
@@ -799,15 +800,15 @@
 </head>
 <body>
 
-    <!-- 顶部大靶区操作横条 (高度 92px，触控靶区加倍，单行流线排布) -->
+    <!-- 顶部操作横条 (高度 48px，精简紧凑) -->
     <div class="stage-header-pro">
         <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;">
             <button class="btn-header-touch" onclick="goToPortal()">← 门户</button>
             <button class="btn-header-touch" style="background: var(--accent); color: white;" onclick="openTeacherWorkstation()">⚡ 工作台</button>
-            <h1 style="font-size: 19px; font-weight: 900; white-space: nowrap; margin: 0 4px; display: inline-flex; align-items: center; gap: 6px;">
+            <h1 style="font-size: 17px; font-weight: 900; white-space: nowrap; margin: 0 4px; display: inline-flex; align-items: center; gap: 6px;">
                 <span>🐾 电子宠物 · 学生大屏</span>
             </h1>
-            <span id="headerClassBadge" style="font-size: 13px; font-family: monospace; font-weight: 900; background: var(--tag-bg); padding: 4px 10px; border: 2px solid var(--border); white-space: nowrap;">班级加载中...</span>
+            <span id="headerClassBadge" style="font-size: 12px; font-family: monospace; font-weight: 900; background: var(--tag-bg); padding: 3px 8px; border: 1.5px solid var(--border); white-space: nowrap;">班级加载中...</span>
 
             <div class="view-mode-tabs-pro">
                 <button class="btn-view-tab-pro active" id="tabGrid" onclick="switchView('grid')">🔲 卡片</button>
@@ -817,15 +818,15 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;">
-            <!-- 顶部卡片尺寸快捷微调 (54px 大靶区) -->
+            <!-- 顶部卡片尺寸快捷微调 -->
             <div class="scale-control-box">
-                <span style="font-size: 13px; font-weight: 900; margin: 0 2px;">🔍</span>
-                <button class="btn-scale-step" onclick="adjustScale(-0.1)" title="卡片缩小 (更紧凑/容纳更多)">➖</button>
+                <span style="font-size: 12px; font-weight: 900; margin: 0 1px;">🔍</span>
+                <button class="btn-scale-step" onclick="adjustScale(-0.1)" title="卡片缩小">➖</button>
                 <button class="btn-scale-value" id="topScaleBadge" onclick="toggleHeaderScaleMenu(event)" title="点击切换缩放预设档位">
                     <span id="topScaleLabel">100%</span>
-                    <span style="font-size: 11px;">▼</span>
+                    <span style="font-size: 10px;">▼</span>
                 </button>
-                <button class="btn-scale-step" onclick="adjustScale(0.1)" title="卡片放大 (更清晰醒目)">➕</button>
+                <button class="btn-scale-step" onclick="adjustScale(0.1)" title="卡片放大">➕</button>
                 
                 <div id="headerScaleMenu" class="scale-preset-popover header-popover">
                     <div style="font-size: 11px; font-weight: 900; color: var(--text-secondary); padding: 3px 6px; border-bottom: 1.5px solid var(--border);">卡片比例预设</div>
@@ -838,7 +839,7 @@
             </div>
 
             <button class="btn-header-touch" onclick="toggleAppFullscreen()">⛶ 全屏</button>
-            <select class="btn-header-touch" style="outline: none; cursor: pointer; height: 54px; padding: 0 10px; font-size: 14px;" id="themeSelect" onchange="setGlobalTheme(this.value, event)">
+            <select class="btn-header-touch" style="outline: none; cursor: pointer; height: 34px; padding: 0 8px; font-size: 13px;" id="themeSelect" onchange="setGlobalTheme(this.value, event)">
                 <option value="classic">🎨 经典</option>
                 <option value="dark">🌙 暗夜</option>
                 <option value="orange">🍊 橙红</option>
@@ -887,29 +888,29 @@
         </button>
 
         <div id="classpetRadialMenu" class="classpet-radial-menu">
-            <button class="radial-item r-item-1" onclick="handleRadialAction('sortNo')" title="学号排序">
-                <span>🔢</span>
-                <small>学号</small>
+            <button class="radial-item r-item-1" onclick="handleRadialAction('viewGrid')" title="学生卡片视图">
+                <span>🔲</span>
+                <small>卡片</small>
             </button>
-            <button class="radial-item r-item-2" onclick="handleRadialAction('sortLevel')" title="等级排行">
-                <span>⭐</span>
-                <small>排行</small>
+            <button class="radial-item r-item-2" onclick="handleRadialAction('viewSeat')" title="班级座位视图">
+                <span>🪑</span>
+                <small>座位</small>
             </button>
-            <button class="radial-item r-item-3" onclick="handleRadialAction('fullscreen')" title="全屏切换">
-                <span>⛶</span>
-                <small>全屏</small>
+            <button class="radial-item r-item-3" onclick="handleRadialAction('viewPK')" title="四大组竞速PK榜">
+                <span>🏆</span>
+                <small>PK榜</small>
             </button>
-            <button class="radial-item r-item-4" onclick="handleRadialAction('theme')" title="切换主题">
-                <span>🎨</span>
-                <small>主题</small>
+            <button class="radial-item r-item-4" onclick="handleRadialAction('cycleScale')" title="循环切换卡片缩放比例">
+                <span>🔍</span>
+                <small>缩放</small>
             </button>
-            <button class="radial-item r-item-5" onclick="handleRadialAction('reach')" title="屏幕下沉">
-                <span>⬇️</span>
-                <small>下沉</small>
-            </button>
-            <button class="radial-item r-item-6" onclick="handleRadialAction('teacher')" title="教师工作台">
+            <button class="radial-item r-item-5" onclick="handleRadialAction('teacher')" title="打开教师触控工作台">
                 <span>⚡</span>
                 <small>工作台</small>
+            </button>
+            <button class="radial-item r-item-6" onclick="handleRadialAction('fullscreen')" title="全屏切换">
+                <span>⛶</span>
+                <small>全屏</small>
             </button>
         </div>
     </div>
@@ -963,6 +964,12 @@
                         <div id="modalHatchTriggerBox" style="display: none; margin-top: 8px;">
                             <button class="btn-header-touch" style="width: 100%; height: 46px; background: linear-gradient(135deg, #F59E0B, #D97706); color: white; font-size: 14px; font-weight: 900; justify-content: center; box-shadow: 3px 3px 0 #000; border-color: #000; animation: pulseHatch 1.5s infinite;" onclick="openHatchFromDetailsModal()">
                                 🐣 经验已达标，立即破壳认领专属电子宠物！
+                            </button>
+                        </div>
+                        <!-- 🌟 形态进阶原地突破条 (第15点：恢复从底部升腾烟花与进阶突破) -->
+                        <div id="modalEvolveTriggerBox" style="display: none; margin-top: 8px;">
+                            <button class="btn-header-touch" style="width: 100%; height: 46px; background: linear-gradient(135deg, #8B5CF6, #6D28D9); color: white; font-size: 14px; font-weight: 900; justify-content: center; box-shadow: 3px 3px 0 #000; border-color: #000; animation: pulseHatch 1.4s infinite;" onclick="triggerEvolveFromDetailsModal()">
+                                🌟 萌宠达成进阶条件！立即蜕变突破进阶形态！
                             </button>
                         </div>
                     </div>
@@ -1228,12 +1235,22 @@
                 const s5L = stages[5]?.minLevel || 20;
 
                 // 第2点：严格按精确学生对象指针或ID定位，彻底杜绝学号数值运算或索引溢出导致的“小红升级弹出小明”串人 Bug
-                const targetStudent = payload.student || store.students.find(s => s.id === payload.studentId) || store.students[0];
+                // 核心修复：只有明确触发升级 (isLevelUp === true) 时才触发庆祝弹窗，杜绝给已有等级学生加分反复弹窗
+                if (payload.isLevelUp) {
+                    const leveledStudents = (payload.leveledUpStudents && payload.leveledUpStudents.length > 0)
+                        ? payload.leveledUpStudents
+                        : (payload.student ? [payload.student] : (payload.studentId ? [store.students.find(s => s.id === payload.studentId)].filter(Boolean) : []));
 
-                if (payload.newLevel >= 20 || payload.newLevel >= s5L) {
-                    triggerFullFireworksCelebration(targetStudent);
-                } else if ([s2L, s3L, s4L].includes(payload.newLevel)) {
-                    triggerSpotlightCelebration(targetStudent, payload.newLevel);
+                    leveledStudents.forEach(st => {
+                        if (!st) return;
+                        if (st.level >= 20 || st.level >= s5L) {
+                            triggerFullFireworksCelebration(st);
+                        } else if ([s2L, s3L, s4L].includes(st.level)) {
+                            triggerSpotlightCelebration(st, st.level);
+                        } else {
+                            triggerSpotlightCelebration(st, st.level, `恭喜晋升至 Lv.${st.level}！`);
+                        }
+                    });
                 }
             } else if (event === 'RANDOM_PICK' && payload && payload.chosenId) {
                 openStudentDetailsModal(payload.chosenId);
@@ -1255,13 +1272,13 @@
         let bubbleHideTimer = null;
 
         function updateHeaderClassInfo() {
-            const acc = store.getCurrentAccount ? store.getCurrentAccount() : { className: '三年级二班' };
+            const acc = store.getCurrentAccount ? store.getCurrentAccount() : { className: '三年级二班', teacherName: '刘老师', subject: '语文' };
             const activeCount = store.students.filter(s => !s.isArchived).length;
             const badge = document.getElementById('headerClassBadge');
             if (badge) {
                 const isPreset = acc.id === 'acc_demo_302' || acc.id === 'acc_demo_401' || acc.isPreset;
                 const tag = isPreset ? ' [演示示例]' : '';
-                badge.textContent = `${acc.className || '新班级'}${tag} (${activeCount}人)`;
+                badge.textContent = `${acc.className || '三年级二班'} (${acc.teacherName || '教师'} · ${acc.subject || '综合'})${tag} · ${activeCount}人`;
             }
         }
 
@@ -1295,7 +1312,7 @@
             }
 
             const cardsHtml = activeStudents.map(s => {
-                const pet = s.pets[s.activeSubject] || s.pets.chinese;
+                const pet = (s.pets && (s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { subject: '语文', name: '小宠', icon: '🐣', visualStage: 1, species: 'egg' };
                 const currentMin = s.minExpForCurrentLevel || 0;
                 const nextMax = s.nextLevelExp || 1250;
                 const percent = Math.min(100, Math.max(0, Math.round(((s.exp - currentMin) / Math.max(1, nextMax - currentMin)) * 100)));
@@ -1678,7 +1695,7 @@
         function refreshModal() {
             if (!activeModalStudent) return;
             const s = activeModalStudent;
-            const pet = s.pets[activeModalSubject] || s.pets.chinese;
+            const pet = (s.pets && (s.pets[activeModalSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { subject: '语文', name: '小宠', icon: '🐣', visualStage: 1, species: 'egg', exp: s.exp, level: s.level };
 
             document.getElementById('modalStudentName').textContent = `${s.name} · #${s.no}`;
             document.getElementById('modalStudentSub').textContent = `三年级二班 · 第 ${s.group} 大组 · ${pet.subject}专属空间`;
@@ -1703,13 +1720,28 @@
 
             // 第15点：宠物卡片内直接点击孵化，告别退回大屏
             const hatchThresh = store.getHatchThreshold ? store.getHatchThreshold() : 15;
+            const canHatch = !s.isHatched && s.exp >= hatchThresh;
             const hatchBox = document.getElementById('modalHatchTriggerBox');
             if (hatchBox) {
-                if (!s.isHatched && s.exp >= hatchThresh) {
-                    hatchBox.style.display = 'block';
-                } else {
-                    hatchBox.style.display = 'none';
-                }
+                hatchBox.style.display = canHatch ? 'block' : 'none';
+            }
+            if (canHatch) {
+                heroImg.style.cursor = 'pointer';
+                heroImg.title = '🌟 萌宠蛋已积攒满破壳能量，点击立即破壳！';
+                heroImg.onclick = openHatchFromDetailsModal;
+            } else {
+                heroImg.style.cursor = 'default';
+                heroImg.title = '';
+                heroImg.onclick = null;
+            }
+
+            // 第15点：宠物形态进阶突破检测与操作条 (Stage 2~5 突破)
+            const curStage = pet.visualStage || 1;
+            const expectedStage = store.calcVisualStage ? store.calcVisualStage(pet.level) : 1;
+            const canEvolve = s.isHatched && (s.stamp === 'EVOLVE' || expectedStage > curStage || (pet.level >= 4 && curStage < 2) || (pet.level >= 8 && curStage < 3) || (pet.level >= 13 && curStage < 4) || (pet.level >= 20 && curStage < 5));
+            const evolveBox = document.getElementById('modalEvolveTriggerBox');
+            if (evolveBox) {
+                evolveBox.style.display = canEvolve ? 'block' : 'none';
             }
 
             // 更新今日互动收益提示
@@ -1726,6 +1758,38 @@
             const sId = activeModalStudent.id;
             closeDetailsModal();
             openHatchModal(sId);
+        }
+
+        // 第15点：卡片内原地升级宠物形态并绽放烟花
+        function triggerEvolveFromDetailsModal() {
+            if (!activeModalStudent) return;
+            const s = activeModalStudent;
+            const pet = (s.pets && (s.pets[activeModalSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]);
+            if (!pet) return;
+            const targetStage = store.calcVisualStage ? store.calcVisualStage(pet.level) : Math.min(5, (pet.visualStage || 1) + 1);
+            pet.visualStage = targetStage;
+            s.visualStage = targetStage;
+            s.stamp = targetStage >= 5 ? 'MAX' : null;
+            if (s.pets) {
+                Object.values(s.pets).forEach(p => {
+                    if (p.species && p.species !== 'egg') {
+                        p.visualStage = targetStage;
+                        p.image = window.getPetImagePath ? window.getPetImagePath(p.species, targetStage) : '';
+                    }
+                });
+            }
+            store.save();
+            store.broadcast('STATE_SYNC', { students: store.students });
+
+            // 烟花从底部升腾绽放
+            if (window.classroomFireworks && typeof window.classroomFireworks.launchCelebration === 'function') {
+                window.classroomFireworks.launchCelebration(5500, 12);
+            }
+            store.audio.playFanfare();
+
+            refreshModal();
+            renderAll();
+            triggerSpotlightCelebration(s, pet.level, `🎉 恭喜萌宠突破蜕变至【Stage ${targetStage}】进阶形态！`);
         }
 
         function switchModalSubject(sub) {
@@ -1796,13 +1860,16 @@
 
         function closeDetailsModal() { document.getElementById('modalStudentDetails').style.display = 'none'; }
 
-        // 第2点：消除串人 bug，精准查找对应学生对象
+        // 第2点：消除串人 bug，精准查找对应学生对象 (严禁回退到 store.students[0])
         function triggerSpotlightCelebration(target, lvl, customMsg) {
-            const s = (typeof target === 'object' && target !== null)
-                ? target
-                : (store.students.find(x => x.id === target) || store.students[target] || store.students[0]);
+            let s = null;
+            if (typeof target === 'object' && target !== null) {
+                s = target;
+            } else if (target !== undefined && target !== null) {
+                s = store.students.find(x => String(x.id) === String(target));
+            }
             if (!s) return;
-            const pet = s.pets[s.activeSubject] || s.pets.chinese;
+            const pet = (s.pets && (s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { name: s.name, icon: '🐾', species: 'cat', visualStage: s.visualStage || 1, level: s.level || lvl || 1 };
             const imgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(pet.species, pet.visualStage) : '');
             document.getElementById('spotPetIcon').innerHTML = `<img src="${imgSrc}" style="width:130px;height:130px;object-fit:contain;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.18));animation: petHeroFloat 2.6s ease-in-out infinite;" onerror="this.outerHTML='<span style=\\'font-size:72px;\\'>${pet.icon}</span>'" />`;
             document.getElementById('spotStudentName').textContent = `${s.name} (#${s.no})`;
@@ -1812,7 +1879,7 @@
 
             // 第15点：升级/形态变换恢复底部发射礼炮烟花动画
             if (window.classroomFireworks && typeof window.classroomFireworks.launchCelebration === 'function') {
-                window.classroomFireworks.launchCelebration();
+                window.classroomFireworks.launchCelebration(4500, 10);
             }
         }
 
@@ -1822,9 +1889,12 @@
         let fireworksAnimationId = null;
 
         function triggerFullFireworksCelebration(target) {
-            const s = (typeof target === 'object' && target !== null)
-                ? target
-                : (store.students.find(x => x.id === target) || store.students[target] || store.students[0]);
+            let s = null;
+            if (typeof target === 'object' && target !== null) {
+                s = target;
+            } else if (target !== undefined && target !== null) {
+                s = store.students.find(x => String(x.id) === String(target));
+            }
             if (!s) return;
             document.getElementById('fireworksStudentName').textContent = `${s.name} (#${s.no})`;
             document.getElementById('fireworksPetMsg').textContent = `恭喜达成 Lv.20 满级大师形态！`;
@@ -1943,24 +2013,42 @@
 
         function handleRadialAction(action) {
             closeRadialMenu();
-            if (action === 'sortNo') {
-                sortCards('no');
-                showClassroomToast('已按学号升序重排', '🔢');
-            } else if (action === 'sortLevel') {
-                sortCards('level');
-                showClassroomToast('已按等级与经验排行', '⭐');
-            } else if (action === 'fullscreen') {
-                toggleAppFullscreen();
-            } else if (action === 'theme') {
-                const themes = ['classic', 'dark', 'orange', 'forest', 'ocean'];
-                const current = document.documentElement.getAttribute('data-theme') || 'classic';
-                const nextIdx = (themes.indexOf(current) + 1) % themes.length;
-                setGlobalTheme(themes[nextIdx]);
-                showClassroomToast(`已切换主题：${themes[nextIdx]}`, '🎨');
-            } else if (action === 'reach') {
-                toggleReachability();
+            if (action === 'viewGrid') {
+                switchView('grid');
+                showClassroomToast('已切换至【学生卡片】视图', '🔲');
+            } else if (action === 'viewSeat') {
+                switchView('seat');
+                showClassroomToast('已切换至【座位表】视图', '🪑');
+            } else if (action === 'viewPK') {
+                switchView('pk');
+                showClassroomToast('已切换至【四大组竞速PK榜】', '🏆');
+            } else if (action === 'cycleScale') {
+                const scales = [0.8, 1.0, 1.25, 1.5];
+                let curIdx = scales.findIndex(s => Math.abs(s - currentCardScale) < 0.08);
+                if (curIdx === -1) curIdx = 1;
+                let nextIdx = (curIdx + 1) % scales.length;
+                applyCardScale(scales[nextIdx]);
+                showClassroomToast(`卡片缩放比例已切换为：${Math.round(scales[nextIdx] * 100)}%`, '🔍');
             } else if (action === 'teacher') {
                 openTeacherWorkstation();
+            } else if (action === 'fullscreen') {
+                toggleAppFullscreen();
+            }
+        }
+
+        function openTeacherWorkstation() {
+            if (window.electronAPI && typeof window.electronAPI.openTeacherWindow === 'function') {
+                window.electronAPI.openTeacherWindow();
+            } else {
+                window.location.href = './teacher_panel_touch_pro.html';
+            }
+        }
+
+        function goToPortal() {
+            if (window.electronAPI && typeof window.electronAPI.openPortalWindow === 'function') {
+                window.electronAPI.openPortalWindow();
+            } else {
+                window.location.href = './portal_auth.html';
             }
         }
 

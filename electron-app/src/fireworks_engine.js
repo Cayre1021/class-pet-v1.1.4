@@ -166,6 +166,7 @@ class ClassroomFireworksEngine {
             this.ctx.beginPath();
             this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             this.ctx.fillStyle = p.color;
+            this.ctx.fill();
             this.ctx.restore();
         }
 

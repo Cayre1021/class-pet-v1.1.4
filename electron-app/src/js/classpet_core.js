@@ -295,6 +295,7 @@ class ClassPetStore {
         this.initData();
         this.initCustomRules();
         this.bindEvents();
+        this.loadFromSQLite();
     }
 
     initLevelThresholds() {
@@ -433,6 +434,11 @@ class ClassPetStore {
         return Math.max(level, currentMaxLevel);
     }
 
+    // 兼容别名：防止外部调用 calculateLevel 报错
+    calculateLevel(exp, currentMaxLevel = 0) {
+        return this.calcLevel(exp, currentMaxLevel);
+    }
+
     calcVisualStage(level, currentMaxStage = 0) {
         let stage = 0;
         for (let i = STAGE_MIN_LEVELS.length - 1; i >= 0; i--) {
@@ -445,9 +451,106 @@ class ClassPetStore {
         return Math.max(stage, currentMaxStage);
     }
 
+    // 兼容别名：防止外部调用 getVisualStage 报错
+    getVisualStage(level, currentMaxStage = 0) {
+        return this.calcVisualStage(level, currentMaxStage);
+    }
+
     getNextLevelThreshold(level) {
         if (level >= 20) return LEVEL_THRESHOLDS[20];
         return LEVEL_THRESHOLDS[level + 1];
+    }
+
+    // 从本地 SQLite 数据库中真实同步全班数据模型 (第14点：真接入本地数据库)
+    async loadFromSQLite() {
+        if (!window.electronAPI || !window.electronAPI.db || typeof window.electronAPI.db.loadAllState !== 'function') {
+            return false;
+        }
+        try {
+            const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+            const classId = acc.classId || 'c_class02_01';
+            const state = await window.electronAPI.db.loadAllState(classId);
+            if (state && Array.isArray(state.students) && state.students.length > 0) {
+                console.log('[ClassPetStore] 成功从本地 SQLite 数据库载入班级真实状态，学生数:', state.students.length);
+                const spKeys = Object.keys(PET_SPECIES_CATALOG);
+                const loadedStudents = state.students.map((stRow, idx) => {
+                    const stPets = (state.petsByStudent && state.petsByStudent[stRow.id]) ? state.petsByStudent[stRow.id] : {};
+                    const primaryPetRow = stPets.chinese || Object.values(stPets)[0];
+                    const spCode = primaryPetRow ? (primaryPetRow.species_code || 'cat') : spKeys[idx % spKeys.length];
+                    const spInfo = PET_SPECIES_CATALOG[spCode] || PET_SPECIES_CATALOG.cat;
+                    const level = primaryPetRow ? (primaryPetRow.level || 1) : 1;
+                    const exp = primaryPetRow ? (primaryPetRow.exp || 15) : 15;
+                    const stage = primaryPetRow ? (primaryPetRow.visual_stage || 1) : 1;
+                    const isHatched = stage >= 1;
+
+                    return {
+                        id: stRow.id,
+                        no: stRow.student_no || (idx + 1).toString().padStart(2, '0'),
+                        name: stRow.name || `学生${idx + 1}`,
+                        group: parseInt((stRow.group_name || '1').replace(/\D/g, ''), 10) || ((idx % 4) + 1),
+                        level,
+                        exp,
+                        visualStage: stage,
+                        stamp: isHatched ? (level >= 20 ? 'MAX' : null) : 'HATCH',
+                        isHatched,
+                        isAbsent: false,
+                        isArchived: !!stRow.archived_at,
+                        minExpForCurrentLevel: this.getCurrentLevelMinExp(level),
+                        nextLevelExp: this.getNextLevelThreshold(level),
+                        activeSubject: 'chinese',
+                        pets: {
+                            chinese: {
+                                id: stPets.chinese?.id || 'pet_' + stRow.id + '_c',
+                                species: isHatched ? (stPets.chinese?.species_code || spCode) : 'egg',
+                                subject: '语文',
+                                name: isHatched ? (stPets.chinese?.nickname || spInfo.name) : '神秘宠物蛋',
+                                icon: isHatched ? spInfo.icon : '🐣',
+                                image: getPetImagePath(isHatched ? (stPets.chinese?.species_code || spCode) : 'egg', stage),
+                                level: stPets.chinese?.level || level,
+                                exp: stPets.chinese?.exp || exp,
+                                visualStage: stPets.chinese?.visual_stage || stage,
+                                isHatched,
+                                affection: 70, fullness: 80, energy: 80
+                            },
+                            math: {
+                                id: stPets.math?.id || 'pet_' + stRow.id + '_m',
+                                species: (stPets.math && stPets.math.visual_stage >= 1) ? stPets.math.species_code : 'egg',
+                                subject: '数学',
+                                name: (stPets.math && stPets.math.visual_stage >= 1) ? (stPets.math.nickname || '数学萌宠') : '神秘宠物蛋 (待破壳)',
+                                icon: (stPets.math && stPets.math.visual_stage >= 1) ? (PET_SPECIES_CATALOG[stPets.math.species_code]?.icon || '📐') : '🐣',
+                                image: getPetImagePath((stPets.math && stPets.math.visual_stage >= 1) ? stPets.math.species_code : 'egg', stPets.math?.visual_stage || 0),
+                                level: stPets.math?.level || 0,
+                                exp: stPets.math?.exp || 0,
+                                visualStage: stPets.math?.visual_stage || 0,
+                                isHatched: !!(stPets.math && stPets.math.visual_stage >= 1),
+                                affection: 20, fullness: 50, energy: 50
+                            },
+                            english: {
+                                id: stPets.english?.id || 'pet_' + stRow.id + '_e',
+                                species: (stPets.english && stPets.english.visual_stage >= 1) ? stPets.english.species_code : 'egg',
+                                subject: '英语',
+                                name: (stPets.english && stPets.english.visual_stage >= 1) ? (stPets.english.nickname || '英语萌宠') : '神秘宠物蛋 (待破壳)',
+                                icon: (stPets.english && stPets.english.visual_stage >= 1) ? (PET_SPECIES_CATALOG[stPets.english.species_code]?.icon || '🔤') : '🐣',
+                                image: getPetImagePath((stPets.english && stPets.english.visual_stage >= 1) ? stPets.english.species_code : 'egg', stPets.english?.visual_stage || 0),
+                                level: stPets.english?.level || 0,
+                                exp: stPets.english?.exp || 0,
+                                visualStage: stPets.english?.visual_stage || 0,
+                                isHatched: !!(stPets.english && stPets.english.visual_stage >= 1),
+                                affection: 20, fullness: 50, energy: 50
+                            }
+                        }
+                    };
+                });
+
+                this.students = loadedStudents;
+                this.save();
+                this.notify('STATE_SYNC', { students: this.students });
+                return true;
+            }
+        } catch (e) {
+            console.error('[ClassPetStore] 载入 SQLite 数据库失败:', e);
+        }
+        return false;
     }
 
     getActiveAccountId() {
@@ -759,6 +862,9 @@ class ClassPetStore {
         if (!student) return;
 
         const currentPet = student.pets[student.activeSubject];
+        const oldLevel = student.level || 0;
+        const oldStage = student.visualStage || 0;
+
         student.exp = Math.max(0, student.exp + delta);
         currentPet.exp = student.exp;
 
@@ -773,6 +879,9 @@ class ClassPetStore {
 
         student.minExpForCurrentLevel = this.getCurrentLevelMinExp(student.level);
         student.nextLevelExp = this.getNextLevelThreshold(student.level);
+
+        const isLevelUp = newLevel > oldLevel;
+        const isStageUp = newStage > oldStage;
 
         if (!student.isHatched) {
             const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : (LEVEL_THRESHOLDS[1] || 15);
@@ -805,9 +914,12 @@ class ClassPetStore {
             delta,
             reason,
             isPrivate,
-            newExp: student.exp,
-            newLevel: student.level,
-            newStage: student.visualStage,
+            oldLevel,
+            newLevel,
+            oldStage,
+            newStage,
+            isLevelUp,
+            isStageUp,
             stamp: student.stamp
         };
 
@@ -830,24 +942,31 @@ class ClassPetStore {
     }
 
     batchScore(ids, delta, reason, isPrivate = false) {
+        const leveledUpStudents = [];
         ids.forEach(id => {
             const student = this.students.find(s => s.id === id);
             if (student && !student.isAbsent) {
+                const currentPet = student.pets[student.activeSubject];
+                const oldLevel = student.level || 0;
+                const oldStage = student.visualStage || 0;
+
                 student.exp = Math.max(0, student.exp + delta);
-                student.pets[student.activeSubject].exp = student.exp;
+                currentPet.exp = student.exp;
 
                 const newLevel = this.calcLevel(student.exp, student.level);
                 student.level = newLevel;
-                student.pets[student.activeSubject].level = newLevel;
+                currentPet.level = newLevel;
 
                 const newStage = this.calcVisualStage(newLevel, student.visualStage);
                 student.visualStage = newStage;
-                student.pets[student.activeSubject].visualStage = newStage;
+                currentPet.visualStage = newStage;
 
                 student.minExpForCurrentLevel = this.getCurrentLevelMinExp(student.level);
                 student.nextLevelExp = this.getNextLevelThreshold(student.level);
 
-                const currentPet = student.pets[student.activeSubject];
+                const isLevelUp = newLevel > oldLevel;
+                const isStageUp = newStage > oldStage;
+
                 if (!student.isHatched) {
                     const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : (LEVEL_THRESHOLDS[1] || 15);
                     student.stamp = student.exp >= hatchThresh ? 'HATCH' : null;
@@ -868,6 +987,21 @@ class ClassPetStore {
                     }
                     currentPet.image = getPetImagePath(currentPet.species, student.visualStage);
                 }
+
+                if (isLevelUp) {
+                    leveledUpStudents.push({
+                        student,
+                        studentId: student.id,
+                        studentName: student.name,
+                        studentNo: student.no,
+                        oldLevel,
+                        newLevel,
+                        oldStage,
+                        newStage,
+                        isStageUp,
+                        stamp: student.stamp
+                    });
+                }
             }
         });
 
@@ -885,7 +1019,20 @@ class ClassPetStore {
             });
         }
 
-        const payload = { ids, delta, reason, isPrivate };
+        const singleStudent = ids.length === 1 ? this.students.find(s => s.id === ids[0]) : null;
+        const payload = {
+            ids,
+            studentId: singleStudent ? singleStudent.id : (leveledUpStudents[0]?.studentId || null),
+            student: singleStudent || (leveledUpStudents[0]?.student || null),
+            delta,
+            reason,
+            isPrivate,
+            leveledUpStudents,
+            isLevelUp: leveledUpStudents.length > 0,
+            newLevel: singleStudent ? singleStudent.level : (leveledUpStudents[0]?.newLevel || null),
+            newStage: singleStudent ? singleStudent.visualStage : (leveledUpStudents[0]?.newStage || null),
+            isStageUp: singleStudent ? (leveledUpStudents.find(x => x.studentId === singleStudent.id)?.isStageUp || false) : (leveledUpStudents.length > 0 && leveledUpStudents.some(x => x.isStageUp))
+        };
         this.broadcast('SCORE_TRIGGERED', payload);
         this.notify('SCORE', payload);
     }
@@ -919,7 +1066,8 @@ class ClassPetStore {
         currentPet.visualStage = 1;
         currentPet.image = getPetImagePath(sp, 1);
         currentPet.level = Math.max(1, currentPet.level || 1);
-        currentPet.exp = Math.max(15, currentPet.exp || 15);
+        const hatchThresh = typeof this.getHatchThreshold === 'function' ? this.getHatchThreshold() : 15;
+        currentPet.exp = Math.max(hatchThresh, currentPet.exp || hatchThresh);
         currentPet.isHatched = true;
 
         student.isHatched = true;
@@ -960,6 +1108,34 @@ class ClassPetStore {
         this.broadcast('HATCH_TRIGGERED', payload);
         this.notify('HATCH', payload);
         return student;
+    }
+
+    // 获取当前登录教师账号配置及学科角色信息 (第4点：联动教师学科属性)
+    getCurrentAccount() {
+        try {
+            const raw = localStorage.getItem('classpet_current_account');
+            if (raw) {
+                const acc = JSON.parse(raw);
+                if (acc && typeof acc === 'object') return acc;
+            }
+            const activeId = localStorage.getItem('classpet_active_account_id');
+            const listRaw = localStorage.getItem('classpet_accounts_list');
+            if (listRaw && activeId) {
+                const list = JSON.parse(listRaw);
+                if (Array.isArray(list)) {
+                    const found = list.find(a => a.id === activeId);
+                    if (found) return found;
+                }
+            }
+        } catch (e) {}
+        return {
+            id: 'acc_demo_302',
+            school: '实验小学本部',
+            className: '三年级二班',
+            teacherName: '刘老师',
+            subject: '语文',
+            isPreset: true
+        };
     }
 
     // 获取当前学生在当前教师角色下允许破壳认领的学科列表
