@@ -20,6 +20,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         undoScore: (operationId) => ipcRenderer.invoke('db:undoScore', operationId),
         getStudentAuditLogs: (studentId) => ipcRenderer.invoke('db:getStudentAuditLogs', studentId),
         hatchPet: (payload) => ipcRenderer.invoke('db:hatchPet', payload),
+        saveStudent: (student, classId) => ipcRenderer.invoke('db:saveStudent', { student, classId }),
+        importStudents: (students, classId) => ipcRenderer.invoke('db:importStudents', { students, classId }),
+        saveAllStudents: (students, classId) => ipcRenderer.invoke('db:saveAllStudents', { students, classId }),
+        archiveStudent: (studentId, isArchived, classId) => ipcRenderer.invoke('db:archiveStudent', { studentId, isArchived, classId }),
+        deleteStudent: (studentId, classId) => ipcRenderer.invoke('db:deleteStudent', { studentId, classId }),
+        saveThresholds: (thresholds, stages, classId) => ipcRenderer.invoke('db:saveThresholds', { thresholds, stages, classId }),
+        saveBehaviorRules: (rules, classId) => ipcRenderer.invoke('db:saveBehaviorRules', { rules, classId }),
         query: (sql, params) => ipcRenderer.invoke('db:query', { sql, params }),
         execute: (sql, params) => ipcRenderer.invoke('db:execute', { sql, params })
     }

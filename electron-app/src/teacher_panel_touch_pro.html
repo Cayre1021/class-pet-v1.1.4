@@ -1556,6 +1556,9 @@
                 if (selectedIds.has(s.id)) s.group = g;
             });
             store.save();
+            if (typeof store.syncStudentsToSQLite === 'function') {
+                store.syncStudentsToSQLite();
+            }
             store.broadcast('STATE_SYNC', { students: store.students });
             closeGroupMoveModal();
             renderStudentList();
@@ -1565,6 +1568,9 @@
         function autoDistribute4Groups() {
             store.students.forEach((s, i) => s.group = (i % 4) + 1);
             store.save();
+            if (typeof store.syncStudentsToSQLite === 'function') {
+                store.syncStudentsToSQLite();
+            }
             store.broadcast('STATE_SYNC', { students: store.students });
             closeGroupMoveModal();
             renderStudentList();
@@ -1715,9 +1721,13 @@
             }
 
             if (newStudents.length > 0) {
-                store.students = newStudents;
-                store.save();
-                store.broadcast('STATE_SYNC', { students: store.students });
+                if (typeof store.importStudents === 'function') {
+                    store.importStudents(newStudents);
+                } else {
+                    store.students = newStudents;
+                    store.save();
+                    store.broadcast('STATE_SYNC', { students: store.students });
+                }
                 closeExcelModal();
                 renderStudentList();
                 showClassroomToast(`🎉 成功导入 ${newStudents.length} 名学生名单！全员初始为神秘宠物蛋，大屏已同步！`);

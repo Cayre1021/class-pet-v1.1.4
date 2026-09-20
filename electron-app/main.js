@@ -148,6 +148,69 @@ ipcMain.handle('db:hatchPet', async (event, payload) => {
     }
 });
 
+ipcMain.handle('db:saveStudent', async (event, { student, classId }) => {
+    try {
+        return sqliteService.saveStudent(student, classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:saveStudent 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('db:importStudents', async (event, { students, classId }) => {
+    try {
+        return sqliteService.importStudents(students, classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:importStudents 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('db:saveAllStudents', async (event, { students, classId }) => {
+    try {
+        return sqliteService.saveAllStudents(students, classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:saveAllStudents 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('db:archiveStudent', async (event, { studentId, isArchived, classId }) => {
+    try {
+        return sqliteService.archiveStudent(studentId, isArchived, classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:archiveStudent 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('db:deleteStudent', async (event, { studentId, classId }) => {
+    try {
+        return sqliteService.deleteStudent(studentId, classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:deleteStudent 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('db:saveThresholds', async (event, { thresholds, stages, classId }) => {
+    try {
+        return sqliteService.saveThresholds(thresholds, stages, classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:saveThresholds 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('db:saveBehaviorRules', async (event, { rules, classId }) => {
+    try {
+        return sqliteService.saveBehaviorRules(rules, classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:saveBehaviorRules 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
 ipcMain.handle('db:query', async (event, { sql, params }) => {
     try {
         return sqliteService.query(sql, params);

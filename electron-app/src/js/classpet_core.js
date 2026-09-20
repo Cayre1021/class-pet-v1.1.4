@@ -354,6 +354,13 @@ class ClassPetStore {
         }
 
         this.recalculateAllStudentsProgress();
+
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const classId = acc.classId || 'c_class02_01';
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveThresholds === 'function') {
+            window.electronAPI.db.saveThresholds(cleanThresholds, STAGE_MIN_LEVELS, classId);
+        }
+
         this.broadcast('THRESHOLDS_SYNC', { thresholds: LEVEL_THRESHOLDS, stageLevels: STAGE_MIN_LEVELS, students: this.students });
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('THRESHOLDS_UPDATE', { thresholds: LEVEL_THRESHOLDS, stageLevels: STAGE_MIN_LEVELS, students: this.students });
@@ -478,10 +485,10 @@ class ClassPetStore {
                     const primaryPetRow = stPets.chinese || Object.values(stPets)[0];
                     const spCode = primaryPetRow ? (primaryPetRow.species_code || 'cat') : spKeys[idx % spKeys.length];
                     const spInfo = PET_SPECIES_CATALOG[spCode] || PET_SPECIES_CATALOG.cat;
-                    const level = primaryPetRow ? (primaryPetRow.level || 1) : 1;
-                    const exp = primaryPetRow ? (primaryPetRow.exp || 15) : 15;
-                    const stage = primaryPetRow ? (primaryPetRow.visual_stage || 1) : 1;
+                    const stage = (primaryPetRow && primaryPetRow.visual_stage !== undefined && primaryPetRow.visual_stage !== null) ? primaryPetRow.visual_stage : 0;
                     const isHatched = stage >= 1;
+                    const level = (primaryPetRow && primaryPetRow.level !== undefined && primaryPetRow.level !== null) ? primaryPetRow.level : (isHatched ? 1 : 0);
+                    const exp = (primaryPetRow && primaryPetRow.exp !== undefined && primaryPetRow.exp !== null) ? primaryPetRow.exp : (isHatched ? 15 : 0);
 
                     return {
                         id: stRow.id,
@@ -506,9 +513,9 @@ class ClassPetStore {
                                 name: isHatched ? (stPets.chinese?.nickname || spInfo.name) : '神秘宠物蛋',
                                 icon: isHatched ? spInfo.icon : '🐣',
                                 image: getPetImagePath(isHatched ? (stPets.chinese?.species_code || spCode) : 'egg', stage),
-                                level: stPets.chinese?.level || level,
-                                exp: stPets.chinese?.exp || exp,
-                                visualStage: stPets.chinese?.visual_stage || stage,
+                                level: stPets.chinese?.level !== undefined ? stPets.chinese.level : level,
+                                exp: stPets.chinese?.exp !== undefined ? stPets.chinese.exp : exp,
+                                visualStage: stPets.chinese?.visual_stage !== undefined ? stPets.chinese.visual_stage : stage,
                                 isHatched,
                                 affection: 70, fullness: 80, energy: 80
                             },
@@ -519,9 +526,9 @@ class ClassPetStore {
                                 name: (stPets.math && stPets.math.visual_stage >= 1) ? (stPets.math.nickname || '数学萌宠') : '神秘宠物蛋 (待破壳)',
                                 icon: (stPets.math && stPets.math.visual_stage >= 1) ? (PET_SPECIES_CATALOG[stPets.math.species_code]?.icon || '📐') : '🐣',
                                 image: getPetImagePath((stPets.math && stPets.math.visual_stage >= 1) ? stPets.math.species_code : 'egg', stPets.math?.visual_stage || 0),
-                                level: stPets.math?.level || 0,
-                                exp: stPets.math?.exp || 0,
-                                visualStage: stPets.math?.visual_stage || 0,
+                                level: stPets.math?.level !== undefined ? stPets.math.level : 0,
+                                exp: stPets.math?.exp !== undefined ? stPets.math.exp : 0,
+                                visualStage: stPets.math?.visual_stage !== undefined ? stPets.math.visual_stage : 0,
                                 isHatched: !!(stPets.math && stPets.math.visual_stage >= 1),
                                 affection: 20, fullness: 50, energy: 50
                             },
@@ -532,9 +539,9 @@ class ClassPetStore {
                                 name: (stPets.english && stPets.english.visual_stage >= 1) ? (stPets.english.nickname || '英语萌宠') : '神秘宠物蛋 (待破壳)',
                                 icon: (stPets.english && stPets.english.visual_stage >= 1) ? (PET_SPECIES_CATALOG[stPets.english.species_code]?.icon || '🔤') : '🐣',
                                 image: getPetImagePath((stPets.english && stPets.english.visual_stage >= 1) ? stPets.english.species_code : 'egg', stPets.english?.visual_stage || 0),
-                                level: stPets.english?.level || 0,
-                                exp: stPets.english?.exp || 0,
-                                visualStage: stPets.english?.visual_stage || 0,
+                                level: stPets.english?.level !== undefined ? stPets.english.level : 0,
+                                exp: stPets.english?.exp !== undefined ? stPets.english.exp : 0,
+                                visualStage: stPets.english?.visual_stage !== undefined ? stPets.english.visual_stage : 0,
                                 isHatched: !!(stPets.english && stPets.english.visual_stage >= 1),
                                 affection: 20, fullness: 50, energy: 50
                             }
@@ -546,6 +553,11 @@ class ClassPetStore {
                 this.save();
                 this.notify('STATE_SYNC', { students: this.students });
                 return true;
+            } else if (this.students && this.students.length > 0) {
+                // 若 SQLite 库中暂无该班级名单，自动将现有学生种子同步写入 SQLite
+                if (window.electronAPI.db && typeof window.electronAPI.db.importStudents === 'function') {
+                    window.electronAPI.db.importStudents(this.students, classId);
+                }
             }
         } catch (e) {
             console.error('[ClassPetStore] 载入 SQLite 数据库失败:', e);
@@ -1336,9 +1348,43 @@ class ClassPetStore {
 
         this.students.push(newStudent);
         this.save();
+
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const classId = acc.classId || 'c_class02_01';
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveStudent === 'function') {
+            window.electronAPI.db.saveStudent(newStudent, classId);
+        }
+
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_ADDED', newStudent);
         return newStudent;
+    }
+
+    // 批量导入整班学生花名册并存入 SQLite 与本地存储
+    importStudents(newStudents) {
+        if (!Array.isArray(newStudents)) return false;
+        this.students = newStudents;
+        this.save();
+
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const classId = acc.classId || 'c_class02_01';
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.importStudents === 'function') {
+            window.electronAPI.db.importStudents(newStudents, classId);
+        }
+
+        this.broadcast('STATE_SYNC', { students: this.students });
+        this.notify('STATE_SYNC', { students: this.students });
+        return true;
+    }
+
+    // 全量同步全班所有学生最新状态（如大组批量调动等）至 SQLite
+    syncStudentsToSQLite() {
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const classId = acc.classId || 'c_class02_01';
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveAllStudents === 'function') {
+            return window.electronAPI.db.saveAllStudents(this.students, classId);
+        }
+        return Promise.resolve({ success: false });
     }
 
     // 学生日常管理：编辑资料
@@ -1358,6 +1404,13 @@ class ClassPetStore {
             currentPet.image = getPetImagePath(sp, student.visualStage);
         }
         this.save();
+
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const classId = acc.classId || 'c_class02_01';
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveStudent === 'function') {
+            window.electronAPI.db.saveStudent(student, classId);
+        }
+
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_UPDATED', student);
         return student;
@@ -1369,6 +1422,13 @@ class ClassPetStore {
         if (!student) return false;
         student.isArchived = true;
         this.save();
+
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const classId = acc.classId || 'c_class02_01';
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.archiveStudent === 'function') {
+            window.electronAPI.db.archiveStudent(id, true, classId);
+        }
+
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_ARCHIVED', { id });
         return true;
@@ -1380,6 +1440,13 @@ class ClassPetStore {
         if (!student) return false;
         student.isArchived = false;
         this.save();
+
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const classId = acc.classId || 'c_class02_01';
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.archiveStudent === 'function') {
+            window.electronAPI.db.archiveStudent(id, false, classId);
+        }
+
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_RESTORED', { id });
         return true;
@@ -1389,6 +1456,13 @@ class ClassPetStore {
     deleteStudentPermanent(id) {
         this.students = this.students.filter(s => s.id !== id);
         this.save();
+
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const classId = acc.classId || 'c_class02_01';
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.deleteStudent === 'function') {
+            window.electronAPI.db.deleteStudent(id, classId);
+        }
+
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_DELETED', { id });
         return true;
@@ -1432,6 +1506,22 @@ class ClassPetStore {
                 window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
             }
             this.recalculateAllStudentsProgress();
+            this.save();
+
+            const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+            const classId = acc.classId || 'c_class02_01';
+            if (window.electronAPI && window.electronAPI.db) {
+                if (typeof window.electronAPI.db.importStudents === 'function') {
+                    window.electronAPI.db.importStudents(this.students, classId);
+                }
+                if (typeof window.electronAPI.db.saveThresholds === 'function') {
+                    window.electronAPI.db.saveThresholds(LEVEL_THRESHOLDS, STAGE_MIN_LEVELS, classId);
+                }
+                if (typeof window.electronAPI.db.saveBehaviorRules === 'function') {
+                    window.electronAPI.db.saveBehaviorRules(this.behaviorRules, classId);
+                }
+            }
+
             this.audio.playFanfare();
             this.broadcast('STATE_SYNC', { students: this.students });
             this.broadcast('RULES_SYNC', { rules: this.behaviorRules });
@@ -1456,6 +1546,13 @@ class ClassPetStore {
         };
         this.behaviorRules.push(newRule);
         this.saveRules();
+
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const classId = acc.classId || 'c_class02_01';
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveBehaviorRules === 'function') {
+            window.electronAPI.db.saveBehaviorRules(this.behaviorRules, classId);
+        }
+
         this.broadcast('RULES_SYNC', { rules: this.behaviorRules });
         this.notify('RULES_UPDATE', { rules: this.behaviorRules });
         return newRule;
@@ -1464,6 +1561,13 @@ class ClassPetStore {
     deleteCustomRule(id) {
         this.behaviorRules = this.behaviorRules.filter(r => r.id !== id);
         this.saveRules();
+
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        const classId = acc.classId || 'c_class02_01';
+        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveBehaviorRules === 'function') {
+            window.electronAPI.db.saveBehaviorRules(this.behaviorRules, classId);
+        }
+
         this.broadcast('RULES_SYNC', { rules: this.behaviorRules });
         this.notify('RULES_UPDATE', { rules: this.behaviorRules });
     }

@@ -11,12 +11,13 @@ class SQLiteService {
         this.saveTimer = null;
     }
 
-    async init(app) {
+    async init(app, customDbPath = null) {
         if (this.isInitialized) return this.db;
         this.SQL = await initSqlJs();
 
-        // 区分开发环境与打包发布环境：
-        if (app && app.isPackaged) {
+        if (customDbPath) {
+            this.dbPath = customDbPath;
+        } else if (app && app.isPackaged) {
             this.dbPath = path.join(app.getPath('userData'), 'classpet.sqlite');
             const resourceDb = path.join(process.resourcesPath, 'database', 'classpet.sqlite');
             if (!fs.existsSync(this.dbPath) && fs.existsSync(resourceDb)) {
@@ -249,6 +250,12 @@ class SQLiteService {
         const recentOps = this.query("SELECT * FROM score_operations WHERE class_id = ? ORDER BY created_at DESC LIMIT 50", [classId]);
 
         // 将扁平的 SQLite 数据组装为前端所需的结构化模型
+        studentsRows.forEach(r => {
+            r.no = r.student_no;
+            r.group = parseInt(String(r.group_name || '1').replace(/\D/g, ''), 10) || 1;
+            r.isArchived = !!r.archived_at;
+        });
+
         const petsByStudent = {};
         petsRows.forEach(p => {
             if (!petsByStudent[p.student_id]) petsByStudent[p.student_id] = {};
@@ -453,6 +460,250 @@ class SQLiteService {
 
         return { success: true, studentId, realId, subjectCode, speciesCode };
     }
+
+    // 核心业务：保存/更新单个学生及其 3 科萌宠档案
+    saveStudent(student, classId = 'c_class02_01') {
+        if (!student || !student.id) return { success: false, error: '无效的学生对象' };
+        const now = Date.now();
+        const rawNo = student.student_no !== undefined ? student.student_no : (student.no !== undefined ? student.no : '01');
+        const no = String(rawNo).padStart(2, '0');
+        const name = student.name || '未命名';
+        const rawGroup = student.group !== undefined ? student.group : (student.group_name !== undefined ? student.group_name : 1);
+        const groupNum = typeof rawGroup === 'number' ? rawGroup : (parseInt(String(rawGroup).replace(/\D/g, ''), 10) || 1);
+        const groupName = `第${groupNum}组`;
+        const archivedAt = student.isArchived !== undefined ? (student.isArchived ? (student.archivedAt || now) : null) : (student.archived_at || null);
+        const note = student.note || '';
+
+        try {
+            this.db.run('BEGIN TRANSACTION;');
+
+            const existing = this.query("SELECT id FROM students WHERE id = ? LIMIT 1", [student.id]);
+            if (existing.length > 0) {
+                this.db.run(`
+                    UPDATE students 
+                    SET student_no = ?, name = ?, group_name = ?, note = ?, archived_at = ?, updated_at = ?
+                    WHERE id = ?;
+                `, [no, name, groupName, note, archivedAt, now, student.id]);
+            } else {
+                this.db.run(`
+                    INSERT INTO students (id, class_id, student_no, name, group_name, note, display_pet_id, archived_at, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                `, [student.id, classId, no, name, groupName, note, 'pet_' + student.id + '_c', archivedAt, now, now]);
+            }
+
+            const subjects = [
+                { key: 'chinese', subId: 'subj_chinese', defaultSpecies: 'cat', defaultName: '语文萌宠' },
+                { key: 'math', subId: 'subj_math', defaultSpecies: 'dog', defaultName: '数学萌宠' },
+                { key: 'english', subId: 'subj_english', defaultSpecies: 'fox', defaultName: '英语萌宠' }
+            ];
+
+            for (const sub of subjects) {
+                const p = (student.pets && student.pets[sub.key]) || {};
+                const pId = p.id || `pet_${student.id}_${sub.key.charAt(0)}`;
+                const spCode = p.species || (sub.key === 'chinese' ? (student.species || 'egg') : 'egg');
+                const pLevel = typeof p.level === 'number' ? p.level : (sub.key === 'chinese' ? (student.level || 0) : 0);
+                const pExp = typeof p.exp === 'number' ? p.exp : (sub.key === 'chinese' ? (student.exp || 0) : 0);
+                const pStage = typeof p.visualStage === 'number' ? p.visualStage : (sub.key === 'chinese' ? (student.visualStage || 0) : 0);
+                const nickname = p.name || (spCode === 'egg' ? '神秘宠物蛋' : sub.defaultName);
+                const isDisplay = (student.activeSubject ? student.activeSubject === sub.key : sub.key === 'chinese') ? 1 : 0;
+
+                const existingPet = this.query("SELECT id FROM pets WHERE id = ? OR (student_id = ? AND subject_id = ?) LIMIT 1", [pId, student.id, sub.subId]);
+                if (existingPet.length > 0) {
+                    this.db.run(`
+                        UPDATE pets
+                        SET species_code = ?, nickname = ?, exp = ?, level = ?, visual_stage = ?, is_display = ?, updated_at = ?
+                        WHERE id = ?;
+                    `, [spCode, nickname, pExp, pLevel, pStage, isDisplay, now, existingPet[0].id]);
+                } else {
+                    this.db.run(`
+                        INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, is_display, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, '#FFAA00', ?, ?, ?, ?, ?, ?);
+                    `, [pId, classId, student.id, spCode, sub.subId, nickname, pExp, pLevel, pStage, isDisplay, now, now]);
+                }
+            }
+
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            return { success: true, studentId: student.id };
+        } catch (err) {
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            console.error('[SQLiteService] saveStudent 失败:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    // 核心业务：批量导入整班学生花名册 (全量替换该班级名单并存盘)
+    importStudents(students, classId = 'c_class02_01') {
+        if (!Array.isArray(students)) return { success: false, error: 'students必须为数组' };
+        const now = Date.now();
+        try {
+            this.db.run('BEGIN TRANSACTION;');
+
+            // 1. 清空当前班级的既有宠物与学生 (操作流水审计予以保留)
+            this.db.run("DELETE FROM pets WHERE class_id = ?;", [classId]);
+            this.db.run("DELETE FROM students WHERE class_id = ?;", [classId]);
+
+            // 2. 批量写入新导入的学生与初始宠物蛋
+            const subjects = [
+                { key: 'chinese', subId: 'subj_chinese', defaultSpecies: 'cat', defaultName: '神秘宠物蛋' },
+                { key: 'math', subId: 'subj_math', defaultSpecies: 'egg', defaultName: '神秘宠物蛋 (待破壳)' },
+                { key: 'english', subId: 'subj_english', defaultSpecies: 'egg', defaultName: '神秘宠物蛋 (待破壳)' }
+            ];
+
+            for (const student of students) {
+                const rawNo = student.student_no !== undefined ? student.student_no : (student.no !== undefined ? student.no : '01');
+                const no = String(rawNo).padStart(2, '0');
+                const name = student.name || '未命名';
+                const rawGroup = student.group !== undefined ? student.group : (student.group_name !== undefined ? student.group_name : 1);
+                const groupNum = typeof rawGroup === 'number' ? rawGroup : (parseInt(String(rawGroup).replace(/\D/g, ''), 10) || 1);
+                const groupName = `第${groupNum}组`;
+                const archivedAt = student.isArchived !== undefined ? (student.isArchived ? now : null) : (student.archived_at || null);
+
+                this.db.run(`
+                    INSERT INTO students (id, class_id, student_no, name, group_name, note, display_pet_id, archived_at, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?);
+                `, [student.id, classId, no, name, groupName, 'pet_' + student.id + '_c', archivedAt, now, now]);
+
+                for (const sub of subjects) {
+                    const p = (student.pets && student.pets[sub.key]) || {};
+                    const pId = p.id || `pet_${student.id}_${sub.key.charAt(0)}`;
+                    const spCode = p.species || (sub.key === 'chinese' ? (student.species || 'egg') : 'egg');
+                    const pLevel = typeof p.level === 'number' ? p.level : (sub.key === 'chinese' ? (student.level || 0) : 0);
+                    const pExp = typeof p.exp === 'number' ? p.exp : (sub.key === 'chinese' ? (student.exp || 0) : 0);
+                    const pStage = typeof p.visualStage === 'number' ? p.visualStage : (sub.key === 'chinese' ? (student.visualStage || 0) : 0);
+                    const nickname = p.name || sub.defaultName;
+                    const isDisplay = (student.activeSubject ? student.activeSubject === sub.key : sub.key === 'chinese') ? 1 : 0;
+
+                    this.db.run(`
+                        INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, is_display, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, '#FFAA00', ?, ?, ?, ?, ?, ?);
+                    `, [pId, classId, student.id, spCode, sub.subId, nickname, pExp, pLevel, pStage, isDisplay, now, now]);
+                }
+            }
+
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            return { success: true, count: students.length };
+        } catch (err) {
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            console.error('[SQLiteService] importStudents 失败:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    // 核心业务：批量同步全班所有学生最新状态（如大组批量调动等）
+    saveAllStudents(students, classId = 'c_class02_01') {
+        if (!Array.isArray(students)) return { success: false, error: 'students必须为数组' };
+        const now = Date.now();
+        try {
+            this.db.run('BEGIN TRANSACTION;');
+            for (const s of students) {
+                const rawNo = s.student_no !== undefined ? s.student_no : (s.no !== undefined ? s.no : '01');
+                const no = String(rawNo).padStart(2, '0');
+                const name = s.name || '未命名';
+                const rawGroup = s.group !== undefined ? s.group : (s.group_name !== undefined ? s.group_name : 1);
+                const groupNum = typeof rawGroup === 'number' ? rawGroup : (parseInt(String(rawGroup).replace(/\D/g, ''), 10) || 1);
+                const groupName = `第${groupNum}组`;
+                const archivedAt = s.isArchived !== undefined ? (s.isArchived ? now : null) : (s.archived_at || null);
+
+                const existing = this.query("SELECT id FROM students WHERE id = ? LIMIT 1", [s.id]);
+                if (existing.length > 0) {
+                    this.db.run(`
+                        UPDATE students 
+                        SET student_no = ?, name = ?, group_name = ?, archived_at = ?, updated_at = ?
+                        WHERE id = ?;
+                    `, [no, name, groupName, archivedAt, now, s.id]);
+                } else {
+                    this.db.run(`
+                        INSERT INTO students (id, class_id, student_no, name, group_name, note, display_pet_id, archived_at, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?);
+                    `, [s.id, classId, no, name, groupName, 'pet_' + s.id + '_c', archivedAt, now, now]);
+                }
+            }
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            return { success: true, count: students.length };
+        } catch (err) {
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            console.error('[SQLiteService] saveAllStudents 失败:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    // 核心业务：学生归档与还原
+    archiveStudent(studentId, isArchived = true) {
+        const realId = this.normalizeStudentId(studentId);
+        const now = Date.now();
+        const archivedAt = isArchived ? now : null;
+        const res = this.execute("UPDATE students SET archived_at = ?, updated_at = ? WHERE id = ? OR id = ?", [archivedAt, now, studentId, realId]);
+        this.saveToDiskSync();
+        return { success: res };
+    }
+
+    // 核心业务：永久删除单个学生及其关联宠物
+    deleteStudent(studentId) {
+        const realId = this.normalizeStudentId(studentId);
+        try {
+            this.db.run('BEGIN TRANSACTION;');
+            this.db.run("DELETE FROM pets WHERE student_id = ? OR student_id = ?", [studentId, realId]);
+            this.db.run("DELETE FROM score_entries WHERE student_id = ? OR student_id = ?", [studentId, realId]);
+            this.db.run("DELETE FROM students WHERE id = ? OR id = ?", [studentId, realId]);
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            return { success: true };
+        } catch (err) {
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            console.error('[SQLiteService] deleteStudent 失败:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    // 核心业务：保存升级经验阈值与阶段进阶
+    saveThresholds(thresholds, stages, classId = 'c_class02_01') {
+        try {
+            this.db.run('BEGIN TRANSACTION;');
+            this.db.run("DELETE FROM class_level_thresholds WHERE class_id = ?", [classId]);
+            for (let l = 1; l <= 20; l++) {
+                const exp = thresholds[l] !== undefined ? thresholds[l] : (l * 20);
+                this.db.run("INSERT INTO class_level_thresholds (class_id, level, min_exp) VALUES (?, ?, ?)", [classId, l, exp]);
+            }
+            if (Array.isArray(stages)) {
+                this.db.run("DELETE FROM class_visual_stages WHERE class_id = ?", [classId]);
+                stages.forEach(st => {
+                    this.db.run("INSERT INTO class_visual_stages (class_id, stage, min_level, code) VALUES (?, ?, ?, ?)", [classId, st.stage, st.minLevel, st.code || ('form' + st.stage)]);
+                });
+            }
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            return { success: true };
+        } catch (err) {
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            console.error('[SQLiteService] saveThresholds 失败:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    // 核心业务：保存行为规则库
+    saveBehaviorRules(rules, classId = 'c_class02_01') {
+        try {
+            this.db.run('BEGIN TRANSACTION;');
+            this.db.run("DELETE FROM behavior_rules WHERE class_id = ?", [classId]);
+            const now = Date.now();
+            rules.forEach((r, idx) => {
+                this.db.run("INSERT INTO behavior_rules (id, class_id, name, points, type, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    [r.id || ('rule_' + idx), classId, r.name, r.points, r.type, idx + 1, now]);
+            });
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            return { success: true };
+        } catch (err) {
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            console.error('[SQLiteService] saveBehaviorRules 失败:', err);
+            return { success: false, error: err.message };
+        }
+    }
 }
 
-module.exports = new SQLiteService();
+const sqliteServiceInstance = new SQLiteService();
+sqliteServiceInstance.SQLiteService = SQLiteService;
+module.exports = sqliteServiceInstance;
