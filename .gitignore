@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+package-lock.json.bak
+
+# Production build artifacts
+dist/
+build/
+win-unpacked/
+builder-debug.yml
+builder-effective-config.yaml
+
+# OS and Editor
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+.vscode/
+.idea/
+
+# Local databases generated during dev
+*.sqlite-journal

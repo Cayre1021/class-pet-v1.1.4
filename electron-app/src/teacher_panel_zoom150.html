@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="classic">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教师快速赋分控制台 [版本A: 整体等比放大1.5倍] - Class Pet V1-Lite</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="classic"] {
+            --bg-primary: #FFFEF9;
+            --bg-secondary: #F5F3EF;
+            --text-primary: #0A0A0A;
+            --text-secondary: #525252;
+            --border: #0A0A0A;
+            --accent: #0066FF;
+            --accent-hover: #0052CC;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #16A34A;
+            --warning: #FFD60A;
+            --error: #FF3B30;
+            --tag-bg: #E8F0FE;
+            --shadow-color: #0A0A0A;
+        }
+
+        /* 版本 A：整体等比放大 1.5 倍 */
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+            zoom: 1.5; /* 核心：整体 1.5 倍等比放大 */
+        }
+
+        .top-navbar {
+            background: var(--card-bg);
+            border-bottom: 3.5px solid var(--border);
+            padding: 8px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 54px;
+            z-index: 10;
+        }
+
+        .btn-header {
+            padding: 6px 11px;
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-weight: 800;
+            font-size: 11px;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            transition: transform 0.1s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-header:active { transform: translate(1px, 1px); box-shadow: 0 0 0; }
+
+        .btn-undo-permanent {
+            background: var(--warning);
+            color: #0A0A0A;
+            border: 2px solid var(--border);
+            padding: 6px 12px;
+            font-weight: 900;
+            font-size: 11px;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-undo-permanent:disabled { opacity: 0.4; cursor: not-allowed; background: var(--bg-secondary); }
+
+        .btn-mode-toggle {
+            padding: 6px 12px;
+            border: 2px solid var(--border);
+            font-weight: 900;
+            font-size: 11px;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-mode-toggle.active {
+            background: #FEE2E2;
+            border-color: var(--error);
+            color: #991B1B;
+            box-shadow: 0 0 0;
+            transform: translate(1px, 1px);
+        }
+
+        .workspace-layout { flex: 1; display: flex; overflow: hidden; }
+
+        /* 左侧学生列表 */
+        .student-column {
+            width: 360px;
+            background: var(--card-bg);
+            border-right: 3.5px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .list-toolbar { padding: 8px 12px; border-bottom: 2.5px solid var(--border); background: var(--bg-secondary); }
+        .search-input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 2px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 11px;
+            font-weight: 700;
+            outline: none;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            margin-bottom: 6px;
+        }
+
+        .student-scroll-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .student-row-card {
+            display: flex;
+            align-items: center;
+            padding: 7px 10px;
+            border: 2px solid var(--border);
+            background: var(--bg-primary);
+            cursor: pointer;
+            box-shadow: 2px 2px 0 var(--shadow-color);
+            transition: transform 0.1s;
+        }
+        .student-row-card:hover { transform: translate(-1px, -1px); box-shadow: 3.5px 3.5px 0 var(--shadow-color); }
+        .student-row-card.selected { border-color: var(--accent); background: var(--tag-bg); box-shadow: 2.5px 2.5px 0 var(--accent); }
+        .student-row-card.absent { opacity: 0.4; filter: grayscale(85%); background: #E5E7EB; border-style: dashed; }
+
+        .nb-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+        .student-row-card.selected .nb-checkbox { background: var(--accent); color: var(--accent-text); }
+
+        .student-avatar-box {
+            width: 30px;
+            height: 30px;
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        /* 右侧操作主面板 */
+        .ops-main-panel {
+            flex: 1;
+            padding: 12px 18px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .selected-banner-bar {
+            background: var(--tag-bg);
+            border: 2.5px solid var(--border);
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nb-section-box {
+            background: var(--card-bg);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--shadow-color);
+            padding: 12px 16px;
+            position: relative;
+        }
+
+        .section-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .section-header-tag {
+            display: inline-block;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            padding: 3px 8px;
+            font-weight: 900;
+            font-size: 11px;
+            font-family: monospace;
+            border: 2px solid var(--border);
+        }
+
+        .score-button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 8px;
+        }
+
+        .btn-score-card {
+            min-height: 52px;
+            padding: 6px 8px;
+            border: 2.5px solid var(--border);
+            font-weight: 900;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            transition: transform 0.08s, box-shadow 0.08s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .btn-score-card:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--shadow-color); }
+
+        .btn-score-card.pos { background: #F0FDF4; color: #166534; }
+        .btn-score-card.pos .score-val { font-size: 18px; font-family: monospace; color: #15803D; font-weight: 900; }
+
+        .btn-score-card.neg { background: #FEF2F2; color: #991B1B; }
+        .btn-score-card.neg .score-val { font-size: 18px; font-family: monospace; color: #DC2626; font-weight: 900; }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部导航栏 -->
+    <div class="top-navbar">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <a href="./index.html" class="btn-header">← 导航主页</a>
+            <h1 style="font-size: 14px; font-weight: 900;">教师赋分台 (1.5x放大)</h1>
+            <span style="font-size: 9px; font-family: monospace; font-weight: 900; background: var(--tag-bg); padding: 2px 5px; border: 1.5px solid var(--border);">三年级二班</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <button class="btn-undo-permanent" id="btnUndo" disabled onclick="executeUndo()">
+                <span>↩ 撤销上一笔</span>
+            </button>
+            <button class="btn-header" style="background: var(--warning); color: #000;" onclick="triggerBigScreenRandomPick()">🎲 大屏抽选</button>
+            <button class="btn-mode-toggle" id="btnAttendanceMode" onclick="toggleAttendanceMode()">📋 考勤模式</button>
+            <button class="btn-header" style="background: #16A34A; color: white;" onclick="location.href='./teacher_panel.html'">📊 标准模式</button>
+            <button class="btn-header" onclick="location.href='./display_bigscreen_zoom150.html'">🖥️ 打开大屏(1.5x)</button>
+        </div>
+    </div>
+
+    <div class="workspace-layout">
+        <!-- 左侧学生列表 -->
+        <div class="student-column">
+            <div class="list-toolbar">
+                <input type="text" class="search-input" id="searchBox" placeholder="🔍 快速过滤姓名/学号..." oninput="handleSearch()">
+                <div style="display: flex; gap: 3px;">
+                    <button class="btn-header" style="flex: 1; justify-content: center; font-size: 10px; padding: 4px 2px;" onclick="filterGroup('all')">全班(42)</button>
+                    <button class="btn-header" style="flex: 1; justify-content: center; font-size: 10px; padding: 4px 2px;" onclick="filterGroup(1)">1组</button>
+                    <button class="btn-header" style="flex: 1; justify-content: center; font-size: 10px; padding: 4px 2px;" onclick="filterGroup(2)">2组</button>
+                    <button class="btn-header" style="flex: 1; justify-content: center; font-size: 10px; padding: 4px 2px;" onclick="filterGroup(3)">3组</button>
+                    <button class="btn-header" style="flex: 1; justify-content: center; font-size: 10px; padding: 4px 2px;" onclick="filterGroup(4)">4组</button>
+                </div>
+            </div>
+
+            <div style="padding: 6px 10px; background: var(--bg-primary); border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; font-size: 10px; font-weight: 800;">
+                <span>已选：<strong id="selectedNum" style="color: var(--accent);">0</strong> 人</span>
+                <span style="color: var(--accent); cursor: pointer;" onclick="toggleSelectGroup()">全选/清空</span>
+            </div>
+
+            <div class="student-scroll-list" id="studentListContainer"></div>
+        </div>
+
+        <!-- 右侧操作主面板 -->
+        <div class="ops-main-panel">
+            <div class="selected-banner-bar">
+                <div>
+                    <strong style="font-size: 12px;">✓ 已选中 <span id="bannerCount" style="color: var(--accent);">0</span> 人</strong>
+                </div>
+                <button class="btn-header" onclick="clearSelection()" style="padding: 2px 6px; font-size: 10px;">清空选择</button>
+            </div>
+
+            <div class="nb-section-box">
+                <div class="section-header-row">
+                    <span class="section-header-tag">正向加分 (极速直达)</span>
+                </div>
+                <div class="score-button-grid" id="posRulesGrid"></div>
+            </div>
+
+            <div class="nb-section-box">
+                <div class="section-header-row">
+                    <span class="section-header-tag" style="background: var(--error);">纪律扣分 (自尊心保护)</span>
+                    <label style="font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        <input type="checkbox" id="chkProtectDignity" checked>
+                        <span>🔒 大屏静音留档</span>
+                    </label>
+                </div>
+                <div class="score-button-grid" id="negRulesGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./classpet_core.js"></script>
+
+    <script>
+        const store = window.classPetRuntime;
+        let selectedIds = new Set();
+        let currentGroup = 'all';
+        let searchQuery = '';
+        let lastUndoRecord = null;
+        let isAttendanceMode = false;
+
+        store.subscribe((event) => {
+            if (event === 'SYNC' || event === 'STORAGE_UPDATE') renderStudentList();
+            if (event === 'RULES_UPDATE') renderRules();
+        });
+
+        function getFilteredStudents() {
+            return store.students.filter(s => {
+                const matchG = currentGroup === 'all' || s.group === currentGroup;
+                const matchQ = !searchQuery || s.name.includes(searchQuery) || s.no.includes(searchQuery);
+                return matchG && matchQ;
+            });
+        }
+
+        function renderStudentList() {
+            const list = getFilteredStudents();
+            const container = document.getElementById('studentListContainer');
+
+            container.innerHTML = list.map(s => {
+                const isSelected = selectedIds.has(s.id);
+                const pet = (s.pets && (s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { icon: '🐣' };
+                return `
+                    <div class="student-row-card ${isSelected ? 'selected' : ''} ${s.isAbsent ? 'absent' : ''}" onclick="handleStudentRowClick('${s.id}')">
+                        <div class="nb-checkbox">${isSelected ? '✓' : (s.isAbsent ? '假' : '')}</div>
+                        <div class="student-avatar-box">${pet.icon || '🐣'}</div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="font-size: 12px;">${s.name} <span style="font-family: monospace; font-size: 9px; color: var(--text-secondary);">#${s.no}</span></strong>
+                            </div>
+                            <div style="font-size: 9px; font-weight: 800; color: var(--accent);">LV.${s.level} · EXP ${s.exp}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('selectedNum').textContent = selectedIds.size;
+            document.getElementById('bannerCount').textContent = selectedIds.size;
+        }
+
+        function renderRules() {
+            const posContainer = document.getElementById('posRulesGrid');
+            const negContainer = document.getElementById('negRulesGrid');
+
+            const posRules = store.behaviorRules.filter(r => r.type === 'positive');
+            const negRules = store.behaviorRules.filter(r => r.type === 'negative');
+
+            posContainer.innerHTML = posRules.map(r => `
+                <div class="btn-score-card pos" onclick="triggerScore(${r.points}, '${r.name}')">
+                    <span class="score-val">+${Math.abs(r.points)}</span>
+                    <span style="font-size: 11px;">${r.name}</span>
+                </div>
+            `).join('');
+
+            negContainer.innerHTML = negRules.map(r => `
+                <div class="btn-score-card neg" onclick="triggerScore(${r.points}, '${r.name}')">
+                    <span class="score-val">${r.points}</span>
+                    <span style="font-size: 11px;">${r.name}</span>
+                </div>
+            `).join('');
+        }
+
+        function handleStudentRowClick(id) {
+            if (isAttendanceMode) {
+                store.toggleAttendance(id);
+                renderStudentList();
+            } else {
+                toggleSelect(id);
+            }
+        }
+
+        function toggleSelect(id) {
+            if (selectedIds.has(id)) selectedIds.delete(id);
+            else selectedIds.add(id);
+            renderStudentList();
+        }
+
+        function toggleSelectGroup() {
+            const list = getFilteredStudents();
+            const allSelected = list.every(s => selectedIds.has(s.id));
+            if (allSelected) list.forEach(s => selectedIds.delete(s.id));
+            else list.forEach(s => selectedIds.add(s.id));
+            renderStudentList();
+        }
+
+        function clearSelection() {
+            selectedIds.clear();
+            renderStudentList();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('searchBox').value.trim();
+            renderStudentList();
+        }
+
+        function filterGroup(g) {
+            currentGroup = g;
+            renderStudentList();
+        }
+
+        function toggleAttendanceMode() {
+            isAttendanceMode = !isAttendanceMode;
+            document.getElementById('btnAttendanceMode').classList.toggle('active', isAttendanceMode);
+        }
+
+        function triggerScore(delta, label) {
+            if (selectedIds.size === 0) {
+                alert('⚠️ 请先在左侧列表中勾选至少一名学生！');
+                return;
+            }
+
+            const targetIds = Array.from(selectedIds);
+            const isDignityProtected = delta < 0 && document.getElementById('chkProtectDignity').checked;
+
+            store.batchScore(targetIds, delta, label, isDignityProtected);
+
+            lastUndoRecord = { targetIds, delta, label };
+            document.getElementById('btnUndo').disabled = false;
+            renderStudentList();
+        }
+
+        function executeUndo() {
+            if (!lastUndoRecord) return;
+            store.batchScore(lastUndoRecord.targetIds, -lastUndoRecord.delta, '撤销');
+            lastUndoRecord = null;
+            document.getElementById('btnUndo').disabled = true;
+            renderStudentList();
+        }
+
+        function triggerBigScreenRandomPick() {
+            store.startRandomPick();
+            alert('🎲 已向教室大屏发送随机点名指令！');
+        }
+
+        renderStudentList();
+        renderRules();
+    </script>
+</body>
+</html>

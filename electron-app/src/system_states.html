@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="classic">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统状态规范库 - Class Pet V1-Lite (Neo-Brutalism States Gallery)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root[data-theme="classic"] {
+            --bg-primary: #FFFEF9;
+            --bg-secondary: #F5F3EF;
+            --text-primary: #0A0A0A;
+            --text-secondary: #525252;
+            --border: #0A0A0A;
+            --accent: #0066FF;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --success: #34C759;
+            --warning: #FFD60A;
+            --error: #FF3B30;
+            --tag-bg: #E8F0FE;
+            --shadow-color: #0A0A0A;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 40px 24px;
+        }
+
+        .container {
+            max-width: 1080px;
+            margin: 0 auto;
+        }
+
+        .header-box {
+            border: 4px solid var(--border);
+            background: var(--card-bg);
+            padding: 24px;
+            box-shadow: 8px 8px 0 var(--shadow-color);
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .state-section-title {
+            font-size: 20px;
+            font-weight: 900;
+            margin: 32px 0 16px;
+            font-family: monospace;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            padding: 4px 12px;
+            display: inline-block;
+            border: 2px solid var(--border);
+        }
+
+        .states-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .state-card {
+            border: 4px solid var(--border);
+            background: var(--card-bg);
+            padding: 28px 20px;
+            box-shadow: 6px 6px 0 var(--shadow-color);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .state-title {
+            font-size: 18px;
+            font-weight: 900;
+            margin-bottom: 6px;
+        }
+
+        .state-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .btn-nb {
+            padding: 8px 16px;
+            border: 2px solid var(--border);
+            background: var(--accent);
+            color: var(--accent-text);
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 var(--shadow-color);
+            text-decoration: none;
+        }
+
+        /* 骨架屏 Skeleton */
+        .skeleton-block {
+            background: linear-gradient(90deg, var(--bg-secondary) 25%, #E0E0E0 50%, var(--bg-secondary) 75%);
+            background-size: 200% 100%;
+            animation: skeletonLoading 1.5s infinite;
+            border: 2px solid var(--border);
+        }
+
+        @keyframes skeletonLoading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-box">
+            <div>
+                <h1 style="font-size: 26px; font-weight: 900;">Neo-Brutalism 系统状态库</h1>
+                <p style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Class Pet V1-Lite 空状态、加载中、异常与拦截设计标准</p>
+            </div>
+            <div>
+                <a href="./prototype_portal_and_auth.html" class="btn-nb">← 返回控制台</a>
+            </div>
+        </div>
+
+        <!-- 1. 空状态组 -->
+        <div class="state-section-title">01. EMPTY STATES (空状态)</div>
+        <div class="states-grid">
+            <div class="state-card">
+                <div class="state-icon">📭</div>
+                <div class="state-title">暂无班级学生</div>
+                <div class="state-desc">当前教师账号尚未导入学生花名册，请先录入名单以开启班级宠物成长之旅。</div>
+                <button class="btn-nb">📥 批量导入花名册</button>
+            </div>
+            <div class="state-card">
+                <div class="state-icon">🥚</div>
+                <div class="state-title">暂无已激活宠物</div>
+                <div class="state-desc">学生刚入班，尚未选择本学科宠物蛋。点击下方按键一键发放初始宠物蛋。</div>
+                <button class="btn-nb">✨ 一键发放初始蛋</button>
+            </div>
+            <div class="state-card">
+                <div class="state-icon">📋</div>
+                <div class="state-title">今日暂无赋分记录</div>
+                <div class="state-desc">今天还没有对学生进行课堂正向或负向赋分，所有操作将实时留存日志。</div>
+                <button class="btn-nb" style="background: var(--bg-secondary); color: var(--text-primary);">查看历史归档</button>
+            </div>
+        </div>
+
+        <!-- 2. 加载状态组 -->
+        <div class="state-section-title">02. LOADING / SKELETON (加载与骨架屏)</div>
+        <div class="states-grid">
+            <div class="state-card" style="align-items: stretch; text-align: left;">
+                <div class="skeleton-block" style="height: 100px; margin-bottom: 12px;"></div>
+                <div class="skeleton-block" style="height: 20px; width: 60%; margin-bottom: 8px;"></div>
+                <div class="skeleton-block" style="height: 14px; width: 90%; margin-bottom: 6px;"></div>
+                <div class="skeleton-block" style="height: 14px; width: 40%;"></div>
+                <div style="font-size: 11px; font-weight: 800; font-family: monospace; color: var(--text-secondary); margin-top: 12px; text-align: center;">* 大屏卡片数据读取骨架屏</div>
+            </div>
+            <div class="state-card">
+                <div style="font-size: 40px; margin-bottom: 12px; animation: spin 1s linear infinite;">⏳</div>
+                <style>@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }</style>
+                <div class="state-title">正在批量导入学生...</div>
+                <div class="state-desc">已解析 42/42 条数据，正在写入本地 SQLite 数据库事务，请勿关闭应用。</div>
+            </div>
+        </div>
+
+        <!-- 3. 错误与异常拦截组 -->
+        <div class="state-section-title">03. ERROR & EXCEPTION (错误与冲突)</div>
+        <div class="states-grid">
+            <div class="state-card" style="border-color: var(--error);">
+                <div class="state-icon" style="color: var(--error);">⚠️</div>
+                <div class="state-title" style="color: var(--error);">学号冲突拦截</div>
+                <div class="state-desc">导入失败：学号 <strong>#01</strong> 在当前班级已分配给 [张三]，无法重复添加。</div>
+                <button class="btn-nb" style="background: var(--error);">覆盖并继续</button>
+            </div>
+            <div class="state-card" style="border-color: var(--error);">
+                <div class="state-icon">🔒</div>
+                <div class="state-title">本地数据库被占用 (SQLite Busy)</div>
+                <div class="state-desc">检测到另一个进程正在访问数据库，系统已启用重试机制并自动解除锁文件。</div>
+                <button class="btn-nb" style="background: var(--bg-secondary); color: var(--text-primary);">重试连接</button>
+            </div>
+            <div class="state-card">
+                <div class="state-icon">🔍</div>
+                <div class="state-title">未检索到匹配学生</div>
+                <div class="state-desc">搜索关键词 <strong>“王大拿”</strong> 未匹配到任何学生姓名或学号。</div>
+                <button class="btn-nb" style="background: var(--bg-secondary); color: var(--text-primary);">清空搜索框</button>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
