@@ -4,6 +4,7 @@ const fixtureLevels = [8,2,2,13,20,8,13,2];
 const fixtureExperience = {2:[50,60],8:[280,315],13:[600,665],20:[1200,1200]};
 const fixtures = Array.from({length:88},(_,i)=>({id:i+1,name:`同学 ${String(i+1).padStart(2,'0')}`,group:i%4+1,kind:petKinds[i%8],level:fixtureLevels[i%8],exp:fixtureExperience[fixtureLevels[i%8]][0]+(i%3)}));
 let selectedStudent = 1;
+let isDetailOpen = false;
 let groupFilter = 'all';
 let currentSort = 'no';
 const el = id => document.getElementById(id);
@@ -33,14 +34,27 @@ function renderCollection(){
   if(!shown.some(s=>s.id===selectedStudent)&&shown.length)selectedStudent=shown[0].id;
   el('student-count').textContent=`${shown.length} 位同学`;
   el('collection-status').textContent=groupFilter==='all'?`全班 ${shown.length} 位同学`:`第 ${groupFilter} 小组 · ${shown.length} 位同学`;
-  el('pet-grid').innerHTML=shown.map(student=>{const progress=progressFor(student);return `<button class="pet-card" data-student="${student.id}" aria-pressed="${student.id===selectedStudent}" aria-label="查看${student.name}的宠物"><span class="card-top"><span>#${String(student.id).padStart(2,'0')}</span><span class="card-selected">${student.id===selectedStudent?'✓ 已选':''}</span></span><span class="card-art"><img src="${petImage(student)}" alt="${student.kind[1]}" loading="lazy"></span><span class="card-name">${student.name}</span><span class="card-meta"><strong>Lv.${student.level}</strong><span>${student.exp}/${progress.target} EXP</span></span><progress value="${progress.percent}" max="100" aria-label="${student.name}成长进度"></progress></button>`;}).join('');
+  el('pet-grid').innerHTML=shown.map(student=>{return `<button class="pet-card" data-student="${student.id}" aria-pressed="${student.id===selectedStudent}" aria-label="查看${student.name}的宠物"><span class="card-selected">${student.id===selectedStudent&&isDetailOpen?'✓ 已选':''}</span><span class="card-art"><img src="${petImage(student)}" alt="${student.kind[1]}" loading="lazy"></span><span class="card-name">${student.name}</span></button>`;}).join('');
   document.querySelectorAll('[data-sort]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.sort===currentSort)));
   renderDetail();
 }
 function selectStudent(id){
   selectedStudent=Number(id);
+  isDetailOpen=true;
+  const workspace=document.querySelector('.pet-workspace');
+  if(workspace)workspace.classList.add('has-detail-open');
   document.querySelectorAll('[data-student]').forEach(button=>{const selected=Number(button.dataset.student)===selectedStudent;button.setAttribute('aria-pressed',String(selected));button.querySelector('.card-selected').textContent=selected?'✓ 已选':'';});
   renderDetail();
+}
+function closeDetail(){
+  isDetailOpen=false;
+  const workspace=document.querySelector('.pet-workspace');
+  if(workspace)workspace.classList.remove('has-detail-open');
+  document.querySelectorAll('[data-student]').forEach(button=>{
+    button.setAttribute('aria-pressed','false');
+    const sel=button.querySelector('.card-selected');
+    if(sel)sel.textContent='';
+  });
 }
 function openPreviewDialog(title,content){el('dialog-title').textContent=title;el('dialog-content').innerHTML=content;el('preview-dialog').showModal();}
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>showView(button.dataset.view)));
@@ -54,6 +68,8 @@ el('theme').addEventListener('change',event=>{const palettes={green:['#246b50','
 el('login-form').addEventListener('submit',event=>{event.preventDefault();showView('hub');});
 el('details').addEventListener('click',()=>{const student=fixtures.find(s=>s.id===selectedStudent);openPreviewDialog(`${student.name} · 详情与互动`, `<img class="dialog-pet" src="${petImage(student)}" alt="${student.kind[1]}"><p>语文 · ${student.kind[1]} · Lv.${student.level}</p><div class="dialog-actions">${['孵化 / 认领','进化','切换学科','设为展示宠物','宠物互动','快捷赋分'].map(label=>`<button disabled title="设计预览，不执行业务操作">${label}</button>`).join('')}</div>`);});
 el('close-dialog').addEventListener('click',()=>el('preview-dialog').close());
+if(el('close-detail'))el('close-detail').addEventListener('click',closeDetail);
+window.addEventListener('keydown',e=>{if(e.key==='Escape'&&isDetailOpen)closeDetail();});
 el('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{openPreviewDialog('全屏','当前环境不支持网页全屏。');}});
 el('sound').addEventListener('click',()=>{const button=el('sound');const enabled=button.getAttribute('aria-pressed')!=='true';button.setAttribute('aria-pressed',String(enabled));button.title=`音效预览：${enabled?'开启':'关闭'}`;button.setAttribute('aria-label',button.title);if(enabled){const Audio=window.AudioContext||window.webkitAudioContext;if(Audio){const context=new Audio();const oscillator=context.createOscillator();const gain=context.createGain();oscillator.connect(gain);gain.connect(context.destination);oscillator.frequency.value=660;gain.gain.setValueAtTime(.04,context.currentTime);gain.gain.exponentialRampToValueAtTime(.001,context.currentTime+.18);oscillator.start();oscillator.stop(context.currentTime+.2);oscillator.onended=()=>context.close();}}});
 el('group-summary').innerHTML=[1,2,3,4].map(group=>`<div><span>第 ${group} 组</span><strong>${fixtures.filter(s=>s.group===group).reduce((sum,s)=>sum+s.exp,0)}</strong><span>EXP</span></div>`).join('');

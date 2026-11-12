@@ -1677,7 +1677,8 @@
             }
         }
 
-        const petLayoutState = { selectedId: null, group: 'all' };
+        const petLayoutState = { selectedId: null, group: 'all', isDetailOpen: false };
+        window.petLayoutState = petLayoutState;
         let layoutFeedback = null;
         function setLayoutFeedback(student, tone, title, detail) {
             layoutFeedback = student ? { studentId: String(student.id), tone, title, detail, at: Date.now() } : null;
@@ -1698,6 +1699,18 @@
             select.innerHTML = '<option value="all">全部小组</option>' + groups.map(g => `<option value="${g}">第 ${g} 组</option>`).join('');
             if ([...select.options].some(o => o.value === previous)) select.value = previous;
             else petLayoutState.group = 'all';
+        }
+
+        function closeLayoutDetail() {
+            petLayoutState.isDetailOpen = false;
+            const workspace = document.getElementById('gridWorkspace');
+            if (workspace) workspace.classList.remove('has-detail-open');
+            const panel = document.getElementById('petDetailPanel');
+            if (panel) panel.classList.remove('is-open');
+            document.querySelectorAll('#gridFullView .pet-card').forEach(card => {
+                card.classList.remove('selected');
+                card.setAttribute('aria-pressed', 'false');
+            });
         }
 
         function renderLayoutDetail(student) {
@@ -1726,7 +1739,10 @@
             const currentStatus = student.isAbsent ? '请假中' : (canHatch ? '可破壳' : (isEgg ? '孵化中' : (level >= 20 ? '满级' : '学习中')));
             const feedback = layoutFeedback && layoutFeedback.studentId === String(student.id) ? layoutFeedback : null;
             panel.innerHTML = `
-                <div class="detail-kicker">当前选中 · 第 ${student.group || '-'} 组</div>
+                <div class="detail-kicker-row">
+                    <span class="detail-kicker">当前选中 · 第 ${student.group || '-'} 组</span>
+                    <button class="detail-close-btn" onclick="closeLayoutDetail()" title="收起预览框">✕ 收起</button>
+                </div>
                 <div class="detail-pet-stage"><img src="${image}" alt="${student.name}的${pet.name || '宠物'}" onerror="this.src='./assets/pets/shared/egg.png'"></div>
                 <div class="detail-student-row"><h2>${student.name}</h2><span>学号 #${student.no}</span></div>
                 <div class="detail-pet-name">${pet.subject || subjectNames[student.activeSubject] || '学科'} · ${pet.name || '神秘宠物蛋'}</div>
@@ -1743,6 +1759,12 @@
 
         function selectLayoutStudent(id) {
             petLayoutState.selectedId = String(id);
+            petLayoutState.isDetailOpen = true;
+            const workspace = document.getElementById('gridWorkspace');
+            if (workspace) workspace.classList.add('has-detail-open');
+            const panel = document.getElementById('petDetailPanel');
+            if (panel) panel.classList.add('is-open');
+
             const student = store.students.find(s => String(s.id) === String(id) && !s.isArchived);
             renderLayoutDetail(student || null);
             document.querySelectorAll('#gridFullView .pet-card').forEach(card => {
@@ -1807,7 +1829,12 @@
             if (!petLayoutState.selectedId || !activeStudents.some(s => String(s.id) === petLayoutState.selectedId)) {
                 petLayoutState.selectedId = activeStudents.length ? String(activeStudents[0].id) : null;
             }
-            renderLayoutDetail(activeStudents.find(s => String(s.id) === petLayoutState.selectedId));
+            const currentSelected = activeStudents.find(s => String(s.id) === petLayoutState.selectedId);
+            if (currentSelected) renderLayoutDetail(currentSelected);
+            const workspace = document.getElementById('gridWorkspace');
+            if (workspace) {
+                workspace.classList.toggle('has-detail-open', Boolean(petLayoutState.isDetailOpen));
+            }
 
             const cardsHtml = activeStudents.map(s => {
                 const pet = (s.pets && (s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { subject: '语文', name: '小宠', icon: '🐣', visualStage: 1, species: 'egg', exp: s.exp, level: s.level };
@@ -1907,27 +1934,16 @@
                 const clickFn = `selectLayoutStudent('${s.id}')`;
                 const petImgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(isEgg ? 'egg' : pet.species, isEgg ? 0 : pet.visualStage) : './assets/pets/shared/egg.png');
 
+                const isSelected = String(s.id) === petLayoutState.selectedId && Boolean(petLayoutState.isDetailOpen);
                 return `
-                    <div class="pet-card ${s.isAbsent ? 'absent' : ''} ${String(s.id) === petLayoutState.selectedId ? 'selected' : ''}" id="petCard_${s.id}" data-student-id="${s.id}" role="button" tabindex="0" aria-pressed="${String(s.id) === petLayoutState.selectedId}" onclick="${clickFn}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${clickFn}}">
-                        ${stampHtml}
+                    <div class="pet-card ${s.isAbsent ? 'absent' : ''} ${isSelected ? 'selected' : ''}" id="petCard_${s.id}" data-student-id="${s.id}" role="button" tabindex="0" aria-pressed="${isSelected}" onclick="${clickFn}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${clickFn}}">
                         <div class="pet-visual-box">
                             <img src="${petImgSrc}" class="pet-thumb-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
                             <span style="display:none;">${pet.icon || '🐾'}</span>
-                            <span class="pet-subject-tag">${pet.subject}</span>
                         </div>
                         <div class="card-bottom-info">
                             <div class="card-title-row">
                                 <span class="st-name" title="${s.name}">${s.name}</span>
-                                <span class="st-no">#${s.no}</span>
-                            </div>
-                            <div class="card-status-row">
-                                <span class="st-level-pill">${levelText}</span>
-                                <div class="st-badges-cluster">${subBadgesHtml}</div>
-                                <span class="st-exp-compact" title="${expFullTitle}">${expText}</span>
-                            </div>
-                            <div class="card-state-row"><span class="card-state-dot ${s.isAbsent ? 'muted' : (canDirectHatchThis ? 'ready' : (isEgg ? 'info' : 'active'))}"></span><span>${s.isAbsent ? '请假' : (canDirectHatchThis ? '可破壳' : (isEgg ? '孵化中' : (petLvl >= 20 ? '满级' : '学习中')))}</span><span class="card-group-label">第${s.group || '-'}组</span></div>
-                            <div class="st-bar">
-                                <div class="st-bar-fill" style="width: ${percent}%;"></div>
                             </div>
                         </div>
                     </div>
@@ -3585,6 +3601,10 @@
                 const detailsModal = document.getElementById('modalStudentDetails');
                 if (isModalElementOpen(detailsModal)) {
                     closeDetailsModal();
+                    return;
+                }
+                if (window.petLayoutState && window.petLayoutState.isDetailOpen) {
+                    closeLayoutDetail();
                     return;
                 }
                 closeAllScaleMenus();

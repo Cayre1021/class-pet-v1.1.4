@@ -1,12 +1,17 @@
 .main-stage-wrapper { min-height: 0; }
 .pet-layout-workspace {
     display: grid;
-    grid-template-columns: clamp(290px, 31vw, 430px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
     height: 100%;
     min-height: 0;
     padding: 14px;
     box-sizing: border-box;
+    transition: grid-template-columns 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pet-layout-workspace.has-detail-open {
+    grid-template-columns: clamp(290px, 31vw, 430px) minmax(0, 1fr);
 }
 
 .pet-detail-panel,
@@ -24,12 +29,50 @@
     height: 100%;
     min-height: 0;
     padding: 20px;
-    display: flex;
+    display: none;
     flex-direction: column;
     overflow: auto;
+    animation: detailSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.pet-layout-workspace.has-detail-open .pet-detail-panel {
+    display: flex;
+}
+
+@keyframes detailSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.detail-kicker-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
 .detail-kicker { font-size: 12px; font-weight: 900; color: var(--accent); }
+.detail-close-btn {
+    min-height: 30px;
+    padding: 2px 12px;
+    font-size: 12px;
+    font-weight: 900;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+.detail-close-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
 .detail-pet-stage { height: clamp(210px, 30vh, 320px); display: grid; place-items: center; margin: 6px 0; }
 .detail-pet-stage img { width: 88%; height: 88%; object-fit: contain; filter: drop-shadow(0 12px 15px rgba(0,0,0,.12)); }
 .detail-student-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
@@ -80,23 +123,39 @@
 #gridFullView .pet-card {
     width: auto;
     min-width: 0;
-    height: calc(282px * var(--card-scale, 1));
-    min-height: 260px;
+    height: calc(260px * var(--card-scale, 1));
+    min-height: 240px;
     border-radius: 8px;
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 12px 10px 14px;
+    box-sizing: border-box;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+#gridFullView .pet-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.08);
 }
 #gridFullView .pet-card.selected { outline: 4px solid var(--accent); outline-offset: -4px; }
 #gridFullView .pet-card.selected::after { content: '\2713'; position: absolute; left: 10px; top: 8px; color: var(--accent); font-weight: 900; }
-#gridFullView .pet-visual-box { flex: 1 1 auto; min-height: 0; width: 100%; height: auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; margin-bottom: 8px; }
-#gridFullView .pet-thumb-img { width: 100%; height: 100%; object-fit: contain; }
-#gridFullView .st-name { font-size: 18px; white-space: normal; overflow-wrap: anywhere; }
-#gridFullView .card-bottom-info { flex: 0 0 auto; }
-#gridFullView .card-state-row { display:flex; align-items:center; gap:5px; min-height:18px; margin-top:5px; color:var(--text-secondary); font-size:10px; font-weight:900; }
-#gridFullView .card-state-dot { width:8px; height:8px; flex:0 0 8px; border-radius:50%; background:var(--positive-text); box-shadow:0 0 0 2px var(--positive-bg); }
-#gridFullView .card-state-dot.info { background:var(--status-info-text); box-shadow:0 0 0 2px var(--status-info-bg); }
-#gridFullView .card-state-dot.ready { background:var(--status-ready-border); box-shadow:0 0 0 2px var(--status-ready-bg); }
-#gridFullView .card-state-dot.muted { background:var(--status-muted-text); box-shadow:0 0 0 2px var(--status-muted-bg); }
-#gridFullView .card-group-label { margin-left:auto; color:var(--accent); }
+#gridFullView .pet-visual-box { flex: 1 1 auto; min-height: 0; width: 100%; height: auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; }
+#gridFullView .pet-thumb-img { width: 100%; height: 100%; max-height: 185px; object-fit: contain; }
+#gridFullView .card-bottom-info { flex: 0 0 auto; width: 100%; padding: 0; }
+#gridFullView .card-title-row { display: flex; justify-content: center; align-items: center; width: 100%; }
+#gridFullView .st-name { font-size: 20px; font-weight: 900; text-align: center; color: var(--text-primary); white-space: normal; overflow-wrap: anywhere; letter-spacing: 0.5px; }
+
+/* 仅保留学生名字：严格隐藏卡片内除名字外的多余文字、标签、印章与经验条 */
+#gridFullView .st-no,
+#gridFullView .pet-subject-tag,
+#gridFullView .card-status-row,
+#gridFullView .card-state-row,
+#gridFullView .card-stamp,
+#gridFullView .st-bar {
+    display: none !important;
+}
+
 .group-totals-strip { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 12px; flex-shrink: 0; }
 .group-totals-strip .group-status-banner-card { height: auto; min-height: 44px; border-radius: 0; border: 0; border-right: 1px solid var(--border); background: transparent; padding: 4px; }
 .group-totals-strip .group-status-banner-card > span { display: none; }
@@ -104,16 +163,17 @@
 .pet-grid-empty { padding: 50px 20px; text-align: center; color: var(--text-secondary); font-weight: 900; }
 
 @media (max-width: 1260px) {
-    .pet-layout-workspace { grid-template-columns: 300px minmax(0, 1fr); }
+    .pet-layout-workspace.has-detail-open { grid-template-columns: 300px minmax(0, 1fr); }
     #gridFullView.grid-full-view { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 980px) {
-    .pet-layout-workspace { grid-template-columns: 260px minmax(0, 1fr); gap: 10px; padding: 10px; }
+    .pet-layout-workspace.has-detail-open { grid-template-columns: 260px minmax(0, 1fr); gap: 10px; padding: 10px; }
     #gridFullView.grid-full-view { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .group-totals-strip { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 760px) {
     .pet-layout-workspace { height: auto; grid-template-columns: 1fr; }
+    .pet-layout-workspace.has-detail-open { grid-template-columns: 1fr; }
     .pet-detail-panel { position: static; height: auto; }
     .detail-pet-stage { height: 180px; }
     #gridFullView.grid-full-view { overflow: visible; }

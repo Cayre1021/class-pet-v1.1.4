@@ -1,5 +1,24 @@
 # 门户精简与宠物大屏布局规划
 
+## 2026-11-12：探索分支（学生卡片极简化与侧边档案收纳）
+
+- **分支目标**：在独立探索分支 `explore/ui-streamline-cards` 上尝试前端页面视觉调整。
+- **改动范围**：
+  1. 学生卡片极简重构（依据 `补图/37977c8b56c3871ac51cd03933082652.png`）：
+     - 彻底去除学生方块上的学号、学科角标、等级字样、三科微标、经验数字、学习状态、组号及进度条；
+     - 仅保留萌宠大图与居中大字号学生姓名，消除视觉噪音，强化课堂远距离可识别度。
+  2. 左侧档案面板收纳与弹出（依据 `补图/120ce3b93096217684ef803e9f516db9.jpg`）：
+     - 正常默认状态下，左侧预览框完全收纳，主舞台 4 列学生网格全宽铺展；
+     - 点击任意学生宠物方块时，左侧档案抽屉平滑滑出/弹出，集中展示该宠物的全部关键信息与操作入口；
+     - 提供顶部【✕ 收起】按钮与键盘 Esc 快捷收起逻辑。
+- **涉及文件**：
+  - `electron-app/src/display_layout_a.css`
+  - `electron-app/src/display_bigscreen_touch_pro.html`
+  - `design/revision-preview.css`
+  - `design/revision-preview.html`
+  - `design/revision-preview.js`
+- **验证方式**：`tests/test_display_layout_a.cjs`、`tests/test_floating_ball_gestures.cjs` 与 `git diff --check`。
+
 ## 2026-11-12：源码推送
 
 - 用户授权将当前源码推送至 Cayre1021/class-pet-v1.1.4。
