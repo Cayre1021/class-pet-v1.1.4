@@ -19,11 +19,11 @@ class ClassroomAudioEngine {
     }
 
     getContext() {
-        if (!this.ctx) {
+        if (!this.ctx && typeof window !== 'undefined') {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioCtx();
+            if (AudioCtx) this.ctx = new AudioCtx();
         }
-        if (this.ctx.state === 'suspended') {
+        if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume();
         }
         return this.ctx;
@@ -84,6 +84,14 @@ class ClassroomAudioEngine {
                 osc.stop(startTime + 0.55);
             });
         } catch (e) {}
+    }
+
+    playLevelUp() {
+        this.playFanfare();
+    }
+
+    playHatch() {
+        this.playFanfare();
     }
 
     playTick() {
@@ -283,12 +291,23 @@ function getPetImagePath(species, stage = 1) {
     return `./assets/pets/${sp}/${sp}-stage${st}.png`;
 }
 
+function safeElectronAPI() {
+    return (typeof window !== 'undefined' && window.electronAPI) ? window.electronAPI : null;
+}
+
+function safeElectronDB() {
+    const api = safeElectronAPI();
+    return (api && api.db) ? api.db : null;
+}
+
 // ==========================================
 // 3. 核心数据管理与跨屏通信 Store
 // ==========================================
 class ClassPetStore {
     constructor() {
-        this.channel = new BroadcastChannel('classpet_sync_channel');
+        this.channel = typeof BroadcastChannel !== 'undefined'
+            ? new BroadcastChannel('classpet_sync_channel')
+            : { postMessage: () => {}, onmessage: null };
         this.audio = new ClassroomAudioEngine();
         this.listeners = new Set();
         this.initLevelThresholds();
@@ -314,8 +333,10 @@ class ClassPetStore {
                     STAGE_MIN_LEVELS = parsedS;
                 }
             }
-            window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
-            window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+            if (typeof window !== 'undefined') {
+                window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+                window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+            }
         } catch (e) {
             console.error('Failed to initLevelThresholds:', e);
         }
@@ -344,21 +365,25 @@ class ClassPetStore {
             }
         }
         LEVEL_THRESHOLDS = cleanThresholds;
-        window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+        if (typeof window !== 'undefined') {
+            window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+        }
         localStorage.setItem('classpet_custom_level_thresholds', JSON.stringify(cleanThresholds));
 
         if (Array.isArray(newStages) && newStages.length === 6) {
             STAGE_MIN_LEVELS = newStages;
-            window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+            if (typeof window !== 'undefined') {
+                window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+            }
             localStorage.setItem('classpet_custom_stage_levels', JSON.stringify(newStages));
         }
 
         this.recalculateAllStudentsProgress();
 
-        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-        const classId = acc.classId || 'c_class02_01';
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveThresholds === 'function') {
-            window.electronAPI.db.saveThresholds(cleanThresholds, STAGE_MIN_LEVELS, classId);
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.saveThresholds === 'function') {
+            db.saveThresholds(cleanThresholds, STAGE_MIN_LEVELS, classId);
         }
 
         this.broadcast('THRESHOLDS_SYNC', { thresholds: LEVEL_THRESHOLDS, stageLevels: STAGE_MIN_LEVELS, students: this.students });
@@ -370,8 +395,10 @@ class ClassPetStore {
     resetLevelThresholds() {
         LEVEL_THRESHOLDS = [...DEFAULT_LEVEL_THRESHOLDS];
         STAGE_MIN_LEVELS = JSON.parse(JSON.stringify(DEFAULT_STAGE_MIN_LEVELS));
-        window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
-        window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+        if (typeof window !== 'undefined') {
+            window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+            window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+        }
         localStorage.removeItem('classpet_custom_level_thresholds');
         localStorage.removeItem('classpet_custom_stage_levels');
 
@@ -391,11 +418,10 @@ class ClassPetStore {
                 newLevel = Math.max(1, newLevel);
             }
             s.level = newLevel;
-            let newStage = this.calcVisualStage(newLevel, 0);
-            if (s.isHatched) {
-                newStage = Math.max(1, newStage);
-            }
-            s.visualStage = newStage;
+            const curStage = (s.visualStage !== undefined && s.visualStage !== null)
+                ? s.visualStage
+                : (s.isHatched ? 1 : 0);
+            s.visualStage = curStage;
             s.minExpForCurrentLevel = this.getCurrentLevelMinExp(s.level);
             s.nextLevelExp = this.getNextLevelThreshold(s.level);
 
@@ -409,14 +435,11 @@ class ClassPetStore {
                     curPet.icon = '🐣';
                     curPet.image = getPetImagePath('egg', 0);
                 } else {
-                    const s2L = STAGE_MIN_LEVELS[2]?.minLevel || 4;
-                    const s3L = STAGE_MIN_LEVELS[3]?.minLevel || 8;
-                    const s4L = STAGE_MIN_LEVELS[4]?.minLevel || 13;
-                    const s5L = STAGE_MIN_LEVELS[5]?.minLevel || 20;
-                    if (s.level >= 20 || s.level >= s5L) {
+                    const targetStage = this.calcVisualStage(s.level, 0);
+                    if (s.level >= 20 && curStage >= 5) {
                         s.stamp = 'MAX';
                         curPet.icon = '👑';
-                    } else if ([s2L, s3L, s4L].includes(s.level)) {
+                    } else if (targetStage > curStage && curStage < 5) {
                         s.stamp = 'EVOLVE';
                     } else {
                         s.stamp = null;
@@ -468,43 +491,203 @@ class ClassPetStore {
         return LEVEL_THRESHOLDS[level + 1];
     }
 
+    /**
+     * 官方标准：获取全维度统一的经验成长与升段进度对象
+     * 严格遵循“进度条显示的是当前等级升级到下一个等级的进度”的教学规范
+     * @param {number} exp 当前总经验值
+     * @param {number} level 当前等级 (0~20)
+     * @param {boolean} isHatched 是否已破壳
+     */
+    getExpProgress(exp = 0, level = 0, isHatched = true) {
+        const hatchThresh = this.getHatchThreshold ? this.getHatchThreshold() : 15;
+        const petExp = Math.max(0, Number(exp) || 0);
+        const petLevel = Math.max(0, Number(level) || 0);
+
+        // 1. 蛋形态 (未孵化破壳)
+        if (!isHatched || petLevel === 0) {
+            const percent = Math.min(100, Math.max(0, Math.round((petExp / hatchThresh) * 100)));
+            const needExp = Math.max(0, hatchThresh - petExp);
+            const currentProg = Math.min(hatchThresh, petExp);
+            return {
+                isEgg: true,
+                isMax: false,
+                level: 0,
+                levelLabel: 'Lv.0 (蛋形态)',
+                totalExp: petExp,
+                levelMinExp: 0,
+                levelNextExp: hatchThresh,
+                levelSpan: hatchThresh,
+                progressInLevel: currentProg,
+                needExp: needExp,
+                percent: percent,
+                rateText: `当前 ${currentProg} / 破壳 ${hatchThresh} EXP (${percent}%)`,
+                cardRateText: `${currentProg}/${hatchThresh}`,
+                barLabelLeft: `🐣 孵化破壳能量`,
+                barLabelRight: `当前 ${currentProg} / 破壳 ${hatchThresh} EXP (${percent}%)`,
+                startMilestone: `0 EXP (诞生起点)`,
+                targetMilestone: `${hatchThresh} EXP (破壳目标)`,
+                detailText: needExp === 0 ? `🐣 破壳能量已积满！可点击下方按钮立即破壳认领！` : `⭐ 当前累计: ${petExp} EXP · 还差 ${needExp} EXP 破壳 (课堂加分可加速)`
+            };
+        }
+
+        // 2. 满级王者顶峰 (Lv.20 MAX)
+        if (petLevel >= 20) {
+            const maxThreshold = this.getCurrentLevelMinExp(20);
+            return {
+                isEgg: false,
+                isMax: true,
+                level: 20,
+                levelLabel: 'Lv.20 👑 MAX',
+                totalExp: petExp,
+                levelMinExp: maxThreshold,
+                levelNextExp: maxThreshold,
+                levelSpan: 0,
+                progressInLevel: 0,
+                needExp: 0,
+                percent: 100,
+                rateText: `MAX (已达顶峰)`,
+                cardRateText: `MAX`,
+                barLabelLeft: `👑 王者巅峰 · 最高等级达成`,
+                barLabelRight: `100% (${petExp} EXP 👑 已达顶峰)`,
+                startMilestone: `${maxThreshold} EXP (Lv.20 起点)`,
+                targetMilestone: `👑 MAX 荣耀顶峰`,
+                detailText: `⭐ 累计总经验: ${petExp} EXP · 已达成最高满级 (王者)`
+            };
+        }
+
+        // 3. 正常升级阶梯 (Lv.1 ~ Lv.19)
+        // 严格遵循用户诉求：“进度条显示的是当前等级升级到下一个等级的进度”
+        const levelMinExp = this.getCurrentLevelMinExp(petLevel);
+        const levelNextExp = this.getNextLevelThreshold(petLevel);
+        const levelSpan = Math.max(1, levelNextExp - levelMinExp);
+        const progressInLevel = Math.min(levelSpan, Math.max(0, petExp - levelMinExp));
+        const needExp = Math.max(0, levelNextExp - petExp);
+        let percent = Math.min(100, Math.max(0, Math.round((progressInLevel / levelSpan) * 100)));
+        if (progressInLevel > 0 && percent < 5) percent = 5;
+
+        return {
+            isEgg: false,
+            isMax: false,
+            level: petLevel,
+            levelLabel: `LV.${petLevel}`,
+            totalExp: petExp,
+            levelMinExp: levelMinExp,
+            levelNextExp: levelNextExp,
+            levelSpan: levelSpan,
+            progressInLevel: progressInLevel,
+            needExp: needExp,
+            percent: percent,
+            rateText: `当前 ${petExp} / 目标 ${levelNextExp} EXP (${percent}%)`,
+            cardRateText: `${petExp}/${levelNextExp}`,
+            barLabelLeft: `🌟 升级进度 (Lv.${petLevel} ➔ Lv.${petLevel + 1})`,
+            barLabelRight: `当前 ${petExp} / 目标 ${levelNextExp} EXP (${percent}%)`,
+            startMilestone: `${levelMinExp} EXP (Lv.${petLevel} 起点)`,
+            targetMilestone: `${levelNextExp} EXP (Lv.${petLevel + 1} 目标)`,
+            detailText: `⭐ 当前累计: ${petExp} EXP · 升至 Lv.${petLevel + 1} 还差 ${needExp} EXP (本级已攒 ${progressInLevel}/${levelSpan} EXP)`
+        };
+    }
+
     // 从本地 SQLite 数据库中真实同步全班数据模型 (第14点：真接入本地数据库)
     async loadFromSQLite() {
-        if (!window.electronAPI || !window.electronAPI.db || typeof window.electronAPI.db.loadAllState !== 'function') {
+        const db = safeElectronDB();
+        if (!db || typeof db.loadAllState !== 'function') {
             return false;
         }
         try {
-            const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-            const classId = acc.classId || 'c_class02_01';
-            const state = await window.electronAPI.db.loadAllState(classId);
+            const classId = this.getClassId();
+            const state = await db.loadAllState(classId);
             if (state && Array.isArray(state.students) && state.students.length > 0) {
                 console.log('[ClassPetStore] 成功从本地 SQLite 数据库载入班级真实状态，学生数:', state.students.length);
+                const prevStudentMap = new Map();
+                if (Array.isArray(this.students)) {
+                    this.students.forEach(s => {
+                        prevStudentMap.set(s.id, s);
+                    });
+                }
                 const spKeys = Object.keys(PET_SPECIES_CATALOG);
+                let hadHigherMemoryExp = false;
                 const loadedStudents = state.students.map((stRow, idx) => {
+                    const existing = prevStudentMap.get(stRow.id);
                     const stPets = (state.petsByStudent && state.petsByStudent[stRow.id]) ? state.petsByStudent[stRow.id] : {};
                     const primaryPetRow = stPets.chinese || Object.values(stPets)[0];
-                    const spCode = primaryPetRow ? (primaryPetRow.species_code || 'cat') : spKeys[idx % spKeys.length];
+                    const spCode = primaryPetRow ? (primaryPetRow.species_code || 'cat') : (existing?.pets?.chinese?.species || spKeys[idx % spKeys.length]);
                     const spInfo = PET_SPECIES_CATALOG[spCode] || PET_SPECIES_CATALOG.cat;
                     const stage = (primaryPetRow && primaryPetRow.visual_stage !== undefined && primaryPetRow.visual_stage !== null) ? primaryPetRow.visual_stage : 0;
                     const isHatched = stage >= 1;
                     const level = (primaryPetRow && primaryPetRow.level !== undefined && primaryPetRow.level !== null) ? primaryPetRow.level : (isHatched ? 1 : 0);
                     const exp = (primaryPetRow && primaryPetRow.exp !== undefined && primaryPetRow.exp !== null) ? primaryPetRow.exp : (isHatched ? 15 : 0);
 
+                    // 核心单调递增合并 (避免 SQLite 异步载入覆盖刚刚赋分的更高经验或重启前尚未落盘的经验)
+                    const existChineseExp = existing?.pets?.chinese?.exp ?? (existing?.activeSubject === 'chinese' ? existing?.exp : 0) ?? 0;
+                    const sqliteChineseExp = (stPets.chinese?.exp !== undefined ? stPets.chinese.exp : exp);
+                    const finalChineseExp = Math.max(existChineseExp, sqliteChineseExp);
+                    if (existChineseExp > sqliteChineseExp) hadHigherMemoryExp = true;
+                    const finalChineseLvl = Math.max(existing?.pets?.chinese?.level ?? 0, stPets.chinese?.level ?? level, this.calcLevel(finalChineseExp, 0));
+                    const finalChineseStage = Math.max(existing?.pets?.chinese?.visualStage ?? (isHatched ? 1 : 0), stPets.chinese?.visual_stage ?? stage, this.calcVisualStage(finalChineseLvl, 0));
+
+                    const existMathExp = existing?.pets?.math?.exp ?? (existing?.activeSubject === 'math' ? existing?.exp : 0) ?? 0;
+                    const sqliteMathExp = (stPets.math?.exp !== undefined ? stPets.math.exp : 0);
+                    const finalMathExp = Math.max(existMathExp, sqliteMathExp);
+                    if (existMathExp > sqliteMathExp) hadHigherMemoryExp = true;
+                    const finalMathLvl = Math.max(existing?.pets?.math?.level ?? 0, stPets.math?.level ?? 0, this.calcLevel(finalMathExp, 0));
+                    const finalMathStage = Math.max(existing?.pets?.math?.visualStage ?? 0, stPets.math?.visual_stage ?? 0, this.calcVisualStage(finalMathLvl, 0));
+                    const isMathHatched = (finalMathStage >= 1) || !!(existing?.pets?.math?.isHatched);
+
+                    const existEngExp = existing?.pets?.english?.exp ?? (existing?.activeSubject === 'english' ? existing?.exp : 0) ?? 0;
+                    const sqliteEngExp = (stPets.english?.exp !== undefined ? stPets.english.exp : 0);
+                    const finalEngExp = Math.max(existEngExp, sqliteEngExp);
+                    if (existEngExp > sqliteEngExp) hadHigherMemoryExp = true;
+                    const finalEngLvl = Math.max(existing?.pets?.english?.level ?? 0, stPets.english?.level ?? 0, this.calcLevel(finalEngExp, 0));
+                    const finalEngStage = Math.max(existing?.pets?.english?.visualStage ?? 0, stPets.english?.visual_stage ?? 0, this.calcVisualStage(finalEngLvl, 0));
+                    const isEngHatched = (finalEngStage >= 1) || !!(existing?.pets?.english?.isHatched);
+
+                    const activeSubject = existing?.activeSubject || (primaryPetRow?.subject_id === 'subj_math' ? 'math' : (primaryPetRow?.subject_id === 'subj_english' ? 'english' : 'chinese'));
+
+                    // 学生顶层属性与当前 activeSubject 保持绝对同步
+                    let activeExp = finalChineseExp;
+                    let activeLvl = finalChineseLvl;
+                    let activeStage = finalChineseStage;
+                    let activeIsHatched = isHatched;
+                    if (activeSubject === 'math') {
+                        activeExp = finalMathExp;
+                        activeLvl = finalMathLvl;
+                        activeStage = finalMathStage;
+                        activeIsHatched = isMathHatched;
+                    } else if (activeSubject === 'english') {
+                        activeExp = finalEngExp;
+                        activeLvl = finalEngLvl;
+                        activeStage = finalEngStage;
+                        activeIsHatched = isEngHatched;
+                    }
+
+                    const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : 15;
+                    const targetStage = this.calcVisualStage(activeLvl, 0);
+                    let stamp = null;
+                    if (!activeIsHatched) {
+                        stamp = activeExp >= hatchThresh ? 'HATCH' : null;
+                    } else if (activeLvl >= 20 && activeStage >= 5) {
+                        stamp = 'MAX';
+                    } else if (targetStage > activeStage && activeStage < 5) {
+                        stamp = 'EVOLVE';
+                    } else {
+                        stamp = null;
+                    }
+
                     return {
                         id: stRow.id,
                         no: stRow.student_no || (idx + 1).toString().padStart(2, '0'),
                         name: stRow.name || `学生${idx + 1}`,
                         group: parseInt((stRow.group_name || '1').replace(/\D/g, ''), 10) || ((idx % 4) + 1),
-                        level,
-                        exp,
-                        visualStage: stage,
-                        stamp: isHatched ? (level >= 20 ? 'MAX' : null) : 'HATCH',
-                        isHatched,
-                        isAbsent: false,
+                        level: activeLvl,
+                        exp: activeExp,
+                        visualStage: activeStage,
+                        stamp,
+                        isHatched: activeIsHatched,
+                        isAbsent: prevStudentMap.get(stRow.id)?.isAbsent || false,
                         isArchived: !!stRow.archived_at,
-                        minExpForCurrentLevel: this.getCurrentLevelMinExp(level),
-                        nextLevelExp: this.getNextLevelThreshold(level),
-                        activeSubject: 'chinese',
+                        minExpForCurrentLevel: this.getCurrentLevelMinExp(activeLvl),
+                        nextLevelExp: this.getNextLevelThreshold(activeLvl),
+                        activeSubject: activeSubject,
                         pets: {
                             chinese: {
                                 id: stPets.chinese?.id || 'pet_' + stRow.id + '_c',
@@ -512,51 +695,73 @@ class ClassPetStore {
                                 subject: '语文',
                                 name: isHatched ? (stPets.chinese?.nickname || spInfo.name) : '神秘宠物蛋',
                                 icon: isHatched ? spInfo.icon : '🐣',
-                                image: getPetImagePath(isHatched ? (stPets.chinese?.species_code || spCode) : 'egg', stage),
-                                level: stPets.chinese?.level !== undefined ? stPets.chinese.level : level,
-                                exp: stPets.chinese?.exp !== undefined ? stPets.chinese.exp : exp,
-                                visualStage: stPets.chinese?.visual_stage !== undefined ? stPets.chinese.visual_stage : stage,
+                                image: getPetImagePath(isHatched ? (stPets.chinese?.species_code || spCode) : 'egg', finalChineseStage),
+                                level: finalChineseLvl,
+                                exp: finalChineseExp,
+                                visualStage: finalChineseStage,
                                 isHatched,
                                 affection: 70, fullness: 80, energy: 80
                             },
                             math: {
                                 id: stPets.math?.id || 'pet_' + stRow.id + '_m',
-                                species: (stPets.math && stPets.math.visual_stage >= 1) ? stPets.math.species_code : 'egg',
+                                species: isMathHatched ? (stPets.math?.species_code || 'cat') : 'egg',
                                 subject: '数学',
-                                name: (stPets.math && stPets.math.visual_stage >= 1) ? (stPets.math.nickname || '数学萌宠') : '神秘宠物蛋 (待破壳)',
-                                icon: (stPets.math && stPets.math.visual_stage >= 1) ? (PET_SPECIES_CATALOG[stPets.math.species_code]?.icon || '📐') : '🐣',
-                                image: getPetImagePath((stPets.math && stPets.math.visual_stage >= 1) ? stPets.math.species_code : 'egg', stPets.math?.visual_stage || 0),
-                                level: stPets.math?.level !== undefined ? stPets.math.level : 0,
-                                exp: stPets.math?.exp !== undefined ? stPets.math.exp : 0,
-                                visualStage: stPets.math?.visual_stage !== undefined ? stPets.math.visual_stage : 0,
-                                isHatched: !!(stPets.math && stPets.math.visual_stage >= 1),
+                                name: isMathHatched ? (stPets.math?.nickname || '数学萌宠') : '神秘宠物蛋 (待破壳)',
+                                icon: isMathHatched ? (PET_SPECIES_CATALOG[stPets.math?.species_code]?.icon || '📐') : '🐣',
+                                image: getPetImagePath(isMathHatched ? (stPets.math?.species_code || 'cat') : 'egg', finalMathStage),
+                                level: finalMathLvl,
+                                exp: finalMathExp,
+                                visualStage: finalMathStage,
+                                isHatched: isMathHatched,
                                 affection: 20, fullness: 50, energy: 50
                             },
                             english: {
                                 id: stPets.english?.id || 'pet_' + stRow.id + '_e',
-                                species: (stPets.english && stPets.english.visual_stage >= 1) ? stPets.english.species_code : 'egg',
+                                species: isEngHatched ? (stPets.english?.species_code || 'cat') : 'egg',
                                 subject: '英语',
-                                name: (stPets.english && stPets.english.visual_stage >= 1) ? (stPets.english.nickname || '英语萌宠') : '神秘宠物蛋 (待破壳)',
-                                icon: (stPets.english && stPets.english.visual_stage >= 1) ? (PET_SPECIES_CATALOG[stPets.english.species_code]?.icon || '🔤') : '🐣',
-                                image: getPetImagePath((stPets.english && stPets.english.visual_stage >= 1) ? stPets.english.species_code : 'egg', stPets.english?.visual_stage || 0),
-                                level: stPets.english?.level !== undefined ? stPets.english.level : 0,
-                                exp: stPets.english?.exp !== undefined ? stPets.english.exp : 0,
-                                visualStage: stPets.english?.visual_stage !== undefined ? stPets.english.visual_stage : 0,
-                                isHatched: !!(stPets.english && stPets.english.visual_stage >= 1),
+                                name: isEngHatched ? (stPets.english?.nickname || '英语萌宠') : '神秘宠物蛋 (待破壳)',
+                                icon: isEngHatched ? (PET_SPECIES_CATALOG[stPets.english?.species_code]?.icon || '🔤') : '🐣',
+                                image: getPetImagePath(isEngHatched ? (stPets.english?.species_code || 'cat') : 'egg', finalEngStage),
+                                level: finalEngLvl,
+                                exp: finalEngExp,
+                                visualStage: finalEngStage,
+                                isHatched: isEngHatched,
                                 affection: 20, fullness: 50, energy: 50
                             }
                         }
                     };
                 });
 
+                // 核心安全合并机制：杜绝 SQLite 刚启动滞后导致内存中新增/导入的学生被覆盖删除
+                if (Array.isArray(this.students) && this.students.length > 0) {
+                    const loadedIds = new Set(loadedStudents.map(s => s.id));
+                    const missingInDb = this.students.filter(s => !loadedIds.has(s.id));
+                    if (missingInDb.length > 0) {
+                        console.log(`[ClassPetStore] 发现 ${missingInDb.length} 名学生在内存中存在但在 SQLite 暂无，正在补充落盘...`);
+                        for (const s of missingInDb) {
+                            loadedStudents.push(s);
+                            if (db && typeof db.saveStudent === 'function') {
+                                db.saveStudent(s, classId);
+                            }
+                        }
+                    }
+                }
+
+                // 若内存数据拥有更高经验，异步回写至 SQLite，确保数据库永不滞后
+                if (hadHigherMemoryExp && db && typeof db.saveStudent === 'function') {
+                    loadedStudents.forEach(s => db.saveStudent(s, classId));
+                }
+
                 this.students = loadedStudents;
                 this.save();
+                this.broadcast('STATE_SYNC', { students: this.students });
                 this.notify('STATE_SYNC', { students: this.students });
+                this.notify('SYNC', { students: this.students });
                 return true;
             } else if (this.students && this.students.length > 0) {
                 // 若 SQLite 库中暂无该班级名单，自动将现有学生种子同步写入 SQLite
-                if (window.electronAPI.db && typeof window.electronAPI.db.importStudents === 'function') {
-                    window.electronAPI.db.importStudents(this.students, classId);
+                if (db && typeof db.importStudents === 'function') {
+                    await db.importStudents(this.students, classId);
                 }
             }
         } catch (e) {
@@ -576,6 +781,7 @@ class ClassPetStore {
         } catch (e) {}
         return {
             id: 'acc_demo_302',
+            classId: 'c_class02_01',
             school: '实验小学本部',
             className: '三年级二班',
             subject: '语文',
@@ -584,8 +790,31 @@ class ClassPetStore {
         };
     }
 
+    getClassId() {
+        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
+        if (acc && acc.classId) return acc.classId;
+        if (acc && acc.id === 'acc_demo_302') return 'c_class02_01';
+        if (acc && acc.id === 'acc_demo_401') return 'c_class04_01';
+        if (acc && acc.id) return 'c_' + acc.id;
+        return 'c_class02_01';
+    }
+
     getStorageKey() {
         return 'classpet_v2_students_data_' + this.getActiveAccountId();
+    }
+
+    getCurrentTeachingSubject() {
+        const sub = localStorage.getItem('classpet_current_teaching_subject') || localStorage.getItem('classpet_teacher_subject');
+        if (!sub || sub === '综合' || sub === 'general' || sub === '通用' || sub === '班主任') return 'chinese';
+        return sub;
+    }
+
+    setCurrentTeachingSubject(sub) {
+        if (!sub) return;
+        localStorage.setItem('classpet_current_teaching_subject', sub);
+        localStorage.setItem('classpet_teacher_subject', sub);
+        this.broadcast('TEACHING_SUBJECT_SYNC', { subject: sub });
+        this.notify('TEACHING_SUBJECT_CHANGE', { subject: sub });
     }
 
     getCurrentLevelMinExp(level) {
@@ -609,8 +838,30 @@ class ClassPetStore {
                 const spKeys = Object.keys(PET_SPECIES_CATALOG);
                 this.students.forEach((s, idx) => {
                     if (s.isArchived === undefined) { s.isArchived = false; needResave = true; }
-                    if (s.isHatched === undefined) { s.isHatched = s.level >= 1; needResave = true; }
+                    if (s.isHatched === undefined) { s.isHatched = (s.level || 0) >= 1; needResave = true; }
+                    if (s.level === undefined || s.level === null) { s.level = s.isHatched ? 1 : 0; needResave = true; }
+                    const activeSub = s.activeSubject || 'chinese';
+                    const curPet = s.pets ? (s.pets[activeSub] || s.pets.chinese) : null;
+                    if (s.exp === undefined || s.exp === null) {
+                        s.exp = (curPet && curPet.exp !== undefined && curPet.exp !== null) ? Number(curPet.exp) : (s.isHatched ? 15 : 0);
+                        needResave = true;
+                    }
+                    if (curPet && (curPet.exp === undefined || curPet.exp === null)) { curPet.exp = s.exp; needResave = true; }
+                    if (curPet && (curPet.level === undefined || curPet.level === null)) { curPet.level = s.level; needResave = true; }
+
                     if (!s.pets || !s.pets.chinese) return;
+                    if (s.pets.chinese.isHatched === undefined) {
+                        s.pets.chinese.isHatched = !!(s.isHatched && s.pets.chinese.species !== 'egg');
+                        needResave = true;
+                    }
+                    if (s.pets.math && s.pets.math.isHatched === undefined) {
+                        s.pets.math.isHatched = !!(s.pets.math.species && s.pets.math.species !== 'egg' && (s.pets.math.level || 0) >= 1);
+                        needResave = true;
+                    }
+                    if (s.pets.english && s.pets.english.isHatched === undefined) {
+                        s.pets.english.isHatched = !!(s.pets.english.species && s.pets.english.species !== 'egg' && (s.pets.english.level || 0) >= 1);
+                        needResave = true;
+                    }
                     if (!s.pets.chinese.species) {
                         const spCode = spKeys[idx % spKeys.length];
                         s.pets.chinese.species = spCode;
@@ -618,8 +869,6 @@ class ClassPetStore {
                         s.pets.chinese.icon = PET_SPECIES_CATALOG[spCode].icon;
                         needResave = true;
                     }
-                    const activeSub = s.activeSubject || 'chinese';
-                    const curPet = s.pets[activeSub] || s.pets.chinese;
                     const targetImg = s.isHatched
                         ? getPetImagePath(curPet.species, s.visualStage)
                         : getPetImagePath('egg', 0);
@@ -721,6 +970,7 @@ class ClassPetStore {
                         level,
                         exp,
                         visualStage,
+                        isHatched,
                         affection: isHatched ? 72 : 20,
                         fullness: 80,
                         energy: 90
@@ -796,6 +1046,11 @@ class ClassPetStore {
                 this.save();
                 this.notify('SYNC', payload);
             } else if (type === 'SCORE_TRIGGERED') {
+                if (payload.students) {
+                    this.students = payload.students;
+                    this.save();
+                    this.notify('SYNC', payload);
+                }
                 if (payload.delta > 0) this.audio.playDing();
                 else this.audio.playDeduct();
                 this.notify('SCORE', payload);
@@ -808,48 +1063,67 @@ class ClassPetStore {
             } else if (type === 'THRESHOLDS_SYNC') {
                 if (payload.thresholds) {
                     LEVEL_THRESHOLDS = payload.thresholds;
-                    window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+                    if (typeof window !== 'undefined') {
+                        window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+                    }
                 }
                 if (payload.stageLevels) {
                     STAGE_MIN_LEVELS = payload.stageLevels;
-                    window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+                    if (typeof window !== 'undefined') {
+                        window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+                    }
                 }
                 if (payload.students) {
                     this.students = payload.students;
                     this.save();
                 }
                 this.notify('THRESHOLDS_UPDATE', payload);
+            } else if (type === 'TEACHING_SUBJECT_SYNC') {
+                if (payload && payload.subject) {
+                    localStorage.setItem('classpet_current_teaching_subject', payload.subject);
+                    this.notify('TEACHING_SUBJECT_CHANGE', payload);
+                    this.notify('SYNC', payload);
+                }
             }
         };
 
         this.channel.onmessage = (e) => handleSync(e.data);
 
-        if (window.electronAPI && typeof window.electronAPI.onBroadcastSync === 'function') {
+        if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.onBroadcastSync === 'function') {
             window.electronAPI.onBroadcastSync((data) => handleSync(data));
         }
 
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'classpet_v2_students_data' && e.newValue) {
-                try {
-                    this.students = JSON.parse(e.newValue);
-                    this.notify('STORAGE_UPDATE');
-                } catch (err) {}
-            }
-            if (e.key === 'classpet_custom_behavior_rules' && e.newValue) {
-                try {
-                    this.behaviorRules = JSON.parse(e.newValue);
-                    this.notify('RULES_UPDATE');
-                } catch (err) {}
-            }
-            if (e.key === 'classpet_custom_level_thresholds') {
-                try {
-                    LEVEL_THRESHOLDS = e.newValue ? JSON.parse(e.newValue) : [...DEFAULT_LEVEL_THRESHOLDS];
-                    window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
-                    this.recalculateAllStudentsProgress();
-                    this.notify('THRESHOLDS_UPDATE');
-                } catch (err) {}
-            }
-        });
+        if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+            window.addEventListener('storage', (e) => {
+                if (e.key && (e.key === 'classpet_v2_students_data' || e.key.startsWith('classpet_v2_students_data_')) && e.newValue) {
+                    try {
+                        this.students = JSON.parse(e.newValue);
+                        this.notify('STORAGE_UPDATE');
+                        this.notify('SYNC', { students: this.students });
+                    } catch (err) {}
+                }
+                if (e.key === 'classpet_current_teaching_subject' && e.newValue) {
+                    this.notify('TEACHING_SUBJECT_CHANGE', { subject: e.newValue });
+                    this.notify('SYNC', { subject: e.newValue });
+                }
+                if (e.key === 'classpet_custom_behavior_rules' && e.newValue) {
+                    try {
+                        this.behaviorRules = JSON.parse(e.newValue);
+                        this.notify('RULES_UPDATE');
+                    } catch (err) {}
+                }
+                if (e.key === 'classpet_custom_level_thresholds') {
+                    try {
+                        LEVEL_THRESHOLDS = e.newValue ? JSON.parse(e.newValue) : [...DEFAULT_LEVEL_THRESHOLDS];
+                        if (typeof window !== 'undefined') {
+                            window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+                        }
+                        this.recalculateAllStudentsProgress();
+                        this.notify('THRESHOLDS_UPDATE');
+                    } catch (err) {}
+                }
+            });
+        }
     }
 
     subscribe(fn) {
@@ -863,155 +1137,381 @@ class ClassPetStore {
 
     broadcast(type, payload) {
         this.channel.postMessage({ type, payload });
-        if (window.electronAPI && typeof window.electronAPI.broadcastSync === 'function') {
+        if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.broadcastSync === 'function') {
             window.electronAPI.broadcastSync({ type, payload });
         }
     }
 
-    // 赋分核心逻辑 (实现 01_schema.md 成长不变量)
-    scoreStudent(id, delta, reason, isPrivate = false) {
+    /**
+     * 校验学生在指定学科下的宠物是否具备加分/赋分资格
+     * 🔒 业务铁律：
+     * 1. 宠物尚未解锁（需前置学科达成 Lv.20 满级）：绝对不可加分！
+     * 2. 宠物尚未孵化破壳（蛋形态/未认领）：绝对不可加分！
+     * 必须在对应学科解锁并破壳诞生为活体萌宠后，方可开启课堂赋分成长通道。
+     * @param {string} studentId 学生ID
+     * @param {string|null} targetSubject 目标学科 (chinese / math / english)
+     * @returns {{ allowed: boolean, reason: string, type: 'OK'|'LOCKED'|'UNHATCHED'|'ABSENT'|'ARCHIVED'|'NOT_FOUND' }}
+     */
+    canScoreStudentPet(studentId, targetSubject = null) {
+        const student = this.students.find(s => s.id === studentId);
+        if (!student) return { allowed: false, reason: '学生不存在', type: 'NOT_FOUND' };
+        if (student.isArchived) return { allowed: false, reason: '学生已归档，不可加分', type: 'ARCHIVED' };
+        if (student.isAbsent) return { allowed: false, reason: '学生处于请假状态，不可加分', type: 'ABSENT' };
+
+        let subKey = targetSubject || student.activeSubject || (this.getCurrentTeachingSubject ? this.getCurrentTeachingSubject() : 'chinese');
+        // 综合科/通用/未指定均严格默认语文
+        if (!subKey || subKey === '综合' || subKey === 'general' || subKey === '通用' || subKey === '班主任') subKey = 'chinese';
+        const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
+        const subName = subNameMap[subKey] || '当前学科';
+
+        // 1. 严格学科链式解锁判定 (是否满足前置学科 Lv.20 满级解锁条件)
+        // 语文永远处于初始开放解锁状态；其他科目需语文达成 Lv.20 满级
+        const isUnlocked = typeof this.isSubjectUnlocked === 'function' ? this.isSubjectUnlocked(student.id, subKey) : true;
+        if (!isUnlocked) {
+            const lockPrompt = typeof this.getSubjectLockPrompt === 'function' ? this.getSubjectLockPrompt(student.id, subKey) : '需前置学科达成 Lv.20 满级方可解锁';
+            return {
+                allowed: false,
+                reason: `【${subName}】宠物尚未解锁（${lockPrompt}），不可加分`,
+                type: 'LOCKED',
+                student,
+                subKey,
+                subName,
+                prompt: lockPrompt
+            };
+        }
+
+        // 2. 破壳形态与加分资格判定：
+        // 🌟 核心铁律：语文是初始主修学科，语文的蛋是可以加分的（通过日常课堂赋分积累经验孵化破壳）；
+        // 🌟 其他学科（数学/英语等）必须等到语文达成 Lv.20 满级解锁，且必须破壳认领专属萌宠后方可加分！
+        if (subKey === 'chinese') {
+            const pet = student.pets?.chinese;
+            return { allowed: true, student, pet, subKey: 'chinese', subName: '语文', type: 'OK' };
+        }
+
+        // 非语文的其他学科（如数学、英语）：已解锁前提下，检查是否已破壳认领萌宠
+        const pet = student.pets?.[subKey];
+        const isPetHatched = !!(
+            pet &&
+            pet.isHatched === true &&
+            pet.species &&
+            pet.species !== 'egg'
+        );
+        if (!isPetHatched) {
+            return {
+                allowed: false,
+                reason: `【${subName}】已解锁但尚未破壳认领萌宠，不可加分。请先破壳认领！`,
+                type: 'UNHATCHED',
+                student,
+                subKey,
+                subName,
+                prompt: `【${subName}】待破壳认领`
+            };
+        }
+
+        return { allowed: true, student, pet, subKey, subName, type: 'OK' };
+    }
+
+    // 赋分核心逻辑 (实现 01_schema.md 成长不变量，全面支持多学科宠物独立记分与破壳)
+    scoreStudent(id, delta, reason, isPrivate = false, targetSubject = null) {
         const student = this.students.find(s => s.id === id);
         if (!student) return;
 
-        const currentPet = student.pets[student.activeSubject];
-        const oldLevel = student.level || 0;
-        const oldStage = student.visualStage || 0;
+        let subKey = targetSubject || student.activeSubject || (this.getCurrentTeachingSubject ? this.getCurrentTeachingSubject() : 'chinese');
+        if (!subKey || subKey === '综合' || subKey === 'general' || subKey === '通用' || subKey === '班主任') subKey = 'chinese';
+        const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
 
-        student.exp = Math.max(0, student.exp + delta);
-        currentPet.exp = student.exp;
+        // 🔒 铁律守卫：未解锁或未孵化破壳的宠物坚决禁止加分
+        const check = this.canScoreStudentPet(id, subKey);
+        if (!check.allowed) {
+            console.warn(`[Score Blocked] 拦截对学生 ${id} (${student.name}) 在【${subNameMap[subKey] || subKey}】的赋分操作: ${check.reason}`);
+            return {
+                success: false,
+                blocked: true,
+                reason: check.reason,
+                type: check.type,
+                studentId: id,
+                studentName: student.name,
+                studentNo: student.no,
+                subject: subKey,
+                delta,
+                students: this.students
+            };
+        }
+
+        if (!student.pets) student.pets = {};
+        if (!student.pets[subKey]) {
+            student.pets[subKey] = {
+                id: 'pet_' + subKey.charAt(0) + '_' + student.id,
+                subject: subNameMap[subKey] || '综合',
+                species: 'egg',
+                name: '神秘宠物蛋',
+                icon: '🐣',
+                level: 0,
+                exp: 0,
+                visualStage: 0,
+                isHatched: false
+            };
+        }
+
+        const currentPet = student.pets[subKey];
+        const oldLevel = currentPet.level || 0;
+        const oldStage = currentPet.visualStage || 0;
+
+        const expBefore = currentPet.exp || 0;
+        const levelBefore = currentPet.level || 0;
+        const stageBefore = currentPet.visualStage || 0;
+        const stampBefore = student.stamp;
+
+        currentPet.exp = Math.max(0, (currentPet.exp || 0) + delta);
 
         // 等级只升不降
-        const newLevel = this.calcLevel(student.exp, student.level);
-        student.level = newLevel;
+        const newLevel = this.calcLevel(currentPet.exp, currentPet.level);
         currentPet.level = newLevel;
 
-        const newStage = this.calcVisualStage(newLevel, student.visualStage);
-        student.visualStage = newStage;
-        currentPet.visualStage = newStage;
+        const isPetHatched = !!(currentPet.isHatched || (currentPet.species && currentPet.species !== 'egg'));
+        const curStage = currentPet.visualStage || (isPetHatched ? 1 : 0);
+        const targetStage = this.calcVisualStage(newLevel, 0);
+        const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : (LEVEL_THRESHOLDS[1] || 15);
 
-        student.minExpForCurrentLevel = this.getCurrentLevelMinExp(student.level);
-        student.nextLevelExp = this.getNextLevelThreshold(student.level);
+        const isActiveSub = subKey === (student.activeSubject || 'chinese');
+
+        if (isActiveSub) {
+            student.exp = currentPet.exp;
+            student.level = newLevel;
+            student.minExpForCurrentLevel = this.getCurrentLevelMinExp(student.level);
+            student.nextLevelExp = this.getNextLevelThreshold(student.level);
+
+            if (!student.isHatched) {
+                student.stamp = student.exp >= hatchThresh ? 'HATCH' : null;
+                currentPet.icon = '🐣';
+                currentPet.image = getPetImagePath('egg', 0);
+            } else {
+                if (student.level >= 20 && curStage >= 5) {
+                    student.stamp = 'MAX';
+                    currentPet.icon = '👑';
+                } else if (targetStage > curStage && curStage < 5) {
+                    student.stamp = 'EVOLVE';
+                } else {
+                    student.stamp = null;
+                }
+                currentPet.image = getPetImagePath(currentPet.species, student.visualStage);
+            }
+        } else {
+            if (!isPetHatched) {
+                currentPet.icon = '🐣';
+                currentPet.image = getPetImagePath('egg', 0);
+            } else {
+                if (newLevel >= 20 && curStage >= 5) {
+                    currentPet.icon = '👑';
+                }
+                currentPet.image = getPetImagePath(currentPet.species, curStage);
+            }
+        }
 
         const isLevelUp = newLevel > oldLevel;
-        const isStageUp = newStage > oldStage;
-
-        if (!student.isHatched) {
-            const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : (LEVEL_THRESHOLDS[1] || 15);
-            student.stamp = student.exp >= hatchThresh ? 'HATCH' : null;
-            currentPet.icon = '🐣';
-            currentPet.image = getPetImagePath('egg', 0);
-        } else {
-            const s2L = STAGE_MIN_LEVELS[2]?.minLevel || 4;
-            const s3L = STAGE_MIN_LEVELS[3]?.minLevel || 8;
-            const s4L = STAGE_MIN_LEVELS[4]?.minLevel || 13;
-            const s5L = STAGE_MIN_LEVELS[5]?.minLevel || 20;
-            if (student.level >= 20 || student.level >= s5L) {
-                student.stamp = 'MAX';
-                currentPet.icon = '👑';
-            } else if ([s2L, s3L, s4L].includes(student.level)) {
-                student.stamp = 'EVOLVE';
-            } else {
-                student.stamp = null;
-            }
-            currentPet.image = getPetImagePath(currentPet.species, student.visualStage);
-        }
+        const isMaxLevel = (newLevel >= 20) && (oldLevel < 20);
+        const isStageUp = false; // 严格遵循官方基线：形态大阶蜕变必须由师生点击确认后完成
 
         this.save();
 
+        const beforeStates = [{
+            studentId: id,
+            subject: subKey,
+            expBefore,
+            levelBefore,
+            stageBefore,
+            stampBefore
+        }];
+
         const payload = {
+            success: true,
             studentId: id,
             studentName: student.name,
             studentNo: student.no,
             student: student, // 传入精确对象指针，杜绝索引推导导致串人
+            subject: subKey,
+            subjectName: subNameMap[subKey] || '专属',
             delta,
             reason,
             isPrivate,
             oldLevel,
             newLevel,
+            level: newLevel,
             oldStage,
-            newStage,
+            newStage: currentPet.visualStage,
             isLevelUp,
+            isMaxLevel,
             isStageUp,
-            stamp: student.stamp
+            stamp: student.stamp,
+            currentPetExp: currentPet.exp,
+            currentPetSpecies: currentPet.species,
+            currentPetName: currentPet.name,
+            beforeStates
         };
 
         if (delta > 0) this.audio.playDing();
         else this.audio.playDeduct();
 
         // 异步同步到 SQLite
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.recordScore === 'function') {
-            window.electronAPI.db.recordScore({
+        const db = safeElectronDB();
+        if (db && typeof db.recordScore === 'function') {
+            db.recordScore({
+                classId: this.getClassId(),
                 studentIds: [id],
                 delta,
                 reason,
-                ruleId: isPrivate ? null : 'rule_quick'
+                ruleId: isPrivate ? null : 'rule_quick',
+                subjectCode: subKey
             });
         }
 
+        payload.students = this.students;
         this.broadcast('SCORE_TRIGGERED', payload);
+        this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('SCORE', payload);
+        this.notify('SYNC', { students: this.students });
         return payload;
     }
 
-    batchScore(ids, delta, reason, isPrivate = false) {
+    batchScore(ids, delta, reason, isPrivate = false, targetSubject = null) {
         const leveledUpStudents = [];
+        const beforeStates = [];
+        const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : (LEVEL_THRESHOLDS[1] || 15);
+        const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
+
+        // 🔒 铁律守卫：过滤仅具有加分资格的学生（未解锁或未孵化宠物坚决拦截）
+        const eligibleIds = [];
+        const blockedRecords = [];
+
         ids.forEach(id => {
+            const check = this.canScoreStudentPet(id, targetSubject);
+            if (check.allowed) {
+                eligibleIds.push(id);
+            } else {
+                blockedRecords.push({
+                    id,
+                    name: check.student?.name || id,
+                    reason: check.reason,
+                    type: check.type,
+                    subject: check.subName
+                });
+            }
+        });
+
+        if (eligibleIds.length === 0) {
+            console.warn(`[BatchScore Blocked] 批量加分被安全拦截: 选中的 ${ids.length} 名学生宠物均未解锁或未孵化`, blockedRecords);
+            return {
+                success: false,
+                blocked: true,
+                blockedRecords,
+                eligibleIds: [],
+                students: this.students,
+                beforeStates: []
+            };
+        }
+
+        eligibleIds.forEach(id => {
             const student = this.students.find(s => s.id === id);
             if (student && !student.isAbsent) {
-                const currentPet = student.pets[student.activeSubject];
-                const oldLevel = student.level || 0;
-                const oldStage = student.visualStage || 0;
-
-                student.exp = Math.max(0, student.exp + delta);
-                currentPet.exp = student.exp;
-
-                const newLevel = this.calcLevel(student.exp, student.level);
-                student.level = newLevel;
-                currentPet.level = newLevel;
-
-                const newStage = this.calcVisualStage(newLevel, student.visualStage);
-                student.visualStage = newStage;
-                currentPet.visualStage = newStage;
-
-                student.minExpForCurrentLevel = this.getCurrentLevelMinExp(student.level);
-                student.nextLevelExp = this.getNextLevelThreshold(student.level);
-
-                const isLevelUp = newLevel > oldLevel;
-                const isStageUp = newStage > oldStage;
-
-                if (!student.isHatched) {
-                    const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : (LEVEL_THRESHOLDS[1] || 15);
-                    student.stamp = student.exp >= hatchThresh ? 'HATCH' : null;
-                    currentPet.icon = '🐣';
-                    currentPet.image = getPetImagePath('egg', 0);
-                } else {
-                    const s2L = STAGE_MIN_LEVELS[2]?.minLevel || 4;
-                    const s3L = STAGE_MIN_LEVELS[3]?.minLevel || 8;
-                    const s4L = STAGE_MIN_LEVELS[4]?.minLevel || 13;
-                    const s5L = STAGE_MIN_LEVELS[5]?.minLevel || 20;
-                    if (student.level >= 20 || student.level >= s5L) {
-                        student.stamp = 'MAX';
-                        currentPet.icon = '👑';
-                    } else if ([s2L, s3L, s4L].includes(student.level)) {
-                        student.stamp = 'EVOLVE';
-                    } else {
-                        student.stamp = null;
-                    }
-                    currentPet.image = getPetImagePath(currentPet.species, student.visualStage);
+                let subKey = targetSubject || student.activeSubject || (this.getCurrentTeachingSubject ? this.getCurrentTeachingSubject() : 'chinese');
+                if (!subKey || subKey === '综合' || subKey === 'general' || subKey === '通用' || subKey === '班主任') subKey = 'chinese';
+                if (!student.pets) student.pets = {};
+                if (!student.pets[subKey]) {
+                    student.pets[subKey] = {
+                        id: 'pet_' + subKey.charAt(0) + '_' + student.id,
+                        subject: subNameMap[subKey] || '综合',
+                        species: 'egg',
+                        name: '神秘宠物蛋',
+                        icon: '🐣',
+                        level: 0,
+                        exp: 0,
+                        visualStage: 0,
+                        isHatched: false
+                    };
                 }
 
+                const currentPet = student.pets[subKey];
+                const oldLevel = currentPet.level || 0;
+                const oldStage = currentPet.visualStage || 0;
+
+                const expBefore = currentPet.exp || 0;
+                const levelBefore = currentPet.level || 0;
+                const stageBefore = currentPet.visualStage || 0;
+                const stampBefore = student.stamp;
+                beforeStates.push({
+                    studentId: student.id,
+                    subject: subKey,
+                    expBefore,
+                    levelBefore,
+                    stageBefore,
+                    stampBefore
+                });
+
+                currentPet.exp = Math.max(0, (currentPet.exp || 0) + delta);
+                const newLevel = this.calcLevel(currentPet.exp, currentPet.level);
+                currentPet.level = newLevel;
+
+                const isPetHatched = !!(currentPet.isHatched || (currentPet.species && currentPet.species !== 'egg'));
+                const curStage = currentPet.visualStage || (isPetHatched ? 1 : 0);
+                const targetStage = this.calcVisualStage(newLevel, 0);
+
+                const isActiveSub = subKey === (student.activeSubject || 'chinese');
+
+                if (isActiveSub) {
+                    student.exp = currentPet.exp;
+                    student.level = newLevel;
+                    student.minExpForCurrentLevel = this.getCurrentLevelMinExp(student.level);
+                    student.nextLevelExp = this.getNextLevelThreshold(student.level);
+
+                    if (!student.isHatched) {
+                        student.stamp = student.exp >= hatchThresh ? 'HATCH' : null;
+                        currentPet.icon = '🐣';
+                        currentPet.image = getPetImagePath('egg', 0);
+                    } else {
+                        if (student.level >= 20 && curStage >= 5) {
+                            student.stamp = 'MAX';
+                            currentPet.icon = '👑';
+                        } else if (targetStage > curStage && curStage < 5) {
+                            student.stamp = 'EVOLVE';
+                        } else {
+                            student.stamp = null;
+                        }
+                        currentPet.image = getPetImagePath(currentPet.species, student.visualStage);
+                    }
+                } else {
+                    if (!isPetHatched) {
+                        currentPet.icon = '🐣';
+                        currentPet.image = getPetImagePath('egg', 0);
+                    } else {
+                        if (newLevel >= 20 && curStage >= 5) {
+                            currentPet.icon = '👑';
+                        }
+                        currentPet.image = getPetImagePath(currentPet.species, curStage);
+                    }
+                }
+
+                const isLevelUp = newLevel > oldLevel;
+                const isMaxLevel = (newLevel >= 20) && (oldLevel < 20);
                 if (isLevelUp) {
                     leveledUpStudents.push({
                         student,
                         studentId: student.id,
                         studentName: student.name,
                         studentNo: student.no,
+                        subject: subKey,
+                        subjectName: subNameMap[subKey] || '专属',
                         oldLevel,
                         newLevel,
+                        level: newLevel,
                         oldStage,
-                        newStage,
-                        isStageUp,
-                        stamp: student.stamp
+                        newStage: currentPet.visualStage,
+                        isLevelUp: true,
+                        isMaxLevel,
+                        isStageUp: false,
+                        stamp: student.stamp,
+                        currentPetExp: currentPet.exp,
+                        currentPetSpecies: currentPet.species,
+                        currentPetName: currentPet.name
                     });
                 }
             }
@@ -1021,32 +1521,161 @@ class ClassPetStore {
         if (delta > 0) this.audio.playDing();
         else this.audio.playDeduct();
 
+        const singleStudent = eligibleIds.length === 1 ? this.students.find(s => s.id === eligibleIds[0]) : null;
+        const singleLeveled = singleStudent ? leveledUpStudents.find(x => x.studentId === singleStudent.id) : null;
+        const effectiveSubKey = targetSubject || (singleStudent ? singleStudent.activeSubject : null) || 'chinese';
+        const singlePet = singleStudent?.pets?.[effectiveSubKey];
+
         // 异步同步到 SQLite
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.recordScore === 'function') {
-            window.electronAPI.db.recordScore({
-                studentIds: ids,
+        const db = safeElectronDB();
+        if (db && typeof db.recordScore === 'function') {
+            const subToRecord = targetSubject || (singleStudent ? singleStudent.activeSubject : null);
+            db.recordScore({
+                classId: this.getClassId(),
+                studentIds: eligibleIds,
                 delta,
                 reason,
-                ruleId: isPrivate ? null : 'rule_batch'
+                ruleId: isPrivate ? null : 'rule_batch',
+                subjectCode: subToRecord
             });
         }
-
-        const singleStudent = ids.length === 1 ? this.students.find(s => s.id === ids[0]) : null;
         const payload = {
-            ids,
+            success: true,
+            ids: eligibleIds,
+            eligibleIds,
+            blockedRecords,
             studentId: singleStudent ? singleStudent.id : (leveledUpStudents[0]?.studentId || null),
             student: singleStudent || (leveledUpStudents[0]?.student || null),
+            subject: targetSubject || (singleStudent ? singleStudent.activeSubject : null) || 'chinese',
             delta,
             reason,
             isPrivate,
             leveledUpStudents,
             isLevelUp: leveledUpStudents.length > 0,
-            newLevel: singleStudent ? singleStudent.level : (leveledUpStudents[0]?.newLevel || null),
-            newStage: singleStudent ? singleStudent.visualStage : (leveledUpStudents[0]?.newStage || null),
-            isStageUp: singleStudent ? (leveledUpStudents.find(x => x.studentId === singleStudent.id)?.isStageUp || false) : (leveledUpStudents.length > 0 && leveledUpStudents.some(x => x.isStageUp))
+            newLevel: singleLeveled ? singleLeveled.newLevel : (leveledUpStudents[0]?.newLevel ?? (singlePet?.level ?? singleStudent?.level ?? null)),
+            level: singleLeveled ? singleLeveled.newLevel : (leveledUpStudents[0]?.newLevel ?? (singlePet?.level ?? singleStudent?.level ?? null)),
+            newStage: singleLeveled ? singleLeveled.newStage : (leveledUpStudents[0]?.newStage ?? (singlePet?.visualStage ?? singleStudent?.visualStage ?? null)),
+            isStageUp: singleStudent ? (leveledUpStudents.find(x => x.studentId === singleStudent.id)?.isStageUp || false) : (leveledUpStudents.length > 0 && leveledUpStudents.some(x => x.isStageUp)),
+            beforeStates
         };
+        payload.students = this.students;
         this.broadcast('SCORE_TRIGGERED', payload);
+        this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('SCORE', payload);
+        this.notify('SYNC', { students: this.students });
+        return payload;
+    }
+
+    // 切换学生当前大屏主展示/培养宠物
+    setStudentDisplayPet(studentId, subjectKey) {
+        const student = this.students.find(s => s.id === studentId);
+        if (!student) return false;
+        if (!student.pets) student.pets = {};
+        if (!student.pets[subjectKey]) {
+            const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
+            student.pets[subjectKey] = {
+                id: 'pet_' + subjectKey.charAt(0) + '_' + student.id,
+                subject: subNameMap[subjectKey] || '综合',
+                species: 'egg',
+                name: '神秘宠物蛋',
+                icon: '🐣',
+                level: 0,
+                exp: 0,
+                visualStage: 0,
+                isHatched: false
+            };
+        }
+
+        student.activeSubject = subjectKey;
+        const pet = student.pets[subjectKey];
+        student.level = pet.level !== undefined ? pet.level : 0;
+        student.exp = pet.exp !== undefined ? pet.exp : 0;
+        student.visualStage = pet.visualStage !== undefined ? pet.visualStage : (pet.isHatched ? 1 : 0);
+        student.isHatched = !!(pet.isHatched || (pet.species && pet.species !== 'egg'));
+        student.minExpForCurrentLevel = this.getCurrentLevelMinExp(student.level);
+        student.nextLevelExp = this.getNextLevelThreshold(student.level);
+
+        const targetStage = this.calcVisualStage(student.level, 0);
+        if (!student.isHatched) {
+            const hatchThresh = typeof this.getHatchThreshold === 'function' ? this.getHatchThreshold() : 15;
+            student.stamp = student.exp >= hatchThresh ? 'HATCH' : null;
+        } else if (student.level >= 20 && student.visualStage >= 5) {
+            student.stamp = 'MAX';
+        } else if (targetStage > student.visualStage && student.visualStage < 5) {
+            student.stamp = 'EVOLVE';
+        } else {
+            student.stamp = null;
+        }
+
+        this.save();
+
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.saveStudent === 'function') {
+            db.saveStudent(student, classId);
+        }
+
+        this.broadcast('STATE_SYNC', { students: this.students });
+        this.notify('SYNC', { students: this.students });
+        return true;
+    }
+
+    // 学科解锁机制判定（支持语文满级后【数学】与【英语】二选一自由解锁）：
+    // 1. 语文初始默认开放；
+    // 2. 任何已破壳/认领的宠物永久解锁，绝不受前置变动影响；
+    // 3. 当语文达到 Lv.20 满级后，进入【二选一】阶段：数学与英语均开放解锁供师生自由选择；
+    // 4. 当选择并破壳其中一门（第2门学科）后，最后一门学科需语文与第2门学科均达到 Lv.20 满级方可解锁。
+    isSubjectUnlocked(studentId, subjectKey) {
+        const student = this.students.find(s => s.id === studentId);
+        if (!student) return false;
+        if (subjectKey === 'chinese') return true;
+
+        const curPet = student.pets?.[subjectKey];
+        if (curPet && (curPet.isHatched || (curPet.species && curPet.species !== 'egg') || (curPet.visualStage && curPet.visualStage >= 1))) {
+            return true; // 已经破壳/认领的学科宠物永久处于解锁状态，绝不受前置变动影响
+        }
+
+        const chinesePet = student.pets?.chinese;
+        const isChineseHatched = !!(chinesePet && (chinesePet.isHatched || (chinesePet.species && chinesePet.species !== 'egg')));
+        const isChineseMax = isChineseHatched && ((chinesePet.level || 0) >= 20 || (student.level || 0) >= 20);
+
+        // 前置基础：必须语文达成 Lv.20 满级方可进入后续学科觉醒
+        if (!isChineseMax) return false;
+
+        // 语文已达 20 级，判断数学与英语：
+        if (subjectKey === 'math' || subjectKey === 'english') {
+            const otherKey = subjectKey === 'math' ? 'english' : 'math';
+            const otherPet = student.pets?.[otherKey];
+            const isOtherHatched = !!(otherPet && (otherPet.isHatched || (otherPet.species && otherPet.species !== 'egg') || (otherPet.visualStage && otherPet.visualStage >= 1)));
+
+            // 若另一门学科尚未认领/破壳，说明当前处于【二选一】阶段，两门均允许破壳认领！
+            if (!isOtherHatched) {
+                return true;
+            }
+
+            // 若另一门学科已经破壳，则当前学科属于第 3 门最终学科：
+            // 必须该学科（即第2门学科）也达成 Lv.20 满级，方可解锁第3门！
+            const isOtherMax = (otherPet.level || 0) >= 20;
+            return isOtherMax;
+        }
+
+        return false;
+    }
+
+    // 获取学科未解锁提示信息（用于提示条/Tooltip/模态框状态说明）
+    getSubjectLockPrompt(studentId, subjectKey) {
+        if (this.isSubjectUnlocked(studentId, subjectKey)) return null;
+        const student = this.students.find(s => s.id === studentId);
+        if (!student) return '学生不存在';
+        const chinesePet = student.pets?.chinese;
+        const isChineseHatched = !!(chinesePet && (chinesePet.isHatched || (chinesePet.species && chinesePet.species !== 'egg')));
+        const isChineseMax = isChineseHatched && ((chinesePet.level || 0) >= 20 || (student.level || 0) >= 20);
+        if (!isChineseMax) {
+            return '需【语文】学科宠物升至 Lv.20 满级方可唤醒';
+        }
+        const otherKey = subjectKey === 'math' ? 'english' : 'math';
+        const otherName = otherKey === 'math' ? '数学' : '英语';
+        return `需【语文】与【${otherName}】均升至 Lv.20 满级方可唤醒`;
     }
 
     // 破壳认领中心：支持针对指定学科认领 8 大电子宠物
@@ -1057,6 +1686,14 @@ class ClassPetStore {
         const info = PET_SPECIES_CATALOG[sp];
 
         const subjectKey = targetSubject || student.activeSubject || 'chinese';
+
+        // 🛡️ 严格链式解锁守卫：前置学科未满 20 级时坚决禁止越级认领孵化下一门学科！
+        if (!this.isSubjectUnlocked(student.id, subjectKey)) {
+            console.warn(`[Hatch Blocked] 学生 ${student.name} 的前置学科尚未达到 20 级满级，无法越级解锁认领 ${subjectKey}`);
+            return null;
+        }
+
+        if (!student.pets) student.pets = {};
         if (!student.pets[subjectKey]) {
             const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
             student.pets[subjectKey] = {
@@ -1096,8 +1733,10 @@ class ClassPetStore {
         this.audio.playFanfare();
 
         // 异步同步到 SQLite
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.hatchPet === 'function') {
-            window.electronAPI.db.hatchPet({
+        const hatchDb = safeElectronDB();
+        if (hatchDb && typeof hatchDb.hatchPet === 'function') {
+            hatchDb.hatchPet({
+                classId: this.getClassId(),
                 studentId: student.id,
                 subjectCode: subjectKey,
                 speciesCode: sp,
@@ -1158,25 +1797,30 @@ class ClassPetStore {
 
         const hatchedSubjects = [];
         const unhatchedSubjects = [];
+        const lockedSubjects = [];
         ['chinese', 'math', 'english'].forEach(sub => {
             const p = student?.pets?.[sub];
             if (p && p.species && p.species !== 'egg' && (p.isHatched || (p.visualStage && p.visualStage >= 1))) {
                 hatchedSubjects.push(sub);
             } else {
-                unhatchedSubjects.push(sub);
+                if (this.isSubjectUnlocked(studentId, sub)) {
+                    unhatchedSubjects.push(sub);
+                } else {
+                    lockedSubjects.push(sub);
+                }
             }
         });
 
         // 规则 1：如果是班主任 / 综合账号：
-        // 允许从第 1 只宠物蛋开始自主选择任意学科
         if (teacherSubject === '综合' || teacherSubject.includes('班主任')) {
             return {
                 mode: 'free',
                 teacherSubject,
-                allowedSubjects: unhatchedSubjects.length > 0 ? unhatchedSubjects : ['chinese'],
+                allowedSubjects: unhatchedSubjects,
                 hatchedSubjects,
+                lockedSubjects,
                 defaultSubject: unhatchedSubjects[0] || 'chinese',
-                reason: '班主任权限：可自由选择任意未孵化宠物蛋的学科'
+                reason: unhatchedSubjects.length > 0 ? '班主任权限：可自由选择当前已满足解锁条件的未孵化学科' : '下一学科需前置学科达成 Lv.20 满级方可解锁'
             };
         }
 
@@ -1185,33 +1829,142 @@ class ClassPetStore {
         const mySubject = subjectMap[teacherSubject] || 'chinese';
 
         if (!hatchedSubjects.includes(mySubject)) {
+            const isUnlocked = this.isSubjectUnlocked(studentId, mySubject);
             return {
                 mode: 'subject_locked',
                 teacherSubject,
-                allowedSubjects: [mySubject],
+                allowedSubjects: isUnlocked ? [mySubject] : [],
                 hatchedSubjects,
+                lockedSubjects,
                 defaultSubject: mySubject,
-                reason: `【${teacherSubject}】任课教师：首次孵化必须认领【${teacherSubject}】专属电子宠物`
+                reason: isUnlocked ? `【${teacherSubject}】任课教师：首次孵化必须认领【${teacherSubject}】专属电子宠物` : `【${teacherSubject}】宠物尚未解锁（需前置学科满级）`
             };
         }
 
-        // 本科已破壳，孵化下一只宠物蛋时，在另外两个学科中选择其一
+        // 本科已破壳，孵化下一只宠物蛋时，仅在已解锁的未孵化学科中选择
         return {
             mode: 'secondary_choice',
             teacherSubject,
             allowedSubjects: unhatchedSubjects,
             hatchedSubjects,
+            lockedSubjects,
             defaultSubject: unhatchedSubjects[0] || (mySubject === 'chinese' ? 'math' : 'chinese'),
-            reason: `已认领【${teacherSubject}】宠物，现可从其余未孵化学科中选择其一`
+            reason: unhatchedSubjects.length > 0 ? `已认领【${teacherSubject}】宠物，现可认领下一门已解锁学科萌宠` : '下一学科需前置学科达成 Lv.20 满级方可解锁'
         };
     }
 
-    // 治愈系互动动作：每日 5 EXP 限制、触发温馨台词
-    doPetInteraction(studentId, actionName, baseExp = 1) {
+    // 核心安全撤销流水记录 (严格守卫成长不变量，时光倒流还原，同时兼容 SQLite 与 LocalStorage)
+    undoScoreRecord(record) {
+        if (!record) return { success: false, error: '无效的撤销记录' };
+        const targetIds = record.targetIds || (record.studentId ? [record.studentId] : []);
+        if (targetIds.length === 0) return { success: false, error: '无目标学生' };
+
+        const subKey = record.subject || 'chinese';
+        const delta = record.delta || 0;
+        const hatchThresh = typeof this.getHatchThreshold === 'function' ? this.getHatchThreshold() : (LEVEL_THRESHOLDS[1] || 15);
+
+        targetIds.forEach(sid => {
+            const student = this.students.find(s => s.id === sid);
+            if (!student) return;
+
+            // 1. 如果存在快照 beforeStates，优先使用快照精确回退时光
+            const snap = record.beforeStates?.find(b => b.studentId === sid);
+            if (snap) {
+                const pet = student.pets?.[snap.subject || subKey];
+                if (pet) {
+                    pet.exp = Math.max(0, snap.expBefore);
+                    pet.level = snap.levelBefore;
+                    pet.visualStage = snap.stageBefore;
+                    pet.image = getPetImagePath(pet.isHatched ? pet.species : 'egg', pet.visualStage);
+                    pet.icon = !pet.isHatched ? '🐣' : (pet.level >= 20 ? '👑' : (PET_SPECIES_CATALOG[pet.species]?.icon || '🐾'));
+                }
+                if ((snap.subject || subKey) === (student.activeSubject || 'chinese')) {
+                    student.exp = Math.max(0, snap.expBefore);
+                    student.level = snap.levelBefore;
+                    student.visualStage = snap.stageBefore;
+                    student.stamp = snap.stampBefore;
+                    student.minExpForCurrentLevel = this.getCurrentLevelMinExp(student.level);
+                    student.nextLevelExp = this.getNextLevelThreshold(student.level);
+                }
+            } else {
+                // 2. 无快照时进行安全计算回退 (严格遵守成长不变量，已破壳萌宠绝不可逆退化为蛋形态或0级)
+                const pet = student.pets?.[subKey] || student.pets?.chinese;
+                if (pet) {
+                    const isPetHatched = !!(pet.isHatched || (pet.species && pet.species !== 'egg'));
+                    pet.exp = Math.max(0, (pet.exp || 0) - delta);
+                    let newLvl = this.calcLevel(pet.exp, 0);
+                    if (isPetHatched) {
+                        newLvl = Math.max(1, newLvl);
+                    }
+                    pet.level = newLvl;
+                    let newStage = this.calcVisualStage(newLvl, 0);
+                    if (isPetHatched) {
+                        newStage = Math.max(1, newStage);
+                    }
+                    pet.visualStage = newStage;
+                    pet.image = getPetImagePath(isPetHatched ? pet.species : 'egg', pet.visualStage);
+                    pet.icon = !isPetHatched ? '🐣' : (pet.level >= 20 ? '👑' : (PET_SPECIES_CATALOG[pet.species]?.icon || '🐾'));
+
+                    if (subKey === (student.activeSubject || 'chinese')) {
+                        student.exp = pet.exp;
+                        student.level = pet.level;
+                        student.visualStage = pet.visualStage;
+                        student.minExpForCurrentLevel = this.getCurrentLevelMinExp(student.level);
+                        student.nextLevelExp = this.getNextLevelThreshold(student.level);
+                        if (!student.isHatched) {
+                            student.stamp = student.exp >= hatchThresh ? 'HATCH' : null;
+                        } else if (student.level >= 20 && student.visualStage >= 5) {
+                            student.stamp = 'MAX';
+                        } else {
+                            student.stamp = null;
+                        }
+                    }
+                }
+            }
+        });
+
+        this.save();
+        this.audio.playDeduct();
+
+        // 尝试同步通知 SQLite 进行事务撤销
+        const db = safeElectronDB();
+        if (db && typeof db.undoScore === 'function' && record.id) {
+            try {
+                db.undoScore(record.id);
+            } catch (e) {
+                console.error('SQLite undoScore error:', e);
+            }
+        }
+
+        const payload = {
+            ids: targetIds,
+            delta: -delta,
+            reason: '撤销: ' + (record.label || '操作'),
+            isUndo: true
+        };
+        this.broadcast('SCORE_TRIGGERED', payload);
+        this.broadcast('STATE_SYNC', { students: this.students });
+        this.notify('SCORE', payload);
+        this.notify('SYNC', { students: this.students });
+        return { success: true };
+    }
+
+    // 治愈系互动动作：每日 5 EXP 限制、触发温馨台词 (支持指定学科宠物，本地时间与班级严格隔离)
+    doPetInteraction(studentId, actionName, baseExp = 1, targetSubject = null) {
         const student = this.students.find(s => s.id === studentId);
         if (!student) return null;
 
-        const todayKey = 'classpet_daily_interact_' + new Date().toISOString().slice(0, 10);
+        let subKey = targetSubject || student.activeSubject || (this.getCurrentTeachingSubject ? this.getCurrentTeachingSubject() : 'chinese');
+        if (!subKey || subKey === '综合' || subKey === 'general' || subKey === '通用' || subKey === '班主任') subKey = 'chinese';
+        const currentPet = student.pets ? (student.pets[subKey] || student.pets.chinese) : null;
+        const isThisPetHatched = !!(currentPet && (currentPet.isHatched || (currentPet.species && currentPet.species !== 'egg')));
+        const isThisSubUnlocked = typeof this.isSubjectUnlocked === 'function' ? this.isSubjectUnlocked(studentId, subKey) : true;
+        const scoreEligibility = this.canScoreStudentPet(studentId, subKey);
+
+        // 核心修复：采用本地时区年月日格式，防止东八区早晨8点前被误判为昨天
+        const nowD = new Date();
+        const localDateStr = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
+        const todayKey = `classpet_daily_interact_${this.getClassId()}_${localDateStr}`;
         let dailyRecord = {};
         try {
             dailyRecord = JSON.parse(localStorage.getItem(todayKey) || '{}');
@@ -1222,7 +1975,11 @@ class ClassPetStore {
         let awarded = 0;
         let limitReached = false;
 
-        if (currentStudentPoints >= MAX_DAILY_EXP) {
+        // 🔒 铁律守卫：未解锁或未孵化破壳的宠物不增加经验收益
+        if (!scoreEligibility.allowed) {
+            awarded = 0;
+            limitReached = false;
+        } else if (currentStudentPoints >= MAX_DAILY_EXP) {
             limitReached = true;
             awarded = 0;
         } else {
@@ -1232,7 +1989,7 @@ class ClassPetStore {
                 localStorage.setItem(todayKey, JSON.stringify(dailyRecord));
             } catch (e) {}
             if (awarded > 0) {
-                this.scoreStudent(studentId, awarded, `互动:${actionName}`);
+                this.scoreStudent(studentId, awarded, `互动:${actionName}`, false, subKey);
             }
         }
 
@@ -1247,7 +2004,10 @@ class ClassPetStore {
         };
         const resolvedKey = actionKeyMap[actionName] || actionName;
 
-        if (!student.isHatched) {
+        if (!isThisSubUnlocked) {
+            const prompt = typeof this.getSubjectLockPrompt === 'function' ? this.getSubjectLockPrompt(studentId, subKey) : '需前置学科达成 Lv.20 满级';
+            quote = `🔒 萌宠尚未解锁（${prompt}），暂不可开启互动与加分！`;
+        } else if (!isThisPetHatched) {
             const eggQuotes = PET_ACTION_QUOTES.egg;
             quote = eggQuotes[Math.floor(Math.random() * eggQuotes.length)];
         } else if (PET_ACTION_QUOTES[resolvedKey] && PET_ACTION_QUOTES[resolvedKey].length > 0) {
@@ -1272,11 +2032,24 @@ class ClassPetStore {
         return result;
     }
 
+    // 获取特定学生今日已获得的治愈系互动经验总额 (0~5)
+    getDailyInteractPoints(studentId) {
+        const nowD = new Date();
+        const localDateStr = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
+        const todayKey = `classpet_daily_interact_${this.getClassId()}_${localDateStr}`;
+        try {
+            const dailyRecord = JSON.parse(localStorage.getItem(todayKey) || '{}');
+            return dailyRecord[studentId] || 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
     // 学生日常管理：单个新增 (默认初始为蛋形态，0分0级)
-    addStudent({ name, group = 1, species = 'egg', initialHatched = false }) {
+    async addStudent({ name, no = null, group = 1, species = 'egg', initialHatched = false }) {
         const nextIdNum = this.students.length + 1;
-        const id = 'stu_' + Date.now();
-        const no = nextIdNum.toString().padStart(2, '0');
+        const id = 'stu_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+        const studentNo = no ? String(no).padStart(2, '0') : nextIdNum.toString().padStart(2, '0');
         const isHatched = !!initialHatched;
         const sp = isHatched ? (PET_SPECIES_CATALOG[species] ? species : 'cat') : 'egg';
         const info = PET_SPECIES_CATALOG[sp] || { name: '神秘宠物蛋', icon: '🐣' };
@@ -1287,7 +2060,7 @@ class ClassPetStore {
 
         const newStudent = {
             id,
-            no,
+            no: studentNo,
             name: name || `新同学${nextIdNum}`,
             group: parseInt(group, 10) || 1,
             level,
@@ -1302,7 +2075,7 @@ class ClassPetStore {
             activeSubject: 'chinese',
             pets: {
                 chinese: {
-                    id: 'pet_c_' + Date.now(),
+                    id: 'pet_c_' + id,
                     species: isHatched ? sp : 'egg',
                     subject: '语文',
                     name: isHatched ? info.name : '神秘宠物蛋',
@@ -1311,37 +2084,40 @@ class ClassPetStore {
                     level,
                     exp,
                     visualStage,
-                    affection: 60,
-                    fullness: 80,
-                    energy: 90
+                    isHatched,
+                    affection: isHatched ? 60 : 20,
+                    fullness: isHatched ? 80 : 50,
+                    energy: isHatched ? 90 : 50
                 },
                 math: {
-                    id: 'pet_m_' + Date.now(),
-                    species: 'dog',
+                    id: 'pet_m_' + id,
+                    species: 'egg',
                     subject: '数学',
-                    name: '柴犬',
-                    icon: '🐶',
-                    image: getPetImagePath('dog', 1),
-                    level: 1,
-                    exp: 15,
-                    visualStage: 1,
-                    affection: 60,
-                    fullness: 70,
-                    energy: 65
+                    name: '神秘宠物蛋',
+                    icon: '🐣',
+                    image: getPetImagePath('egg', 0),
+                    level: 0,
+                    exp: 0,
+                    visualStage: 0,
+                    isHatched: false,
+                    affection: 20,
+                    fullness: 50,
+                    energy: 50
                 },
                 english: {
-                    id: 'pet_e_' + Date.now(),
-                    species: 'fox',
+                    id: 'pet_e_' + id,
+                    species: 'egg',
                     subject: '英语',
-                    name: '赤狐',
-                    icon: '🦊',
-                    image: getPetImagePath('fox', 1),
-                    level: 1,
-                    exp: 15,
-                    visualStage: 1,
-                    affection: 55,
-                    fullness: 60,
-                    energy: 85
+                    name: '神秘宠物蛋',
+                    icon: '🐣',
+                    image: getPetImagePath('egg', 0),
+                    level: 0,
+                    exp: 0,
+                    visualStage: 0,
+                    isHatched: false,
+                    affection: 20,
+                    fullness: 50,
+                    energy: 50
                 }
             }
         };
@@ -1349,46 +2125,60 @@ class ClassPetStore {
         this.students.push(newStudent);
         this.save();
 
-        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-        const classId = acc.classId || 'c_class02_01';
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveStudent === 'function') {
-            window.electronAPI.db.saveStudent(newStudent, classId);
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.saveStudent === 'function') {
+            try {
+                const res = await db.saveStudent(newStudent, classId);
+                if (res && res.studentNo) {
+                    newStudent.no = res.studentNo;
+                    this.save();
+                }
+            } catch (err) {
+                console.error('[ClassPetStore] saveStudent SQLite 写入异常:', err);
+            }
         }
 
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_ADDED', newStudent);
+        this.notify('SYNC', { students: this.students });
         return newStudent;
     }
 
     // 批量导入整班学生花名册并存入 SQLite 与本地存储
-    importStudents(newStudents) {
+    async importStudents(newStudents) {
         if (!Array.isArray(newStudents)) return false;
         this.students = newStudents;
         this.save();
 
-        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-        const classId = acc.classId || 'c_class02_01';
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.importStudents === 'function') {
-            window.electronAPI.db.importStudents(newStudents, classId);
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.importStudents === 'function') {
+            try {
+                await db.importStudents(newStudents, classId);
+            } catch (err) {
+                console.error('[ClassPetStore] importStudents SQLite 写入异常:', err);
+            }
         }
 
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STATE_SYNC', { students: this.students });
+        this.notify('SYNC', { students: this.students });
         return true;
     }
 
     // 全量同步全班所有学生最新状态（如大组批量调动等）至 SQLite
     syncStudentsToSQLite() {
-        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-        const classId = acc.classId || 'c_class02_01';
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveAllStudents === 'function') {
-            return window.electronAPI.db.saveAllStudents(this.students, classId);
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.saveAllStudents === 'function') {
+            return db.saveAllStudents(this.students, classId);
         }
         return Promise.resolve({ success: false });
     }
 
     // 学生日常管理：编辑资料
-    updateStudent(id, fields) {
+    async updateStudent(id, fields) {
         const student = this.students.find(s => s.id === id);
         if (!student) return null;
         if (fields.name !== undefined) student.name = fields.name.trim();
@@ -1397,74 +2187,93 @@ class ClassPetStore {
         if (fields.species && PET_SPECIES_CATALOG[fields.species]) {
             const sp = fields.species;
             const info = PET_SPECIES_CATALOG[sp];
-            const currentPet = student.pets[student.activeSubject];
+            const activeSub = student.activeSubject || 'chinese';
+            if (!student.pets) student.pets = {};
+            if (!student.pets[activeSub]) {
+                student.pets[activeSub] = {
+                    id: `pet_${activeSub[0]}_${student.id}`,
+                    species: sp,
+                    subject: activeSub === 'chinese' ? '语文' : (activeSub === 'math' ? '数学' : '英语'),
+                    name: info.name,
+                    icon: info.icon,
+                    level: student.level || 1,
+                    exp: student.exp || 0,
+                    visualStage: student.visualStage || 1,
+                    isHatched: student.isHatched !== false
+                };
+            }
+            const currentPet = student.pets[activeSub];
             currentPet.species = sp;
             currentPet.name = info.name;
             currentPet.icon = info.icon;
-            currentPet.image = getPetImagePath(sp, student.visualStage);
+            currentPet.image = getPetImagePath(sp, student.visualStage || currentPet.visualStage || 0);
         }
         this.save();
 
-        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-        const classId = acc.classId || 'c_class02_01';
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveStudent === 'function') {
-            window.electronAPI.db.saveStudent(student, classId);
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.saveStudent === 'function') {
+            await db.saveStudent(student, classId);
         }
 
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_UPDATED', student);
+        this.notify('SYNC', { students: this.students });
         return student;
     }
 
     // 学生日常管理：软归档 (不影响历史总分与行为流水)
-    archiveStudent(id) {
+    async archiveStudent(id) {
         const student = this.students.find(s => s.id === id);
         if (!student) return false;
         student.isArchived = true;
         this.save();
 
-        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-        const classId = acc.classId || 'c_class02_01';
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.archiveStudent === 'function') {
-            window.electronAPI.db.archiveStudent(id, true, classId);
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.archiveStudent === 'function') {
+            await db.archiveStudent(id, true, classId);
         }
 
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_ARCHIVED', { id });
+        this.notify('SYNC', { students: this.students });
         return true;
     }
 
     // 学生日常管理：还原归档学生
-    restoreStudent(id) {
+    async restoreStudent(id) {
         const student = this.students.find(s => s.id === id);
         if (!student) return false;
         student.isArchived = false;
         this.save();
 
-        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-        const classId = acc.classId || 'c_class02_01';
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.archiveStudent === 'function') {
-            window.electronAPI.db.archiveStudent(id, false, classId);
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.archiveStudent === 'function') {
+            await db.archiveStudent(id, false, classId);
         }
 
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_RESTORED', { id });
+        this.notify('SYNC', { students: this.students });
         return true;
     }
 
     // 永久删除
-    deleteStudentPermanent(id) {
+    async deleteStudentPermanent(id) {
         this.students = this.students.filter(s => s.id !== id);
         this.save();
 
-        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-        const classId = acc.classId || 'c_class02_01';
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.deleteStudent === 'function') {
-            window.electronAPI.db.deleteStudent(id, classId);
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.deleteStudent === 'function') {
+            await db.deleteStudent(id, classId);
         }
 
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_DELETED', { id });
+        this.notify('SYNC', { students: this.students });
         return true;
     }
 
@@ -1498,27 +2307,31 @@ class ClassPetStore {
             if (Array.isArray(parsed.levelThresholds) && parsed.levelThresholds.length === 21) {
                 LEVEL_THRESHOLDS = parsed.levelThresholds;
                 localStorage.setItem('classpet_custom_level_thresholds', JSON.stringify(LEVEL_THRESHOLDS));
-                window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+                if (typeof window !== 'undefined') {
+                    window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+                }
             }
             if (Array.isArray(parsed.stageMinLevels) && parsed.stageMinLevels.length === 6) {
                 STAGE_MIN_LEVELS = parsed.stageMinLevels;
                 localStorage.setItem('classpet_custom_stage_levels', JSON.stringify(STAGE_MIN_LEVELS));
-                window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+                if (typeof window !== 'undefined') {
+                    window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+                }
             }
             this.recalculateAllStudentsProgress();
             this.save();
 
-            const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-            const classId = acc.classId || 'c_class02_01';
-            if (window.electronAPI && window.electronAPI.db) {
-                if (typeof window.electronAPI.db.importStudents === 'function') {
-                    window.electronAPI.db.importStudents(this.students, classId);
+            const classId = this.getClassId();
+            const db = safeElectronDB();
+            if (db) {
+                if (typeof db.importStudents === 'function') {
+                    db.importStudents(this.students, classId);
                 }
-                if (typeof window.electronAPI.db.saveThresholds === 'function') {
-                    window.electronAPI.db.saveThresholds(LEVEL_THRESHOLDS, STAGE_MIN_LEVELS, classId);
+                if (typeof db.saveThresholds === 'function') {
+                    db.saveThresholds(LEVEL_THRESHOLDS, STAGE_MIN_LEVELS, classId);
                 }
-                if (typeof window.electronAPI.db.saveBehaviorRules === 'function') {
-                    window.electronAPI.db.saveBehaviorRules(this.behaviorRules, classId);
+                if (typeof db.saveBehaviorRules === 'function') {
+                    db.saveBehaviorRules(this.behaviorRules, classId);
                 }
             }
 
@@ -1527,6 +2340,7 @@ class ClassPetStore {
             this.broadcast('RULES_SYNC', { rules: this.behaviorRules });
             this.broadcast('THRESHOLDS_SYNC', { thresholds: LEVEL_THRESHOLDS, stageLevels: STAGE_MIN_LEVELS, students: this.students });
             this.notify('DATA_RESTORED', { count: this.students.length });
+            this.notify('SYNC', { students: this.students });
             return { success: true, count: this.students.length };
         } catch (e) {
             console.error('Import failed:', e);
@@ -1535,7 +2349,7 @@ class ClassPetStore {
     }
 
     // 自定义加减分行为项管理
-    addCustomRule(name, points, type) {
+    async addCustomRule(name, points, type) {
         const id = 'custom_' + Date.now();
         const newRule = {
             id,
@@ -1547,10 +2361,10 @@ class ClassPetStore {
         this.behaviorRules.push(newRule);
         this.saveRules();
 
-        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-        const classId = acc.classId || 'c_class02_01';
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveBehaviorRules === 'function') {
-            window.electronAPI.db.saveBehaviorRules(this.behaviorRules, classId);
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.saveBehaviorRules === 'function') {
+            await db.saveBehaviorRules(this.behaviorRules, classId);
         }
 
         this.broadcast('RULES_SYNC', { rules: this.behaviorRules });
@@ -1558,14 +2372,14 @@ class ClassPetStore {
         return newRule;
     }
 
-    deleteCustomRule(id) {
+    async deleteCustomRule(id) {
         this.behaviorRules = this.behaviorRules.filter(r => r.id !== id);
         this.saveRules();
 
-        const acc = this.getCurrentAccount ? this.getCurrentAccount() : {};
-        const classId = acc.classId || 'c_class02_01';
-        if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveBehaviorRules === 'function') {
-            window.electronAPI.db.saveBehaviorRules(this.behaviorRules, classId);
+        const classId = this.getClassId();
+        const db = safeElectronDB();
+        if (db && typeof db.saveBehaviorRules === 'function') {
+            await db.saveBehaviorRules(this.behaviorRules, classId);
         }
 
         this.broadcast('RULES_SYNC', { rules: this.behaviorRules });
@@ -1597,12 +2411,13 @@ class ClassPetStore {
         const activeList = this.students.filter(s => !s.isArchived);
         const groups = [1, 2, 3, 4].map(g => {
             const list = activeList.filter(s => s.group === g);
-            const totalExp = list.reduce((sum, s) => sum + s.exp, 0);
-            const avgLevel = list.length ? (list.reduce((sum, s) => sum + s.level, 0) / list.length).toFixed(1) : 0;
+            const totalExp = list.reduce((sum, s) => sum + (Number(s.exp) || 0), 0);
+            const avgLevel = list.length ? (list.reduce((sum, s) => sum + (Number(s.level) || 0), 0) / list.length).toFixed(1) : '0.0';
             return {
                 group: g,
                 name: `第 ${g} 大组`,
                 memberCount: list.length,
+                count: list.length,
                 totalExp,
                 avgLevel,
                 members: list
@@ -1613,10 +2428,23 @@ class ClassPetStore {
     }
 }
 
-window.classPetRuntime = new ClassPetStore();
-window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
-window.STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
-window.PET_SPECIES_CATALOG = PET_SPECIES_CATALOG;
-window.PET_HEALING_QUOTES = PET_HEALING_QUOTES;
-window.getPetImagePath = getPetImagePath;
+if (typeof window !== 'undefined') {
+    window.classPetRuntime = new ClassPetStore();
+    window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+    window.STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+    window.PET_SPECIES_CATALOG = PET_SPECIES_CATALOG;
+    window.PET_HEALING_QUOTES = PET_HEALING_QUOTES;
+    window.getPetImagePath = getPetImagePath;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        ClassPetStore,
+        LEVEL_THRESHOLDS,
+        STAGE_MIN_LEVELS,
+        PET_SPECIES_CATALOG,
+        PET_HEALING_QUOTES,
+        getPetImagePath
+    };
+}
 

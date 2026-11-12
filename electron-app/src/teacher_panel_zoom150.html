@@ -353,11 +353,11 @@
 
             container.innerHTML = list.map(s => {
                 const isSelected = selectedIds.has(s.id);
-                const pet = s.pets[s.activeSubject];
+                const pet = (s.pets && (s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { icon: '🐣' };
                 return `
-                    <div class="student-row-card ${isSelected ? 'selected' : ''} ${s.isAbsent ? 'absent' : ''}" onclick="handleStudentRowClick(${s.id})">
+                    <div class="student-row-card ${isSelected ? 'selected' : ''} ${s.isAbsent ? 'absent' : ''}" onclick="handleStudentRowClick('${s.id}')">
                         <div class="nb-checkbox">${isSelected ? '✓' : (s.isAbsent ? '假' : '')}</div>
-                        <div class="student-avatar-box">${pet.icon}</div>
+                        <div class="student-avatar-box">${pet.icon || '🐣'}</div>
                         <div style="flex: 1;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <strong style="font-size: 12px;">${s.name} <span style="font-family: monospace; font-size: 9px; color: var(--text-secondary);">#${s.no}</span></strong>

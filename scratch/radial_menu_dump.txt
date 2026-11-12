@@ -1,0 +1,99 @@
+407:             background: radial-gradient(circle, #FFFFFF 25%, rgba(235, 230, 220, 0.45) 100%);
+783:         /* 🐾 讲台一体机专属：可拖拽悬浮小球与圆形辐射轮盘菜单 (第5点) */
+812:         .classpet-radial-menu {
+822:         .classpet-radial-menu.open {
+825:         /* 二级圆圈：尺寸54px，严格以几何中心对齐并沿正六边形圆周辐射 */
+826:         .radial-item {
+846:         .radial-item span {
+850:         .radial-item small {
+855:         .radial-item:hover, .radial-item.active {
+861:         .classpet-radial-menu.open .radial-item {
+866:         .radial-item.r-item-1 { --rx: 0px;      --ry: -115px; }  /* 正上 */
+867:         .radial-item.r-item-2 { --rx: 99.6px;   --ry: -57.5px; } /* 右上 */
+868:         .radial-item.r-item-3 { --rx: 99.6px;   --ry: 57.5px; }  /* 右下 */
+869:         .radial-item.r-item-4 { --rx: 0px;      --ry: 115px; }   /* 正下 */
+870:         .radial-item.r-item-5 { --rx: -99.6px;  --ry: 57.5px; }  /* 左下 */
+871:         .radial-item.r-item-6 { --rx: -99.6px;  --ry: -57.5px; } /* 左上 */
+873:         /* 三级圆圈容器与子项样式 (外环或扇区展开，尺寸46px) */
+874:         .radial-sub-container {
+884:         .radial-sub-container.open {
+887:         .radial-sub-item {
+909:         .radial-sub-item span {
+914:         .radial-sub-item small {
+924:         .radial-sub-item:hover {
+929:         .radial-sub-container.open .radial-sub-item {
+1062:     <!-- 🐾 讲台一体机防误触：悬浮可拖拽操作小球与圆形辐射轮盘菜单 (第5点：极简释放大屏空间，随时收回) -->
+1064:         <button id="classpetFloatingBall" class="classpet-floating-ball" title="拖动可移动位置，点击向四周辐射展开操作菜单" onclick="toggleRadialMenu(event)">
+1069:         <div id="classpetRadialMenu" class="classpet-radial-menu">
+1070:             <button class="radial-item r-item-1" id="radialMod_theme" onclick="handleRadialModuleClick('theme', event)" title="换风格：经典米白 / 活力暖橙 / 护眼森林 / 晴空蓝调">
+1074:             <button class="radial-item r-item-2" id="radialMod_view" onclick="handleRadialModuleClick('view', event)" title="大屏排布：全班平铺 / 按组排布 / 小组PK榜">
+1078:             <button class="radial-item r-item-3" id="radialMod_lottery" onclick="handleRadialModuleClick('lottery', event)" title="随机点名：直接拉起全班随机点名">
+1082:             <button class="radial-item r-item-4" id="radialMod_reach" onclick="handleRadialModuleClick('reach', event)" title="屏幕下沉：大屏下沉260px方便触控 / 再次点击复位">
+1086:             <button class="radial-item r-item-5" id="radialMod_scale" onclick="handleRadialModuleClick('scale', event)" title="卡片放大：1.0x默认 / 1.25x放大 / 1.5x巨幅 / 1.75x特大">
+1090:             <button class="radial-item r-item-6" id="radialMod_tools" onclick="handleRadialModuleClick('tools', event)" title="教师控制台：一步直达教师操作台">
+1096:         <!-- 三级动态辐射子圆圈容器 (沿选中模块扇形外沿优雅展开) -->
+1097:         <div id="classpetRadialSubMenu" class="radial-sub-container"></div>
+1163:                     <div id="heroStageBox" style="width: 195px; height: 195px; border: 3px solid var(--border); background: radial-gradient(circle, #FAF8F5 30%, var(--bg-secondary) 100%); display: flex; align-items: center; justify-content: center; box-shadow: 3px 3px 0 var(--shadow-color); flex-shrink: 0; position: relative; border-radius: 8px; overflow: visible;">
+2464:             if (typeof closeRadialMenu === 'function') closeRadialMenu();
+2701:                 store.students.sort((a, b) => (parseInt(a.no, 10) || 0) - (parseInt(b.no, 10) || 0) || String(a.no).localeCompare(String(b.no)));
+2724:                 s = store.students.find(x => String(x.id) === String(target));
+2774:                 s = store.students.find(x => String(x.id) === String(target));
+2914:         // 🐾 讲台一体机触控与防误触：悬浮可移动小球与辐射菜单 (第5点 & 第6点)
+2915:         // 6个二级核心功能模块 + 动态三级极坐标扇形辐射联动展开系统
+2917:         let radialMenuTimer = null;
+2918:         let activeRadialModule = null;
+2920:         const RADIAL_SUB_MENUS = {
+2952:         function ensureRadialMenuSafePosition() {
+2978:         function toggleRadialMenu(e) {
+2980:             const menu = document.getElementById('classpetRadialMenu');
+2983:             clearTimeout(radialMenuTimer);
+2985:                 closeRadialSubMenu();
+2986:                 activeRadialModule = null;
+2988:                 ensureRadialMenuSafePosition();
+2990:                 radialMenuTimer = setTimeout(() => {
+2991:                     closeRadialMenu();
+2996:         function openRadialMenu() {
+2997:             const menu = document.getElementById('classpetRadialMenu');
+3000:             ensureRadialMenuSafePosition();
+3001:             clearTimeout(radialMenuTimer);
+3002:             radialMenuTimer = setTimeout(() => {
+3003:                 closeRadialMenu();
+3007:         function closeRadialMenu() {
+3008:             const menu = document.getElementById('classpetRadialMenu');
+3010:             closeRadialSubMenu();
+3011:             activeRadialModule = null;
+3012:             clearTimeout(radialMenuTimer);
+3015:         function closeRadialSubMenu() {
+3016:             const subContainer = document.getElementById('classpetRadialSubMenu');
+3021:             document.querySelectorAll('.radial-item').forEach(btn => btn.classList.remove('active'));
+3024:         function handleRadialModuleClick(modKey, e) {
+3026:             clearTimeout(radialMenuTimer);
+3028:             // 直达动词 1: 🎲 随机点名 (一步直达，无三级菜单)
+3031:                 closeRadialMenu();
+3034:             // 直达动词 2: ⬇️ 屏幕下沉 (一步直达，下沉260px，无三级菜单)
+3037:                 closeRadialMenu();
+3040:             // 直达动词 3: ⚡ 教师控制台 (一步直达，无三级菜单)
+3043:                 closeRadialMenu();
+3048:             radialMenuTimer = setTimeout(() => {
+3049:                 closeRadialMenu();
+3052:             const modData = RADIAL_SUB_MENUS[modKey];
+3056:             if (activeRadialModule === modKey) {
+3057:                 closeRadialSubMenu();
+3058:                 activeRadialModule = null;
+3062:             activeRadialModule = modKey;
+3063:             document.querySelectorAll('.radial-item').forEach(btn => btn.classList.remove('active'));
+3064:             const currentBtn = document.getElementById('radialMod_' + modKey);
+3067:             const subContainer = document.getElementById('classpetRadialSubMenu');
+3072:             const R3 = 188; // 三级圆圈半径 188px (宽裕展开 64px 大圆，文字彻底被包裹)
+3094:                     <button class="radial-sub-item ${it.themeKey && it.themeKey === curTheme ? 'active-sub-item' : ''}" 
+3096:                         onclick="triggerRadialSubAction('${modKey}', '${it.id}', event)" title="${it.label}">
+3109:         function triggerRadialSubAction(modKey, actionId, e) {
+3111:             const modData = RADIAL_SUB_MENUS[modKey];
+3118:             closeRadialMenu();
+3181:                 if (e.target.closest('.radial-item')) return;
+3201:                     closeRadialMenu();
+3221:                         localStorage.setItem('classpet_floating_ball_pos', JSON.stringify({ left: rect.left, top: rect.top }));
+3234:             // 点击外侧收回辐射菜单
+3237:                     closeRadialMenu();
+3358:         // 🌟 键盘 Escape 键与蒙层遮罩 Backdrop 点击快捷关闭弹窗 (极大提升智慧大屏/无线键盘操作便利度)
+3389:                 if (typeof closeRadialMenu === 'function') closeRadialMenu();

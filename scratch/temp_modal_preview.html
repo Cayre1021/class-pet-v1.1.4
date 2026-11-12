@@ -1,0 +1,3470 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="classic">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Pet - 班级电子宠物管理系统 (学生大屏)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* 4套完备护眼主题配色系统 (已剔除刺眼暗夜主题，优化黑边柔和防晃眼) */
+        /* 📚 儿童绘本温润护眼主题体系 (彻底消除新野兽派黑边黑硬阴影) */
+        :root[data-theme="classic"], :root[data-theme="storybook"] {
+            --bg-primary: #FAF6EE;        /* 奶油纸面柔和底色，防眩光护眼 */
+            --bg-secondary: #F4ECE1;      /* 米麦柔暖色次级容器 */
+            --text-primary: #3A3027;      /* 浓郁咖啡深褐墨字，告别死黑 */
+            --text-secondary: #7A6959;    /* 温暖浅褐次要文字 */
+            --border: #DECDB9;            /* 手揉绘本纸温润边框 */
+            --border-hover: #CDB79E;
+            --accent: #FF8F3D;            /* 阳光温暖金橙 */
+            --accent-hover: #F27C24;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFDF8;           /* 绘本画纸白，温暖透气 */
+            --success: #4EAA78;           /* 草木柔绿 */
+            --warning: #F5B041;           /* 暖麦金黄 */
+            --error: #E76F6F;             /* 草莓柔红 */
+            --tag-bg: #F7EFE4;
+            --shadow-color: rgba(140, 110, 80, 0.08); /* 柔和纸面微阴影，彻底消除生硬黑色块 */
+            --card-radius: 20px;          /* 大圆角 */
+            --btn-radius: 14px;
+        }
+
+        :root[data-theme="orange"] {
+            --bg-primary: #FAF4EE;
+            --bg-secondary: #F5EAE0;
+            --text-primary: #3B2A20;
+            --text-secondary: #7A6252;
+            --border: #E5D2C2;
+            --border-hover: #D6BDAB;
+            --accent: #FA7938;
+            --accent-hover: #E36423;
+            --accent-text: #FFFFFF;
+            --card-bg: #FFFAF5;
+            --success: #4EAA78;
+            --warning: #F5B041;
+            --error: #E76F6F;
+            --tag-bg: #FAEFE5;
+            --shadow-color: rgba(150, 100, 70, 0.08);
+            --card-radius: 20px;
+            --btn-radius: 14px;
+        }
+
+        :root[data-theme="forest"] {
+            --bg-primary: #F4F7F3;
+            --bg-secondary: #E8EFE6;
+            --text-primary: #26382B;
+            --text-secondary: #586F5E;
+            --border: #C8D8C7;
+            --border-hover: #AFC4AE;
+            --accent: #4E9A68;
+            --accent-hover: #3E8255;
+            --accent-text: #FFFFFF;
+            --card-bg: #FCFDFB;
+            --success: #52B77B;
+            --warning: #E8A838;
+            --error: #E76F6F;
+            --tag-bg: #EAF2E9;
+            --shadow-color: rgba(60, 100, 70, 0.08);
+            --card-radius: 20px;
+            --btn-radius: 14px;
+        }
+
+        :root[data-theme="ocean"] {
+            --bg-primary: #F3F7FA;
+            --bg-secondary: #E5EEF5;
+            --text-primary: #223447;
+            --text-secondary: #556D85;
+            --border: #C7D7E6;
+            --border-hover: #ADC3D6;
+            --accent: #488EC7;
+            --accent-hover: #3576AD;
+            --accent-text: #FFFFFF;
+            --card-bg: #FBFCFE;
+            --success: #4EAA78;
+            --warning: #F5B041;
+            --error: #E76F6F;
+            --tag-bg: #E8F0F7;
+            --shadow-color: rgba(60, 90, 120, 0.08);
+            --card-radius: 20px;
+            --btn-radius: 14px;
+        }
+
+        .btn-score-pos { background: #DCFCE7; color: #15803D; border-color: #86EFAC; }
+        .btn-score-neg { background: #FEE2E2; color: #B91C1C; border-color: #FCA5A5; }
+
+
+        body {
+            font-family: 'YouYuan', 'HarmonyOS Sans SC Rounded', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+            position: relative;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        /* 🌟 顶部操作横条强化：精简瘦身至 48px，释放整整 44px 垂直屏幕给学生卡片 */
+        .stage-header-pro {
+            background: var(--card-bg);
+            border-bottom: 2px solid var(--border);
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 58px;
+            min-height: 58px;
+            z-index: 100;
+            box-shadow: 0 4px 16px rgba(120, 95, 70, 0.05);
+            overflow: visible;
+            box-sizing: border-box;
+        }
+
+        /* 顶部大靶区触控按键 (高度42px，字号14px，触控友好) */
+        .btn-header-touch {
+            height: 42px;
+            padding: 0 16px;
+            border: 1.5px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(120, 95, 70, 0.06);
+            transition: all 0.15s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            border-radius: var(--btn-radius, 14px);
+        }
+        .btn-header-touch:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+            box-shadow: 0 6px 14px rgba(120, 95, 70, 0.1);
+        }
+        .btn-header-touch:active {
+            transform: scale(0.96);
+            box-shadow: 0 1px 4px rgba(120, 95, 70, 0.04);
+        }
+
+        .view-mode-tabs-pro {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-secondary);
+            padding: 4px;
+            border: 1.5px solid var(--border);
+            height: 42px;
+            align-items: center;
+            flex-shrink: 0;
+            white-space: nowrap;
+            box-sizing: border-box;
+            border-radius: var(--btn-radius, 14px);
+        }
+        .btn-view-tab-pro {
+            height: 32px;
+            padding: 0 12px;
+            border: 1.5px solid transparent;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            border-radius: 10px;
+            transition: all 0.15s ease;
+        }
+        .btn-view-tab-pro:hover {
+            color: var(--text-primary);
+        }
+        .btn-view-tab-pro.active {
+            background: var(--card-bg);
+            border-color: var(--border);
+            box-shadow: 0 2px 6px rgba(120, 95, 70, 0.08);
+            color: var(--accent);
+        }
+
+        /* 🎨 Neo-Brutalism 全局输入框聚焦高亮体系 */
+        input:focus, select:focus, textarea:focus {
+            outline: none !important;
+            border-color: var(--accent) !important;
+            border-width: 3px !important;
+            box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.22), 4px 4px 0 var(--shadow-color) !important;
+            background-color: #FFFFFF !important;
+            transform: translateY(-1px);
+        }
+
+        /* 主舞台容器 (支持一键屏幕沉降 38%) */
+        .main-stage-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-y: auto;
+            transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+        }
+
+        .main-stage-wrapper.reachability-active {
+            transform: translateY(260px);
+        }
+
+        /* 模式 1：标准竖版网格容器 (支持用户触控动态放大/缩小) */
+        .grid-full-view {
+            padding: 12px 18px 90px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(var(--card-min-w, 136px), 1fr));
+            gap: var(--card-gap, 11px);
+            align-content: start;
+        }
+
+        /* 经典竖版卡片样式 (比例动态随动，工业级防溢出加固) */
+        .pet-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: var(--card-radius, 20px);
+            box-shadow: 0 4px 14px rgba(120, 95, 70, 0.06);
+            padding: var(--card-pad, 10px 8px 8px);
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+            height: var(--card-h, 172px);
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .pet-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            border-color: var(--accent);
+            box-shadow: 0 10px 24px rgba(255, 143, 61, 0.16), 0 4px 12px rgba(120, 95, 70, 0.08);
+        }
+
+        .pet-card.absent {
+            opacity: 0.35;
+            filter: grayscale(85%);
+            background: #E5E7EB;
+            border-style: dashed;
+        }
+
+        .card-stamp {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 2px 6px;
+            font-size: var(--stamp-fs, 9px);
+            font-weight: 700;
+            font-family: inherit;
+            border: none;
+            border-radius: 8px;
+            transform: rotate(-3deg);
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(120, 95, 70, 0.08);
+            white-space: nowrap;
+        }
+        .card-stamp.evolve { background: var(--warning); color: #0A0A0A; }
+        .card-stamp.max { background: #9C27B0; color: #FFFFFF; }
+        .card-stamp.absent { background: #6B7280; color: #FFFFFF; }
+        .card-stamp.hatch-ready {
+            background: #FFD60A;
+            color: #0A0A0A;
+            border-color: #0A0A0A;
+            animation: pulse-glow 1.4s infinite alternate;
+        }
+        .card-stamp.egg-stage { background: #E0E7FF; color: #3730A3; }
+        .card-stamp.awaken-ready {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            color: #92400E;
+            border-color: #D97706;
+            animation: awaken-glow 1.5s infinite alternate;
+            box-shadow: 0 0 6px rgba(217, 119, 6, 0.4);
+        }
+
+        @keyframes pulse-glow {
+            0% { transform: rotate(-4deg) scale(0.96); box-shadow: 0 0 2px #FFD60A; }
+            100% { transform: rotate(-4deg) scale(1.04); box-shadow: 0 0 8px #FFD60A; }
+        }
+        @keyframes awaken-glow {
+            0% { transform: rotate(-4deg) scale(0.96); box-shadow: 0 0 3px #F59E0B; }
+            100% { transform: rotate(-4deg) scale(1.05); box-shadow: 0 0 10px #F59E0B; }
+        }
+
+        /* 🌟 即时积分跳跃微动效浮动气泡 (+N EXP / -N EXP) */
+        .floating-score-bubble {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: monospace;
+            font-weight: 900;
+            font-size: 15px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            border: 2px solid #000;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+            pointer-events: none;
+            z-index: 50;
+            animation: floatUpAndFade 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            white-space: nowrap;
+        }
+        .floating-score-bubble.pos {
+            background: #22C55E;
+            color: #FFFFFF;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }
+        .floating-score-bubble.neg {
+            background: #EF4444;
+            color: #FFFFFF;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }
+        @keyframes floatUpAndFade {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, 0) scale(0.6);
+            }
+            20% {
+                opacity: 1;
+                transform: translate(-50%, -18px) scale(1.15);
+            }
+            60% {
+                opacity: 1;
+                transform: translate(-50%, -32px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50px) scale(0.9);
+            }
+        }
+
+        .pet-thumb-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.12));
+            pointer-events: none;
+        }
+
+        .pet-speech-bubble {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #FFFFFF;
+            border: 2.5px solid var(--border);
+            box-shadow: 0 4px 10px rgba(120, 95, 70, 0.08);
+            padding: 9px 15px;
+            font-size: 13px;
+            font-weight: 900;
+            color: var(--text-primary);
+            border-radius: 10px;
+            white-space: normal;
+            max-width: 320px;
+            width: max-content;
+            z-index: 60;
+            pointer-events: none;
+            animation: bubble-bounce 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            display: none;
+            line-height: 1.4;
+            text-align: center;
+        }
+        .pet-speech-bubble::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -7px;
+            border-width: 7px;
+            border-style: solid;
+            border-color: var(--border) transparent transparent transparent;
+        }
+        @keyframes bubble-bounce {
+            0% { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.85); }
+            100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+        }
+
+        .hatch-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 14px 0;
+            max-height: 380px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+        .hatch-card-option {
+            border: 2.5px solid var(--border);
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(120, 95, 70, 0.06);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+            text-align: center;
+        }
+        .hatch-card-option:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 0 6px 16px rgba(120, 95, 70, 0.09);
+        }
+        .hatch-card-option.selected {
+            border-color: var(--accent);
+            background: var(--tag-bg);
+            box-shadow: 4px 4px 0 var(--accent);
+            transform: scale(1.03);
+        }
+        .hatch-pet-preview {
+            width: 76px;
+            height: 76px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, #FFFFFF 25%, rgba(235, 230, 220, 0.45) 100%);
+            border-radius: 50%;
+            border: 1.5px solid rgba(0, 0, 0, 0.08);
+        }
+        .hatch-pet-preview img {
+            width: 86%;
+            height: 86%;
+            object-fit: contain;
+            filter: drop-shadow(0 3px 6px rgba(15, 23, 42, 0.12));
+        }
+
+        .pet-visual-box {
+            width: var(--pet-box-size, 66px);
+            height: var(--pet-box-size, 66px);
+            border: 1.5px solid var(--border);
+            border-radius: 16px;
+            background: linear-gradient(180deg, #FFFDF8 0%, #F5ECE0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--pet-icon-fs, 34px);
+            box-shadow: inset 0 2px 5px rgba(160, 130, 100, 0.08);
+            position: relative;
+            margin-bottom: var(--pet-margin-b, 6px);
+            flex-shrink: 0;
+            transition: width 0.15s, height 0.15s, font-size 0.15s;
+        }
+
+        .pet-subject-tag {
+            position: absolute;
+            bottom: -5px;
+            background: var(--accent);
+            color: #FFFFFF;
+            font-size: var(--tag-fs, 9px);
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 6px;
+            border: none;
+            box-shadow: 0 2px 4px rgba(255, 143, 61, 0.25);
+            font-family: inherit;
+        }
+
+        .card-title-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+            gap: 4px;
+        }
+
+        .st-name {
+            font-size: var(--name-fs, 13px);
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            min-width: 0;
+            text-align: left;
+        }
+        .st-no {
+            font-family: monospace;
+            font-size: var(--no-fs, 10px);
+            font-weight: 800;
+            background: var(--tag-bg);
+            border: 1px solid var(--border);
+            padding: 0 3px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .card-bottom-info {
+            width: 100%;
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .card-status-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: var(--level-fs, 10px);
+            font-weight: 800;
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            line-height: 1.2;
+            gap: 2px;
+        }
+
+        .st-level-pill {
+            flex-shrink: 0;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .st-badges-cluster {
+            display: inline-flex;
+            align-items: center;
+            gap: 1.5px;
+            flex-shrink: 0;
+        }
+
+        .st-exp-compact {
+            flex-shrink: 0;
+            color: var(--accent);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: right;
+            margin-left: auto;
+            max-width: 72px;
+            min-width: 0;
+        }
+
+        .st-level-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: var(--level-fs, 10px);
+            font-weight: 800;
+            font-family: monospace;
+            color: var(--text-secondary);
+            margin-bottom: 3px;
+        }
+
+        .st-bar {
+            width: 100%;
+            height: var(--bar-h, 6px);
+            border: 1.5px solid var(--border);
+            background: var(--bg-secondary);
+            overflow: hidden;
+            box-sizing: border-box;
+            border-radius: 2px;
+        }
+
+        .st-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        /* 模式 4 底部小组总分状态条 */
+        .group-status-banner-card {
+            background: var(--bg-secondary);
+            border: 2.5px dashed var(--border);
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: var(--card-h, 168px);
+            text-align: center;
+            box-sizing: border-box;
+            transition: height 0.15s;
+        }
+
+        /* 🌟 触控缩放控制器与预设弹出菜单 */
+        .scale-control-box {
+            display: inline-flex;
+            align-items: center;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            height: 42px;
+            padding: 2px 8px;
+            gap: 5px;
+            box-shadow: 1.5px 1.5px 0 var(--shadow-color);
+            position: relative;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+        .btn-scale-step {
+            width: 32px;
+            height: 32px;
+            border: 1.5px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 1px 1px 0 var(--shadow-color);
+            transition: transform 0.08s, box-shadow 0.08s;
+            user-select: none;
+            border-radius: 3px;
+        }
+        .btn-scale-step:active {
+            transform: translate(1px, 1px);
+            box-shadow: 0 0 0 var(--shadow-color);
+        }
+        .btn-scale-value {
+            height: 32px;
+            min-width: 62px;
+            padding: 0 6px;
+            border: 1.5px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            box-shadow: 1px 1px 0 var(--shadow-color);
+            user-select: none;
+            border-radius: 3px;
+        }
+        .btn-scale-value:active {
+            transform: translate(1px, 1px);
+            box-shadow: 0 0 0 var(--shadow-color);
+        }
+        .scale-preset-popover {
+            position: absolute;
+            background: var(--card-bg);
+            border: 3px solid var(--border);
+            box-shadow: 0 8px 20px rgba(120, 95, 70, 0.10);
+            padding: 6px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 1200;
+            min-width: 145px;
+        }
+        .scale-preset-popover.dock-popover {
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .scale-preset-popover.header-popover {
+            top: calc(100% + 8px);
+            right: 0;
+        }
+        .scale-preset-item {
+            height: 32px;
+            padding: 0 10px;
+            border: 1.5px solid transparent;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.1s;
+        }
+        .scale-preset-item:hover {
+            background: var(--bg-secondary);
+            border-color: var(--border);
+        }
+        .scale-preset-item.active {
+            background: var(--accent);
+            color: #FFFFFF;
+            border-color: var(--border);
+            font-weight: 900;
+        }
+
+        /* 🌟 版本 B：底部操作坞也大幅强化靶区 (高度60px，按键46px) */
+        .bottom-touch-dock-pro {
+            position: fixed;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 24px;
+            box-shadow: 0 8px 30px rgba(120, 95, 70, 0.12);
+            padding: 7px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            height: 62px;
+            z-index: 500;
+            max-width: 96vw;
+            overflow-x: auto;
+        }
+
+        @media (max-width: 1400px) {
+            .btn-reachability-trigger-pro #reachText {
+                display: none;
+            }
+            .btn-reachability-trigger-pro {
+                padding: 0 14px;
+            }
+        }
+
+        /* 🌟 版本 B：右下角屏幕沉降按钮大靶区化 */
+        .btn-reachability-trigger-pro {
+            position: fixed;
+            bottom: 12px;
+            right: 20px;
+            background: var(--warning);
+            color: #3A3027;
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            box-shadow: 0 6px 18px rgba(245, 176, 65, 0.28);
+            padding: 0 22px;
+            font-weight: 800;
+            font-size: 14px;
+            height: 60px;
+            cursor: pointer;
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+        .btn-reachability-trigger-pro:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(245, 176, 65, 0.35);
+        }
+        .btn-reachability-trigger-pro:active {
+            transform: scale(0.96);
+        }
+
+        /* 点击学生卡片中央弹出详情 Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 800;
+        }
+
+        .details-modal-box {
+            background: var(--card-bg);
+            border: 2.5px solid var(--border);
+            border-radius: 28px;
+            box-shadow: 0 24px 60px rgba(90, 70, 50, 0.18);
+            width: 100%;
+            max-width: 720px;
+            max-height: 92vh;
+            overflow-y: auto;
+            padding: 24px 28px;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        /* 宠物大立绘悬浮呼吸灵动动画 */
+        @keyframes petHeroFloat {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-7px) scale(1.02); }
+        }
+        .pet-hero-stage-img {
+            animation: petHeroFloat 3.4s ease-in-out infinite;
+            transition: transform 0.15s;
+        }
+        .pet-hero-stage-img:active {
+            transform: scale(0.92);
+        }
+
+        /* 全局轻量教室风格 Toast 提示 */
+        .classroom-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: var(--card-bg);
+            border: 3px solid var(--border);
+            box-shadow: 0 6px 16px rgba(120, 95, 70, 0.09);
+            padding: 10px 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 900;
+            z-index: 20000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .classroom-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+
+        /* 🐾 讲台一体机专属：可拖拽悬浮小球与圆形辐射轮盘菜单 (第5点) */
+        .floating-ball-container {
+            position: fixed;
+            right: 48px;
+            bottom: 88px;
+            z-index: 8000;
+            user-select: none;
+            touch-action: none;
+        }
+        .classpet-floating-ball {
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--accent-text);
+            border: 3.5px solid var(--border);
+            box-shadow: 0 6px 16px rgba(120, 95, 70, 0.09);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            cursor: move;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            outline: none;
+        }
+        .classpet-floating-ball:active {
+            transform: scale(0.94);
+            box-shadow: 2px 2px 0 var(--shadow-color);
+        }
+        .classpet-radial-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .classpet-radial-menu.open {
+            pointer-events: auto;
+        }
+        /* 二级圆圈：尺寸54px，严格以几何中心对齐并沿正六边形圆周辐射 */
+        .radial-item {
+            position: absolute;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: 2.5px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            box-shadow: 0 4px 10px rgba(120, 95, 70, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            outline: none;
+            transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, background 0.2s ease;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            user-select: none;
+        }
+        .radial-item span {
+            font-size: 18px;
+            line-height: 1;
+        }
+        .radial-item small {
+            font-size: 9px;
+            font-weight: 900;
+            margin-top: 2px;
+        }
+        .radial-item:hover, .radial-item.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 12px rgba(0, 102, 255, 0.4), 3px 3px 0 var(--shadow-color);
+        }
+        /* 展开时使用 calc(-50% + rx) 严格消除27px偏心，确保等距正圆对称 (R2 = 115px) */
+        .classpet-radial-menu.open .radial-item {
+            opacity: 1;
+            transform: translate(calc(-50% + var(--rx)), calc(-50% + var(--ry))) scale(1);
+        }
+        /* 正六边形6个方位角极坐标 (R=115px): 270°, 330°, 30°, 90°, 150°, 210° */
+        .radial-item.r-item-1 { --rx: 0px;      --ry: -115px; }  /* 正上 */
+        .radial-item.r-item-2 { --rx: 99.6px;   --ry: -57.5px; } /* 右上 */
+        .radial-item.r-item-3 { --rx: 99.6px;   --ry: 57.5px; }  /* 右下 */
+        .radial-item.r-item-4 { --rx: 0px;      --ry: 115px; }   /* 正下 */
+        .radial-item.r-item-5 { --rx: -99.6px;  --ry: 57.5px; }  /* 左下 */
+        .radial-item.r-item-6 { --rx: -99.6px;  --ry: -57.5px; } /* 左上 */
+
+        /* 三级圆圈容器与子项样式 (外环或扇区展开，尺寸46px) */
+        .radial-sub-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            pointer-events: none;
+            z-index: 110;
+        }
+        .radial-sub-container.open {
+            pointer-events: auto;
+        }
+        .radial-sub-item {
+            position: absolute;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 2.5px solid var(--border);
+            background: #FFFBEB;
+            color: #92400E;
+            box-shadow: 0 3px 8px rgba(120, 95, 70, 0.06);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            outline: none;
+            transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, background 0.2s ease;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            user-select: none;
+            box-sizing: border-box;
+            padding: 2px 4px;
+        }
+        .radial-sub-item span {
+            font-size: 18px;
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+        .radial-sub-item small {
+            font-size: 9.5px;
+            font-weight: 900;
+            line-height: 1.1;
+            text-align: center;
+            white-space: nowrap;
+            max-width: 58px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .radial-sub-item:hover {
+            background: #F59E0B;
+            color: white;
+            transform: translate(calc(-50% + var(--srx)), calc(-50% + var(--sry))) scale(1.12) !important;
+        }
+        .radial-sub-container.open .radial-sub-item {
+            opacity: 1;
+            transform: translate(calc(-50% + var(--srx)), calc(-50% + var(--sry))) scale(1);
+        }
+
+        /* 破壳达标微动动画 (稳定物理尺寸，纯光效呼吸，杜绝边缘跳脱) */
+        @keyframes pulseHatch {
+            0%, 100% { box-shadow: 3px 3px 0 #000; }
+            50% { box-shadow: 0 0 16px rgba(245, 158, 11, 0.9), 3px 3px 0 #000; }
+        }
+
+        /* 升级弹窗 */
+        .levelup-spotlight-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9000;
+        }
+        .levelup-spotlight-box {
+            background: var(--card-bg);
+            border: 4px solid var(--border);
+            box-shadow: 10px 10px 0 var(--accent);
+            padding: 24px;
+            text-align: center;
+            max-width: 440px;
+            width: 90%;
+            animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* 烟花庆祝 */
+        .fireworks-celebration-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 9999;
+        }
+
+        #fireworksCanvas {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10000;
+        }
+
+        .max-spotlight-card {
+            position: relative;
+            background: var(--card-bg);
+            border: 5px solid var(--border);
+            box-shadow: 16px 16px 0 var(--warning);
+            padding: 30px 44px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            z-index: 10001;
+        /* 🌟 丝滑全屏水波纹主题扩散过渡 (View Transition API) */
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation: none;
+            mix-blend-mode: normal;
+        }
+        ::view-transition-old(root) {
+            z-index: 1;
+        }
+        ::view-transition-new(root) {
+            z-index: 999999;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- 顶部操作横条 (极简轻量化：仅保留核心标识与卡片排序，多余操作全面归拢至悬浮圆球菜单) -->
+    <div class="stage-header-pro">
+        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; white-space: nowrap;">
+            <button class="btn-header-touch" onclick="goToPortal()" title="返回班级选择门户">← 门户</button>
+            <h1 style="font-size: 18px; font-weight: 900; white-space: nowrap; margin: 0 4px; display: inline-flex; align-items: center; gap: 6px;">
+                <span>🐾 电子宠物 · 学生大屏</span>
+            </h1>
+            <span id="headerClassBadge" style="font-size: 12px; font-family: monospace; font-weight: 900; background: var(--tag-bg); padding: 4px 8px; border: 1.5px solid var(--border); white-space: nowrap;">班级加载中...</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;">
+            <!-- 🔢 按学号 / ⭐ 按等级 切换组件 (仅卡片视图显示) -->
+            <div id="gridSortButtonGroup" style="display: flex; gap: 6px;">
+                <button class="btn-header-touch active" id="btnSortNo" style="background: var(--accent); color: white;" onclick="handleCardSort('no')" title="按学生学号升序排列">🔢 按学号</button>
+                <button class="btn-header-touch" id="btnSortLevel" onclick="handleCardSort('level')" title="按宠物等级与经验由高到低排行">⭐ 按等级</button>
+            </div>
+            <!-- 右上角轻量辅助图标：全屏与课堂音效 -->
+            <button class="btn-header-touch" id="btnHeaderFullscreen" onclick="toggleAppFullscreen()" title="铺满全屏 / 退出全屏">⛶ 全屏</button>
+            <button class="btn-header-touch" id="btnHeaderAudio" onclick="toggleClassroomAudio()" title="切换课堂激励音效">🔊 音效</button>
+        </div>
+    </div>
+
+    <!-- 主展示舞台 (支持一键下沉) -->
+    <div class="main-stage-wrapper" id="stageWrapper">
+        <div class="grid-full-view" id="gridFullView"></div>
+
+        <!-- 模式 2：座位表 (4大组) -->
+        <div id="seatmapView" style="display:none; padding:14px; grid-template-columns:repeat(4,1fr); gap:12px;">
+            <div class="seat-group-col"><div id="groupList1"></div></div>
+            <div class="seat-group-col"><div id="groupList2"></div></div>
+            <div class="seat-group-col"><div id="groupList3"></div></div>
+            <div class="seat-group-col"><div id="groupList4"></div></div>
+        </div>
+
+        <!-- 模式 3：四组 PK 赛道 (第8点：双模态天梯榜/赛跑道) -->
+        <div id="pkRaceView" style="display:none; padding:14px; flex-direction:column; gap:12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border: 3px solid var(--border); padding: 10px 16px; box-shadow: 0 4px 10px rgba(120, 95, 70, 0.08);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">🏁</span>
+                    <strong style="font-size: 15px;">四大组成长竞速争霸榜</strong>
+                    <span style="font-size: 12px; color: var(--text-secondary); margin-left: 6px;">(支持即时组加减分与看板形态切换)</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-header-touch active" id="btnPkVerticalMode" style="height: 38px; background: var(--accent); color: white;" onclick="setPKDisplayMode('vertical')">📊 竖向行情柱状图</button>
+                    <button class="btn-header-touch" id="btnPkHorizontalMode" style="height: 38px; background: var(--bg-secondary);" onclick="setPKDisplayMode('horizontal')">🏎️ 横向赛跑赛道</button>
+                </div>
+            </div>
+            <!-- 竖向柱状图容器 -->
+            <div id="raceVerticalContainer" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; min-height: 480px;"></div>
+            <!-- 横向赛道容器 -->
+            <div id="raceTracksContainer" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- 🐾 讲台一体机防误触：悬浮可拖拽操作小球与圆形辐射轮盘菜单 (第5点：极简释放大屏空间，随时收回) -->
+    <div id="floatingBallContainer" class="floating-ball-container">
+        <button id="classpetFloatingBall" class="classpet-floating-ball" title="拖动可移动位置，点击向四周辐射展开操作菜单" onclick="toggleRadialMenu(event)">
+            <span id="floatingBallIcon">🐾</span>
+        </button>
+
+        <!-- 一级核心模块圆盘 (R=115px，等距正六边形极坐标对称分布，3个直达动词 + 3个精简子项) -->
+        <div id="classpetRadialMenu" class="classpet-radial-menu">
+            <button class="radial-item r-item-1" id="radialMod_theme" onclick="handleRadialModuleClick('theme', event)" title="换风格：经典米白 / 活力暖橙 / 护眼森林 / 晴空蓝调">
+                <span>🎨</span>
+                <small>换风格</small>
+            </button>
+            <button class="radial-item r-item-2" id="radialMod_view" onclick="handleRadialModuleClick('view', event)" title="大屏排布：全班平铺 / 按组排布 / 小组PK榜">
+                <span>👥</span>
+                <small>大屏排布</small>
+            </button>
+            <button class="radial-item r-item-3" id="radialMod_lottery" onclick="handleRadialModuleClick('lottery', event)" title="随机点名：直接拉起全班随机点名">
+                <span>🎲</span>
+                <small>随机点名</small>
+            </button>
+            <button class="radial-item r-item-4" id="radialMod_reach" onclick="handleRadialModuleClick('reach', event)" title="屏幕下沉：大屏下沉260px方便触控 / 再次点击复位">
+                <span>⬇️</span>
+                <small>屏幕下沉</small>
+            </button>
+            <button class="radial-item r-item-5" id="radialMod_scale" onclick="handleRadialModuleClick('scale', event)" title="卡片放大：1.0x默认 / 1.25x放大 / 1.5x巨幅 / 1.75x特大">
+                <span>🔍</span>
+                <small>卡片放大</small>
+            </button>
+            <button class="radial-item r-item-6" id="radialMod_tools" onclick="handleRadialModuleClick('tools', event)" title="教师控制台：一步直达教师操作台">
+                <span>⚡</span>
+                <small>教师控制台</small>
+            </button>
+        </div>
+
+        <!-- 三级动态辐射子圆圈容器 (沿选中模块扇形外沿优雅展开) -->
+        <div id="classpetRadialSubMenu" class="radial-sub-container"></div>
+    </div>
+
+    <!-- 🎲 全班滚动随机点名全屏遮罩 (一步直达，沉浸式滚动点名) -->
+    <div class="modal-overlay" id="modalRandomRollcall" style="display: none; z-index: 10005; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
+        <div class="rollcall-box" style="background: var(--card-bg, #FFFBEB); border: 5px solid var(--border, #000); box-shadow: 12px 12px 0 var(--accent, #2563EB); border-radius: 12px; padding: 28px 36px; max-width: 520px; width: 92%; text-align: center; position: relative;">
+            <div style="font-size: 15px; font-weight: 900; letter-spacing: 1.5px; color: var(--accent, #2563EB); margin-bottom: 12px;" id="rollcallSubTitle">
+                🎲 课堂随堂点名 · 正在快速抽选中...
+            </div>
+            
+            <div class="rollcall-card-stage" style="background: var(--bg-primary, #FFFDF8); border: 3px solid var(--border, #000); box-shadow: 4px 4px 0 var(--shadow-color, #000); border-radius: 8px; padding: 20px; margin: 16px 0; min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+                <div id="rollcallAvatarBox" style="width: 110px; height: 110px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center;">
+                    <img id="rollcallAvatarImg" src="./assets/pets/shared/egg.png" style="width: 100%; height: 100%; object-fit: contain;" />
+                </div>
+                <div id="rollcallName" style="font-size: 32px; font-weight: 900; color: #000; letter-spacing: 1px; margin-bottom: 6px;">
+                    点名准备中
+                </div>
+                <div id="rollcallMeta" style="font-size: 14px; font-weight: 800; color: var(--text-secondary, #666); font-family: monospace;">
+                    学号 #-- · 第 - 组
+                </div>
+            </div>
+
+            <div id="rollcallActionRow" style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button class="btn-header-touch" id="btnRollcallDetails" style="flex: 1; height: 46px; background: var(--accent, #2563EB); color: #fff; font-size: 15px; font-weight: 900; justify-content: center; display: none;" onclick="openDetailsFromRollcall()">
+                    🐾 进入学生主页 ➔
+                </button>
+                <button class="btn-header-touch" id="btnRollcallAgain" style="flex: 1; height: 46px; background: #FEF3C7; color: #92400E; font-size: 15px; font-weight: 900; justify-content: center; display: none;" onclick="rollcallAgain()">
+                    🎲 再抽一位
+                </button>
+                <button class="btn-header-touch" style="height: 46px; padding: 0 16px; font-size: 14px; font-weight: 800; justify-content: center;" onclick="closeRandomRollcallModal()">
+                    ✕ 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 学生详情 Modal (含 20 条治愈系台词冒泡与 6 种互动 CD 倒计时) -->
+    <div class="modal-overlay" id="modalStudentDetails">
+        <div class="details-modal-box">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--border); padding-bottom: 10px; gap: 8px;">
+                <div style="flex: 1; min-width: 0;">
+                    <h2 style="font-size: 20px; font-weight: 900; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px;" id="modalStudentName">张三 · #01</h2>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin: 3px 0 0;" id="modalStudentSub">三年级二班 · 专属电子宠物成长空间</p>
+                </div>
+                <button class="btn-header-touch" style="height:36px; flex-shrink: 0;" onclick="closeDetailsModal()">✕ 关闭</button>
+            </div>
+
+            <!-- 👑 王者特权觉醒通道 Banner (单科满级后一级直通认领新萌宠) -->
+            <div id="modalAwakenBanner" style="display:none; margin: 10px 0 6px;"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0 6px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn-header-touch" style="height:38px; background: var(--accent); color: white;" id="tabSubjChinese" onclick="switchModalSubject('chinese')">📖 语文</button>
+                    <button class="btn-header-touch" style="height:38px;" id="tabSubjMath" onclick="switchModalSubject('math')">📐 数学</button>
+                    <button class="btn-header-touch" style="height:38px;" id="tabSubjEnglish" onclick="switchModalSubject('english')">🔤 英语</button>
+                </div>
+                <div id="btnSetDisplayPetContainer"></div>
+            </div>
+
+            <!-- 萌宠大秀场舞台 (超大立绘 + 悬浮呼吸动画 + 活泼气泡台词 + 防跳脱自适应卡片) -->
+            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); box-shadow: 0 6px 16px rgba(120, 95, 70, 0.09); padding: 14px; margin: 10px 0; position: relative; border-radius: 8px;">
+                <!-- 治愈系与童趣台词气泡 (位于宠物正上方，生动醒目) -->
+                <div class="pet-speech-bubble" id="heroSpeechBubble"></div>
+
+                <div style="display: flex; gap: 16px; align-items: center;">
+                    <!-- 超大立绘展示台 (195px x 195px) -->
+                    <div id="heroStageBox" style="width: 195px; height: 195px; border: 3px solid var(--border); background: radial-gradient(circle, #FAF8F5 30%, var(--bg-secondary) 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(120, 95, 70, 0.08); flex-shrink: 0; position: relative; border-radius: 8px; overflow: visible;">
+                        <img id="heroPetImg" src="" class="pet-hero-stage-img" style="width: 175px; height: 175px; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(15, 23, 42, 0.14)); position: relative; z-index: 2;" onerror="this.style.display='none'; document.getElementById('heroPetIcon').style.display='inline';" />
+                        <span style="font-size: 80px; display: none; position: relative; z-index: 2;" id="heroPetIcon">🐱</span>
+                    </div>
+
+                    <!-- 萌宠身份档案与成长进度 -->
+                    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+                            <h3 style="font-size: 18px; font-weight: 900; margin: 0; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;" id="heroPetName">猫咪 (Stage 3 进阶形态)</h3>
+                            <span style="font-size: 14px; font-weight: 900; color: var(--accent); background: #EFF6FF; border: 2px solid var(--accent); padding: 2px 8px; border-radius: 20px; flex-shrink: 0; white-space: nowrap;" id="heroPetLevel">LV.8</span>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 800; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="heroPetMotto">灵动专注 · 治愈陪伴</div>
+                        <div style="background: var(--card-bg); border: 2px solid var(--border); padding: 8px 12px; border-radius: 6px; box-shadow: 2px 2px 0 var(--shadow-color);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 900; margin-bottom: 4px; gap: 6px;">
+                                <span style="color: var(--text-secondary); white-space: nowrap; flex-shrink: 0;" id="heroExpBarLabelLeft">🌟 升级进阶进度</span>
+                                <span style="font-family: monospace; color: var(--accent); font-size: 12px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="heroExpRate">-- / -- EXP</span>
+                            </div>
+                            <div class="st-bar" style="height: 11px; border-radius: 6px; overflow: hidden; border: 1.5px solid var(--border); margin-bottom: 4px;">
+                                <div class="st-bar-fill" id="heroProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #FBBF24, #F59E0B);"></div>
+                            </div>
+                            <!-- 双端点升级门槛里程碑标尺 (彻底讲清起点与目标，杜绝认知歧义) -->
+                            <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-family: monospace; color: var(--text-secondary); font-weight: 700; margin-bottom: 4px;" id="heroMilestonesRow">
+                                <span id="heroMilestoneStart">0 EXP</span>
+                                <span id="heroMilestoneTarget">-- EXP</span>
+                            </div>
+                            <div style="font-size: 11px; font-weight: 800; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border);" id="heroExpText">⭐ 累计总经验: -- EXP</div>
+                        </div>
+                        <!-- 🐣 破壳达标原地操作条 (第15点：告别退回大屏，卡片内原地闭环) -->
+                        <div id="modalHatchTriggerBox" style="display: none; margin-top: 4px;">
+                            <button class="btn-header-touch" id="btnModalHatch" style="width: 100%; height: 42px; background: linear-gradient(135deg, #F59E0B, #D97706); color: white; font-size: 13px; font-weight: 900; justify-content: center; box-shadow: 3px 3px 0 #000; border-color: #000; animation: pulseHatch 1.5s infinite; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px;" onclick="openHatchFromDetailsModal()">
+                                🐣 经验已达标，立即破壳认领专属电子宠物！
+                            </button>
+                        </div>
+                        <!-- 🌟 形态进阶原地突破条 (第15点：恢复从底部升腾烟花与进阶突破) -->
+                        <div id="modalEvolveTriggerBox" style="display: none; margin-top: 4px;">
+                            <button class="btn-header-touch" style="width: 100%; height: 42px; background: linear-gradient(135deg, #8B5CF6, #6D28D9); color: white; font-size: 13px; font-weight: 900; justify-content: center; box-shadow: 3px 3px 0 #000; border-color: #000; animation: pulseHatch 1.4s infinite; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px;" onclick="triggerEvolveFromDetailsModal()">
+                                🌟 萌宠达成进阶条件！立即蜕变突破进阶形态！
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                <span style="font-size: 12px; font-weight: 900;">🐾 互动关怀动作 (触碰产生治愈台词 · 15s 冷却)：</span>
+                <span id="interactionDailyTip" style="font-size: 11px; color: var(--text-secondary); font-weight: 800;">今日互动收益：0/5 EXP</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 10px;">
+                <button class="btn-header-touch" id="btnInteract_greet" style="height:44px; justify-content: center;" onclick="triggerInteraction('greet', '打招呼', 1)">
+                    <span id="label_greet">👋 打招呼 (+1)</span>
+                </button>
+                <button class="btn-header-touch" id="btnInteract_pet" style="height:44px; justify-content: center;" onclick="triggerInteraction('pet', '抚摸', 1)">
+                    <span id="label_pet">🖐️ 抚摸 (+1)</span>
+                </button>
+                <button class="btn-header-touch" id="btnInteract_play" style="height:44px; justify-content: center;" onclick="triggerInteraction('play', '玩耍', 2)">
+                    <span id="label_play">🎾 玩耍 (+2)</span>
+                </button>
+                <button class="btn-header-touch" id="btnInteract_water" style="height:44px; justify-content: center;" onclick="triggerInteraction('water', '喂水', 2)">
+                    <span id="label_water">💧 喂水 (+2)</span>
+                </button>
+                <button class="btn-header-touch" id="btnInteract_feed" style="height:44px; justify-content: center;" onclick="triggerInteraction('feed', '喂食', 2)">
+                    <span id="label_feed">🍖 喂食 (+2)</span>
+                </button>
+                <button class="btn-header-touch" id="btnInteract_comfort" style="height:44px; justify-content: center;" onclick="triggerInteraction('comfort', '安抚', 2)">
+                    <span id="label_comfort">✨ 安抚 (+2)</span>
+                </button>
+            </div>
+
+            <span style="font-size: 12px; font-weight: 900; margin-top: 6px; display: block;">⚡ 教师现场速评加减分：</span>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 6px 0 10px;">
+                <button class="btn-header-touch btn-score-pos" style="height:42px; justify-content: center;" onclick="quickModalScore(1, '认真听讲')">+1 分</button>
+                <button class="btn-header-touch btn-score-pos" style="height:42px; justify-content: center;" onclick="quickModalScore(3, '积极发言')">+3 分</button>
+                <button class="btn-header-touch btn-score-pos" style="height:42px; justify-content: center;" onclick="quickModalScore(5, '作业优秀')">+5 分</button>
+                <button class="btn-header-touch btn-score-neg" style="height:42px; justify-content: center;" onclick="quickModalScore(-3, '课上分心')">-3 分</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 电子宠物破壳认领中心 Modal (8 大物种自选认领) -->
+    <div class="modal-overlay" id="modalHatchCenter" style="display: none; z-index: 1500;">
+        <div class="details-modal-box" style="max-width: 720px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--border); padding-bottom: 10px;">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 900;" id="hatchStudentTitle">🐣 电子宠物破壳认领中心</h2>
+                    <p style="font-size: 12px; color: var(--text-secondary);" id="hatchStudentSub">恭喜积攒满 15 EXP，可破壳诞生！请学生/老师挑选心仪宠物完成认领：</p>
+                </div>
+                <button class="btn-header-touch" style="height:36px;" onclick="closeHatchModal()">✕ 关闭</button>
+            </div>
+
+            <!-- 学科自选与角色认领条 (第4点：联动教师账号学科属性与班主任自由选择) -->
+            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 10px 14px; margin: 8px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 13px; font-weight: 900;">认领学科：</span>
+                    <div id="hatchSubjectBtnGroup" style="display: flex; gap: 6px;"></div>
+                </div>
+                <div id="hatchSubjectRuleHint" style="font-size: 11px; color: var(--accent); font-weight: 800;"></div>
+            </div>
+
+            <!-- 8 大物种网格 -->
+            <div class="hatch-grid" id="hatchSpeciesGrid"></div>
+
+            <!-- 选定物种与确认认领条 -->
+            <div style="background: var(--bg-secondary); border: 2.5px solid var(--border); padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <div>
+                    <div style="font-size: 15px; font-weight: 900;">已选宠物：<span id="selectedSpeciesNameText" style="color: var(--accent);">猫咪</span></div>
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;" id="selectedSpeciesMottoText">灵动专注 · 治愈陪伴</div>
+                </div>
+                <button class="btn-header-touch" style="background: var(--warning); color: #000; height: 46px; font-size: 14px; padding: 0 24px;" onclick="confirmHatchPet()">✨ 确认认领 · 破壳诞生！</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 升级弹窗 -->
+    <div class="levelup-spotlight-modal" id="spotlightModal">
+        <div class="levelup-spotlight-box" style="max-width: 480px; padding: 28px 24px;">
+            <div style="font-size: 52px; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; min-height: 150px;" id="spotPetIcon">🐯</div>
+            <div style="background: var(--warning); font-weight: 900; padding: 3px 14px; display: inline-block; font-size: 13px; border: 2.5px solid var(--border); margin-bottom: 10px; box-shadow: 2px 2px 0 var(--shadow-color);" id="spotBadgeTitle">★ LEVEL UP! 升级庆祝 ★</div>
+            <h2 style="font-size: 24px; font-weight: 900;" id="spotStudentName">李四 (#02)</h2>
+            <p style="font-size: 14px; font-weight: 800; color: var(--accent); margin: 8px 0 14px 0;" id="spotLevelMsg">成功晋升至 Lv.4 进阶期！</p>
+            <button class="btn-header-touch" style="background: var(--accent); color: white; margin-top: 6px; width: 100%; justify-content: center; height: 44px; font-size: 15px;" onclick="closeSpotlightCelebration()">太棒了！</button>
+        </div>
+    </div>
+
+    <!-- 烟花庆祝 -->
+    <div class="fireworks-celebration-overlay" id="fireworksLayer">
+        <canvas id="fireworksCanvas"></canvas>
+        <div class="max-spotlight-card">
+            <div style="font-size: 64px; display: flex; justify-content: center; align-items: center; min-height: 100px;" id="fireworksPetIcon">👑</div>
+            <div style="background: var(--warning); border: 2.5px solid var(--border); font-weight: 900; padding: 4px 14px; display: inline-block; font-family: monospace; font-size: 13px; margin: 8px 0;" id="fireworksTitleBadge">★ 终极满级神兽达成 ★</div>
+            <h2 style="font-size: 26px; font-weight: 900;" id="fireworksStudentName">孙七 (#05)</h2>
+            <p style="font-size: 14px; font-weight: 800; color: var(--accent); margin: 6px 0;" id="fireworksPetMsg">恭喜达成 Lv.20 满级大师形态！</p>
+            <button class="btn-header-touch" style="background: var(--accent); color: white; padding: 0 28px; margin-top: 12px;" onclick="closeFireworksCelebration()">确认并返回大屏</button>
+        </div>
+    </div>
+
+    <!-- 全局统一教室风 Toast 浮动提示 -->
+    <div id="classroomToast" class="classroom-toast" style="display: none;">
+        <span id="classroomToastIcon">✅</span>
+        <span id="classroomToastMsg">操作成功</span>
+    </div>
+
+    <!-- 全局统一教室风 Alert 弹窗 -->
+    <div class="modal-overlay" id="classroomModalAlert" style="display: none; z-index: 21000;">
+        <div class="modal-box" style="max-width: 440px; text-align: center; border-width: 3.5px;">
+            <div id="customAlertIcon" style="font-size: 46px; margin-bottom: 8px;">💡</div>
+            <h3 id="customAlertTitle" style="font-weight: 900; font-size: 18px; margin-bottom: 8px;">温馨提示</h3>
+            <p id="customAlertMsg" style="font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 18px; white-space: pre-wrap;"></p>
+            <button class="btn-header-touch" id="customAlertBtnOk" style="width: 100%; height: 44px; justify-content: center; background: var(--accent); color: white; font-size: 14px;">好的，知道了</button>
+        </div>
+    </div>
+
+    <!-- 全局统一教室风 Confirm 确认弹窗 -->
+    <div class="modal-overlay" id="classroomModalConfirm" style="display: none; z-index: 21000;">
+        <div class="modal-box" style="max-width: 460px; text-align: center; border-width: 3.5px;">
+            <div id="customConfirmIcon" style="font-size: 46px; margin-bottom: 8px;">❓</div>
+            <h3 id="customConfirmTitle" style="font-weight: 900; font-size: 18px; margin-bottom: 8px;">操作确认</h3>
+            <p id="customConfirmMsg" style="font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 18px; white-space: pre-wrap;"></p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-header-touch" id="customConfirmBtnCancel" style="flex: 1; height: 44px; justify-content: center;">取消</button>
+                <button class="btn-header-touch" id="customConfirmBtnOk" style="flex: 1; height: 44px; justify-content: center; background: var(--accent); color: white;">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./classpet_core.js"></script>
+    <script src="./fireworks_engine.js"></script>
+
+    <script>
+        const store = window.classPetRuntime;
+        let currentView = 'grid';
+        let activeModalStudent = null;
+        let activeModalSubject = 'chinese';
+
+        // 统一大屏端 Toast 提示
+        let __toastTimer = null;
+        function showClassroomToast(msg, icon = '✅', duration = 2500) {
+            const toast = document.getElementById('classroomToast');
+            if (!toast) return;
+            document.getElementById('classroomToastIcon').textContent = icon;
+            document.getElementById('classroomToastMsg').textContent = msg;
+            toast.style.display = 'flex';
+            toast.classList.remove('hide');
+            toast.classList.add('show');
+            clearTimeout(__toastTimer);
+            __toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+                toast.classList.add('hide');
+                setTimeout(() => { toast.style.display = 'none'; }, 250);
+            }, duration);
+        }
+
+        // 统一大屏端自定义 Alert 弹窗
+        function showClassroomAlert(msg, title = '温馨提示', icon = '💡', onOk = null) {
+            const modal = document.getElementById('classroomModalAlert');
+            if (!modal) { alert(msg); return; }
+            document.getElementById('customAlertIcon').textContent = icon;
+            document.getElementById('customAlertTitle').textContent = title;
+            document.getElementById('customAlertMsg').textContent = msg;
+            modal.style.display = 'flex';
+            const btn = document.getElementById('customAlertBtnOk');
+            btn.onclick = () => {
+                modal.style.display = 'none';
+                if (typeof onOk === 'function') onOk();
+            };
+        }
+
+        // 统一大屏端自定义 Confirm 确认弹窗
+        function showClassroomConfirm(msg, title = '操作确认', onConfirm, onCancel = null, icon = '❓', confirmText = '确认', confirmBg = 'var(--accent)') {
+            const modal = document.getElementById('classroomModalConfirm');
+            if (!modal) {
+                if (window.confirm(msg)) onConfirm && onConfirm();
+                else onCancel && onCancel();
+                return;
+            }
+            document.getElementById('customConfirmIcon').textContent = icon;
+            document.getElementById('customConfirmTitle').textContent = title;
+            document.getElementById('customConfirmMsg').textContent = msg;
+            modal.style.display = 'flex';
+            const btnOk = document.getElementById('customConfirmBtnOk');
+            const btnCancel = document.getElementById('customConfirmBtnCancel');
+            btnOk.textContent = confirmText;
+            btnOk.style.background = confirmBg;
+            btnOk.style.color = 'white';
+            btnOk.onclick = () => {
+                modal.style.display = 'none';
+                if (typeof onConfirm === 'function') onConfirm();
+            };
+            btnCancel.onclick = () => {
+                modal.style.display = 'none';
+                if (typeof onCancel === 'function') onCancel();
+            };
+        }
+
+        // 覆写 window.alert，彻底杜绝操作系统自带丑陋弹窗
+        window.__nativeAlert = window.alert;
+        window.alert = function(msg) {
+            showClassroomAlert(msg);
+        };
+
+        // 丝滑全屏水波纹主题扩散过渡 (View Transition API)
+        function setGlobalTheme(t, event) {
+            const root = document.documentElement;
+            if (root.getAttribute('data-theme') === t) return Promise.resolve();
+
+            const themeNames = { classic: '经典米白', orange: '活力暖橙', forest: '护眼森林', ocean: '晴空蓝调' };
+            const themeIcons = { classic: '🍦', orange: '🍊', forest: '🌲', ocean: '🌊' };
+            if (typeof showClassroomToast === 'function') {
+                showClassroomToast(`已切换主题至【${themeNames[t] || t}】`, themeIcons[t] || '🎨');
+            }
+
+            const updateDom = () => {
+                root.setAttribute('data-theme', t);
+                try {
+                    localStorage.setItem('nb_selected_theme', t);
+                    localStorage.setItem('classpet_theme', t);
+                } catch (e) {}
+                const selectElem = document.getElementById('themeSelect');
+                if (selectElem) selectElem.value = t;
+            };
+
+            let x = (window.innerWidth || 1200) - 60;
+            let y = 40;
+            if (event && typeof event.clientX === 'number' && event.clientX > 0) {
+                x = event.clientX;
+                y = event.clientY;
+            }
+
+            const maxRadius = Math.hypot(
+                Math.max(x, (window.innerWidth || 1200) - x),
+                Math.max(y, (window.innerHeight || 800) - y)
+            );
+
+            let applied = false;
+            const safeApply = () => {
+                if (applied) return;
+                applied = true;
+                updateDom();
+            };
+
+            if (document.startViewTransition && !document.hidden && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                try {
+                    let hasCalledCallback = false;
+                    const transition = document.startViewTransition(() => {
+                        hasCalledCallback = true;
+                        safeApply();
+                    });
+                    setTimeout(() => {
+                        if (!hasCalledCallback) safeApply();
+                    }, 120);
+                    transition.ready.then(() => {
+                        document.documentElement.animate({
+                            clipPath: [
+                                `circle(0px at ${x}px ${y}px)`,
+                                `circle(${maxRadius}px at ${x}px ${y}px)`
+                            ]
+                        }, {
+                            duration: 600,
+                            easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                            pseudoElement: '::view-transition-new(root)'
+                        });
+                    }).catch(() => safeApply());
+                    return transition.finished.catch(() => {});
+                } catch (e) {
+                    safeApply();
+                    return Promise.resolve();
+                }
+            } else {
+                safeApply();
+                return Promise.resolve();
+            }
+        }
+
+        let savedTheme = localStorage.getItem('nb_selected_theme') || 'classic';
+        const allowedThemes = ['classic', 'orange', 'forest', 'ocean'];
+        if (!allowedThemes.includes(savedTheme)) {
+            savedTheme = 'classic';
+            localStorage.setItem('nb_selected_theme', 'classic');
+        }
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        const sel = document.getElementById('themeSelect');
+        if (sel) sel.value = savedTheme;
+
+        function showFloatingScoreBubble(studentId, delta) {
+            if (!delta) return;
+            const cardEl = document.getElementById(`petCard_${studentId}`) || document.getElementById(`seatPetCard_${studentId}`);
+            if (!cardEl) return;
+
+            const bubble = document.createElement('div');
+            bubble.className = `floating-score-bubble ${delta > 0 ? 'pos' : 'neg'}`;
+            bubble.textContent = `${delta > 0 ? '+' : ''}${delta} EXP`;
+            cardEl.appendChild(bubble);
+
+            try {
+                cardEl.animate([
+                    { transform: 'scale(1)' },
+                    { transform: 'scale(1.05)' },
+                    { transform: 'scale(1)' }
+                ], { duration: 320, easing: 'ease-out' });
+            } catch (err) {}
+
+            setTimeout(() => {
+                if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+            }, 1600);
+        }
+
+        store.subscribe((event, payload) => {
+            if (event === 'SCORE' && payload) {
+                // 1. 核心时序修复：先刷新全屏最新数据与 DOM 卡片
+                renderAll();
+
+                // 2. 然后在已渲染出的最新卡片 DOM 节点上触发浮动气泡微动效与弹性动效
+                const targetIds = payload.ids || (payload.studentId ? [payload.studentId] : []);
+                if (payload.delta && targetIds.length > 0) {
+                    targetIds.forEach(sid => {
+                        showFloatingScoreBubble(sid, payload.delta);
+                    });
+                }
+
+                const stages = store.getStageMinLevels ? store.getStageMinLevels() : (window.STAGE_MIN_LEVELS || []);
+                const s2L = stages[2]?.minLevel || 4;
+                const s3L = stages[3]?.minLevel || 8;
+                const s4L = stages[4]?.minLevel || 13;
+                const s5L = stages[5]?.minLevel || 20;
+
+                // 3. 核心修复：以真实 oldLevel 与 newLevel 为基准，严格杜绝非 20 级升级误报“20 级 MAX”
+                if (payload.isLevelUp) {
+                    const leveledItems = (payload.leveledUpStudents && payload.leveledUpStudents.length > 0)
+                        ? payload.leveledUpStudents
+                        : [{
+                            student: payload.student || store.students.find(s => s.id === payload.studentId),
+                            studentId: payload.studentId || payload.student?.id,
+                            subject: payload.subject,
+                            oldLevel: payload.oldLevel,
+                            newLevel: payload.newLevel,
+                            isMaxLevel: payload.isMaxLevel
+                        }].filter(item => Boolean(item.student));
+
+                    leveledItems.forEach(item => {
+                        const targetStudent = item.student || store.students.find(s => s.id === item.studentId);
+                        if (!targetStudent) return;
+                        const targetSub = item.subject || payload.subject || targetStudent.activeSubject || 'chinese';
+                        const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
+                        const subName = subNameMap[targetSub] || '专属';
+                        const actualLevel = item.newLevel !== undefined ? item.newLevel : (targetStudent.pets?.[targetSub]?.level ?? targetStudent.level ?? 1);
+                        const isTrulyMaxLevel = (item.isMaxLevel === true) || (actualLevel >= 20 && (item.oldLevel === undefined || item.oldLevel < 20));
+
+                        // 只有本次真正晋升到 20 级终极顶峰时，才触发全屏终极满级烟花！
+                        if (isTrulyMaxLevel) {
+                            triggerFullFireworksCelebration(targetStudent, targetSub);
+                        } else if ([s2L, s3L, s4L].includes(actualLevel)) {
+                            triggerSpotlightCelebration(targetStudent, actualLevel, `恭喜【${subName}】突破进阶至 Lv.${actualLevel} 进阶期！`, targetSub);
+                        } else {
+                            triggerSpotlightCelebration(targetStudent, actualLevel, `恭喜【${subName}】成功晋升至 Lv.${actualLevel}！`, targetSub);
+                        }
+                    });
+                }
+            } else if (event === 'RANDOM_PICK' && payload && payload.chosenId) {
+                openStudentDetailsModal(payload.chosenId);
+                store.audio.playFanfare();
+                renderAll();
+            } else {
+                renderAll();
+            }
+
+            // 🌟 核心修复：如果当前有打开的学生详情弹窗，实时同步最新经验与进度条！
+            const detailsModal = document.getElementById('modalStudentDetails');
+            if (detailsModal && detailsModal.style.display === 'flex' && activeModalStudent) {
+                const freshStudent = store.students.find(s => s.id === activeModalStudent.id);
+                if (freshStudent) {
+                    activeModalStudent = freshStudent;
+                    refreshModal();
+                }
+            }
+        });
+
+        function renderAll() {
+            if (currentView === 'grid') renderGrid();
+            else if (currentView === 'seat') renderSeatMap();
+            else if (currentView === 'pk') renderPKRace();
+        }
+
+        let hatchTargetStudentId = null;
+        let currentSelectedHatchSpecies = 'cat';
+        let currentSelectedHatchSubject = 'chinese';
+        const studentInteractCooldowns = {};
+        let activeCooldownTimer = null;
+        let bubbleHideTimer = null;
+
+        function updateHeaderClassInfo() {
+            const acc = store.getCurrentAccount ? store.getCurrentAccount() : { className: '三年级二班', teacherName: '刘老师', subject: '语文' };
+            const activeCount = store.students.filter(s => !s.isArchived).length;
+            const badge = document.getElementById('headerClassBadge');
+            if (badge) {
+                const isPreset = acc.id === 'acc_demo_302' || acc.id === 'acc_demo_401' || acc.isPreset;
+                const tag = isPreset ? ' [演示示例]' : '';
+                const viewNameMap = { grid: '🔲 卡片网格', seat: '🪑 小组座位', pk: '🏆 PK竞速榜' };
+                const viewText = viewNameMap[currentView] || '🔲 卡片网格';
+                badge.textContent = `${acc.className || '三年级二班'} (${acc.teacherName || '教师'} · ${acc.subject || '综合'})${tag} · ${activeCount}人 · ${viewText}`;
+            }
+        }
+
+        function renderGrid() {
+            const container = document.getElementById('gridFullView');
+            const activeStudents = store.students.filter(s => !s.isArchived);
+            updateHeaderClassInfo();
+
+            if (activeStudents.length === 0) {
+                const acc = store.getCurrentAccount ? store.getCurrentAccount() : {};
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; text-align: center;">
+                        <div style="background: var(--card-bg); border: 3.5px solid var(--border); box-shadow: 0 12px 28px rgba(120, 95, 70, 0.12); padding: 36px 44px; max-width: 580px; width: 100%;">
+                            <div style="font-size: 52px; margin-bottom: 12px;">🐣</div>
+                            <div style="background: var(--warning); border: 2px solid var(--border); font-weight: 900; font-size: 13px; padding: 3px 12px; display: inline-block; margin-bottom: 14px; font-family: monospace;">
+                                NEW CLASS SPACE READY
+                            </div>
+                            <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 10px;">【${acc.className || '全新班级'}】已就绪</h2>
+                            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; font-weight: 700;">
+                                当前班级暂无学生名单。请前往【⚡ 教师工作台】，一键导入 Excel 花名册或手动添加学生，全班同学的电子宠物蛋将立刻在此破壳展示！
+                            </p>
+                            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                                <button class="btn-header-touch" style="background: var(--accent); color: white; height: 46px; font-size: 14px; padding: 0 24px;" onclick="openTeacherWorkstation()">
+                                    ⚡ 前往教师工作台录入名单 ➔
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const cardsHtml = activeStudents.map(s => {
+                const pet = (s.pets && (s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { subject: '语文', name: '小宠', icon: '🐣', visualStage: 1, species: 'egg', exp: s.exp, level: s.level };
+                const isEgg = !pet.isHatched || pet.species === 'egg' || (pet.visualStage === 0);
+                const hatchThresh = store.getHatchThreshold ? store.getHatchThreshold() : 15;
+                const petExp = pet.exp !== undefined ? pet.exp : (s.exp || 0);
+                const petLvl = pet.level !== undefined ? pet.level : (s.level || 0);
+
+                const prog = store.getExpProgress ? store.getExpProgress(petExp, isEgg ? 0 : petLvl, !isEgg) : {
+                    percent: 0,
+                    progressInLevel: 0,
+                    levelSpan: 15,
+                    needExp: 0,
+                    totalExp: petExp,
+                    cardRateText: `${petExp}`,
+                    levelLabel: isEgg ? '🐣 蛋' : `LV.${petLvl}`
+                };
+                const percent = prog.percent;
+                const levelText = isEgg ? '🐣 蛋' : (prog.isMax ? '👑 MAX' : `LV.${petLvl}`);
+                const expText = prog.cardRateText;
+                const expFullTitle = isEgg
+                    ? `🐣 破壳能量: ${prog.progressInLevel}/${prog.levelSpan} EXP (${percent}%) · 课堂加分可加速孵化`
+                    : (prog.isMax
+                        ? `👑 满级顶峰 Lv.20 MAX (累计总经验: ${petExp} EXP)`
+                        : `Lv.${petLvl} ➔ Lv.${petLvl + 1} 本级进度: ${prog.progressInLevel}/${prog.levelSpan} EXP (${percent}%) · 累计总经验: ${petExp} EXP (还差 ${prog.needExp} EXP 升级)`);
+
+                // 检查单科满级与第二/第三萌宠觉醒特权 (严格链式解锁检测)
+                const hasAnyMaxSubject = (s.level >= 20) || (s.pets && Object.values(s.pets).some(p => (p.level || 0) >= 20));
+
+                // 严格链式解锁：在未孵化蛋中，必须存在【已满足前置满级解锁条件】的学科蛋！
+                const unlockableUnhatchedSubs = [];
+                if (s.pets) {
+                    ['chinese', 'math', 'english'].forEach(k => {
+                        const p = s.pets[k];
+                        const pIsEgg = !p || !p.isHatched || p.species === 'egg' || (p.visualStage === 0);
+                        const isUnlocked = store.isSubjectUnlocked ? store.isSubjectUnlocked(s.id, k) : (k === 'chinese');
+                        if (pIsEgg && isUnlocked) {
+                            unlockableUnhatchedSubs.push(k);
+                        }
+                    });
+                }
+                const canAwakenNewPet = hasAnyMaxSubject && unlockableUnhatchedSubs.length > 0;
+
+                let stampHtml = '';
+                if (s.isAbsent) {
+                    stampHtml = `<div class="card-stamp absent">请假</div>`;
+                } else if (isEgg && (s.stamp === 'HATCH' || petExp >= hatchThresh || canAwakenNewPet)) {
+                    const isThisSubUnlocked = store.isSubjectUnlocked ? store.isSubjectUnlocked(s.id, s.activeSubject || 'chinese') : true;
+                    if (isThisSubUnlocked) {
+                        stampHtml = `<div class="card-stamp ${canAwakenNewPet ? 'awaken-ready' : 'hatch-ready'}">${canAwakenNewPet ? '👑 王者待破壳' : '★ 可破壳 ★'}</div>`;
+                    } else {
+                        stampHtml = `<div class="card-stamp egg-stage">🔒 待解锁</div>`;
+                    }
+                } else if (isEgg) {
+                    stampHtml = `<div class="card-stamp egg-stage">🐣 孵化</div>`;
+                } else if (canAwakenNewPet) {
+                    // 仅当学生确实拥有【已解锁且待唤醒认领】的下一门萌宠蛋时才盖此印章！
+                    stampHtml = `<div class="card-stamp awaken-ready" title="前置学科已满级！可唤醒认领下一门学科萌宠">👑 待认领新宠</div>`;
+                } else if (s.stamp === 'EVOLVE') {
+                    stampHtml = `<div class="card-stamp evolve">可进化</div>`;
+                } else if (s.stamp === 'MAX' || petLvl >= 20) {
+                    stampHtml = `<div class="card-stamp max">MAX</div>`;
+                }
+
+                // 3 科状态微标 [文] [数] [英] (微型紧凑模式，单字8px，间距1.5px)
+                let subBadgesHtml = '';
+                if (s.pets) {
+                    const subLetters = { chinese: '文', math: '数', english: '英' };
+                    subBadgesHtml = ['chinese', 'math', 'english'].map(k => {
+                        const p = s.pets[k];
+                        if (!p) return '';
+                        const isMain = k === (s.activeSubject || 'chinese');
+                        const pIsEgg = !p.isHatched || p.species === 'egg' || (p.visualStage === 0);
+                        const isUnlocked = store.isSubjectUnlocked ? store.isSubjectUnlocked(s.id, k) : (k === 'chinese');
+                        const canSubHatch = pIsEgg && isUnlocked && ((p.exp || 0) >= hatchThresh || hasAnyMaxSubject);
+                        
+                        let badgeBg = '#94A3B8';
+                        if (isMain) badgeBg = '#2563EB';
+                        else if (!isUnlocked) badgeBg = '#64748B'; // 锁定为冷灰
+                        else if (canSubHatch) badgeBg = '#D97706'; // 可唤醒为金黄
+                        else if (!pIsEgg) badgeBg = '#059669'; // 已破壳为绿色
+                        
+                        let statusTitle = '';
+                        if (!isUnlocked) {
+                            const lockPrompt = store.getSubjectLockPrompt ? store.getSubjectLockPrompt(s.id, k) : '需前置学科满级解锁';
+                            statusTitle = `${p.subject}：🔒 锁定中 (${lockPrompt})`;
+                        } else if (pIsEgg) {
+                            statusTitle = `${p.subject}：${canSubHatch ? '👑 可破壳/觉醒认领' : '🐣 蛋形态'}`;
+                        } else {
+                            statusTitle = `${p.subject}：Lv.${p.level} (${p.name})`;
+                        }
+                        return `<span title="${statusTitle}" style="font-size: 8px; font-weight: 900; line-height: 1; padding: 1px 2px; border-radius: 2px; background: ${badgeBg}; color: white; display: inline-block;">${subLetters[k] || k}</span>`;
+                    }).join('');
+                }
+
+                const canDirectHatchThis = isEgg && (s.stamp === 'HATCH' || petExp >= hatchThresh || (canAwakenNewPet && store.isSubjectUnlocked && store.isSubjectUnlocked(s.id, s.activeSubject || 'chinese')));
+                const clickFn = canDirectHatchThis ? `openHatchModal('${s.id}', '${s.activeSubject || 'chinese'}')` : `openStudentDetailsModal('${s.id}')`;
+                const petImgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(isEgg ? 'egg' : pet.species, isEgg ? 0 : pet.visualStage) : './assets/pets/shared/egg.png');
+
+                return `
+                    <div class="pet-card ${s.isAbsent ? 'absent' : ''}" id="petCard_${s.id}" data-student-id="${s.id}" onclick="${clickFn}">
+                        ${stampHtml}
+                        <div class="pet-visual-box">
+                            <img src="${petImgSrc}" class="pet-thumb-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+                            <span style="display:none;">${pet.icon || '🐾'}</span>
+                            <span class="pet-subject-tag">${pet.subject}</span>
+                        </div>
+                        <div class="card-bottom-info">
+                            <div class="card-title-row">
+                                <span class="st-name" title="${s.name}">${s.name}</span>
+                                <span class="st-no">#${s.no}</span>
+                            </div>
+                            <div class="card-status-row">
+                                <span class="st-level-pill">${levelText}</span>
+                                <div class="st-badges-cluster">${subBadgesHtml}</div>
+                                <span class="st-exp-compact" title="${expFullTitle}">${expText}</span>
+                            </div>
+                            <div class="st-bar">
+                                <div class="st-bar-fill" style="width: ${percent}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const groups = store.getGroupStats();
+            const groupBannersHtml = `
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 1</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 1 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===1)?.totalExp || 0} EXP</div>
+                </div>
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 2</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 2 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===2)?.totalExp || 0} EXP</div>
+                </div>
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 3</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 3 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===3)?.totalExp || 0} EXP</div>
+                </div>
+                <div class="group-status-banner-card">
+                    <span style="font-size:10px;font-weight:900;background:#000;color:#FFF;padding:1px 4px;">GROUP 4</span>
+                    <strong style="font-size:13px;margin:3px 0;">第 4 大组</strong>
+                    <div style="font-size:11px;color:var(--accent);font-weight:800;">${groups.find(g=>g.group===4)?.totalExp || 0} EXP</div>
+                </div>
+            `;
+
+            container.innerHTML = cardsHtml + groupBannersHtml;
+        }
+
+        function switchView(v) {
+            currentView = v;
+            document.getElementById('tabGrid')?.classList.toggle('active', v === 'grid');
+            document.getElementById('tabSeat')?.classList.toggle('active', v === 'seat');
+            document.getElementById('tabPK')?.classList.toggle('active', v === 'pk');
+
+            document.getElementById('gridFullView').style.display = v === 'grid' ? 'grid' : 'none';
+            document.getElementById('seatmapView').style.display = v === 'seat' ? 'grid' : 'none';
+            document.getElementById('pkRaceView').style.display = v === 'pk' ? 'flex' : 'none';
+
+            // 缩放控制盒仅在网格卡片模式下生效与显示，座次表和PK争霸赛下自动隐藏
+            const scaleBoxes = document.querySelectorAll('.scale-control-box');
+            scaleBoxes.forEach(box => {
+                box.style.display = v === 'grid' ? 'flex' : 'none';
+            });
+
+            // 排序按键组仅在卡片模式下展示
+            const sortGroup = document.getElementById('gridSortButtonGroup');
+            if (sortGroup) sortGroup.style.display = v === 'grid' ? 'flex' : 'none';
+
+            if (v === 'pk') {
+                setPKDisplayMode(currentPKMode);
+            }
+
+            updateHeaderClassInfo();
+            renderAll();
+        }
+
+        function renderSeatMap() {
+            const activeList = store.students.filter(s => !s.isArchived);
+            updateHeaderClassInfo();
+
+            if (activeList.length === 0) {
+                for (let g = 1; g <= 4; g++) {
+                    const col = document.getElementById(`groupList${g}`);
+                    if (col) col.innerHTML = `<div style="padding:24px;text-align:center;background:var(--card-bg);border:2px dashed var(--border);color:var(--text-secondary);font-size:12px;font-weight:700;">第 ${g} 组暂无学生<br><span style="font-size:11px;">(请在工作台录入)</span></div>`;
+                }
+                return;
+            }
+
+            for (let g = 1; g <= 4; g++) {
+                const list = activeList.filter(s => s.group === g);
+                const col = document.getElementById(`groupList${g}`);
+                if (!col) continue;
+                col.innerHTML = `
+                    <div style="font-size:14px;font-weight:900;background:var(--bg-secondary);border:2.5px solid var(--border);padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+                        <span>第 ${g} 大组 (${list.length}人)</span>
+                        <span style="color:var(--accent);font-family:monospace;font-weight:900;">${list.reduce((sum, s) => sum + (Number(s.exp) || 0), 0)} EXP</span>
+                    </div>
+                ` + list.map(s => {
+                    const pet = (s.pets && (s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { subject: '语文', name: '小宠', icon: '🐣', visualStage: 1, species: 'egg', exp: s.exp, level: s.level };
+                    const isEgg = !pet.isHatched || pet.species === 'egg' || (pet.visualStage === 0);
+                    const hatchThresh = store.getHatchThreshold ? store.getHatchThreshold() : 15;
+                    const petExp = pet.exp !== undefined ? pet.exp : (s.exp || 0);
+                    const petLvl = pet.level !== undefined ? pet.level : (s.level || 0);
+                    const hasAnyMaxSubject = (s.level >= 20) || (s.pets && Object.values(s.pets).some(p => (p.level || 0) >= 20));
+                    const unlockableUnhatchedSubs = [];
+                    if (s.pets) {
+                        ['chinese', 'math', 'english'].forEach(k => {
+                            const p = s.pets[k];
+                            const pIsEgg = !p || !p.isHatched || p.species === 'egg' || (p.visualStage === 0);
+                            const isUnlocked = store.isSubjectUnlocked ? store.isSubjectUnlocked(s.id, k) : (k === 'chinese');
+                            if (pIsEgg && isUnlocked) {
+                                unlockableUnhatchedSubs.push(k);
+                            }
+                        });
+                    }
+                    const canAwakenNewPet = hasAnyMaxSubject && unlockableUnhatchedSubs.length > 0;
+                    const canDirectHatchThis = isEgg && (s.stamp === 'HATCH' || petExp >= hatchThresh || (canAwakenNewPet && store.isSubjectUnlocked && store.isSubjectUnlocked(s.id, s.activeSubject || 'chinese')));
+                    const clickFn = canDirectHatchThis ? `openHatchModal('${s.id}', '${s.activeSubject || 'chinese'}')` : `openStudentDetailsModal('${s.id}')`;
+                    const petImgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(isEgg ? 'egg' : pet.species, isEgg ? 0 : pet.visualStage) : './assets/pets/shared/egg.png');
+                    return `
+                        <div class="pet-card ${s.isAbsent ? 'absent' : ''}" id="seatPetCard_${s.id}" data-student-id="${s.id}" style="height:96px;padding:8px;margin-bottom:8px;flex-direction:row;align-items:center;min-width:0;overflow:hidden;" onclick="${clickFn}">
+                            <div class="pet-visual-box" style="width:52px;height:52px;margin-bottom:0;margin-right:10px;flex-shrink:0;">
+                                <img src="${petImgSrc}" class="pet-thumb-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+                                <span style="display:none; font-size:24px;">${pet.icon || '🐾'}</span>
+                                <span class="pet-subject-tag">${pet.subject}</span>
+                            </div>
+                            <div style="flex:1; min-width:0; overflow:hidden; text-align:left;">
+                                <div style="font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${s.name}">${s.name} <span style="font-size:10px;color:var(--text-secondary);">#${s.no}</span></div>
+                                <div style="font-size:11px;color:var(--accent);font-weight:800;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${isEgg ? '🐣 蛋形态' : (petLvl >= 20 ? '👑 MAX' : 'LV.' + petLvl)} · ${petExp} EXP</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 第8点：四组团队竞速 PK 榜，支持横向赛道与竖向行情柱状图双向一键切换与记忆
+        let currentPKMode = localStorage.getItem('classpet_pk_mode') || 'vertical';
+
+        function setPKDisplayMode(mode) {
+            currentPKMode = mode;
+            try { localStorage.setItem('classpet_pk_mode', mode); } catch (e) {}
+            const btnV = document.getElementById('btnPkVerticalMode');
+            const btnH = document.getElementById('btnPkHorizontalMode');
+            const boxV = document.getElementById('raceVerticalContainer');
+            const boxH = document.getElementById('raceTracksContainer');
+
+            if (btnV) {
+                btnV.classList.toggle('active', mode === 'vertical');
+                btnV.style.background = mode === 'vertical' ? 'var(--accent)' : 'var(--bg-secondary)';
+                btnV.style.color = mode === 'vertical' ? 'white' : 'var(--text-primary)';
+            }
+            if (btnH) {
+                btnH.classList.toggle('active', mode === 'horizontal');
+                btnH.style.background = mode === 'horizontal' ? 'var(--accent)' : 'var(--bg-secondary)';
+                btnH.style.color = mode === 'horizontal' ? 'white' : 'var(--text-primary)';
+            }
+            if (boxV) boxV.style.display = mode === 'vertical' ? 'grid' : 'none';
+            if (boxH) boxH.style.display = mode === 'horizontal' ? 'block' : 'none';
+            renderPKRace();
+        }
+
+        function renderPKRace() {
+            const activeList = store.students.filter(s => !s.isArchived);
+            updateHeaderClassInfo();
+            const boxV = document.getElementById('raceVerticalContainer');
+            const boxH = document.getElementById('raceTracksContainer');
+            if (!boxV || !boxH) return;
+
+            if (activeList.length === 0) {
+                const emptyHtml = `<div style="grid-column:1/-1;padding:48px;text-align:center;background:var(--card-bg);border:2.5px dashed var(--border);color:var(--text-secondary);font-size:14px;font-weight:800;">🏃 当前班级暂无学生参与赛道，请先前往教师工作台录入名单</div>`;
+                boxV.innerHTML = emptyHtml;
+                boxH.innerHTML = emptyHtml;
+                return;
+            }
+
+            const groups = store.getGroupStats();
+            const maxExp = Math.max(...groups.map(g => g.totalExp), 300);
+
+            // 1. 竖向柱状行情看板
+            boxV.innerHTML = groups.map(g => {
+                const heightPct = Math.min(100, Math.max(12, Math.round((g.totalExp / maxExp) * 90)));
+                const mascot = g.group === 1 ? '🐱' : (g.group === 2 ? '🐶' : (g.group === 3 ? '🦊' : '🐰'));
+                const colColors = [
+                    'linear-gradient(180deg, #F87171, #EF4444)',
+                    'linear-gradient(180deg, #60A5FA, #3B82F6)',
+                    'linear-gradient(180deg, #34D399, #10B981)',
+                    'linear-gradient(180deg, #FBBF24, #F59E0B)'
+                ];
+                const barColor = colColors[g.group - 1] || colColors[0];
+
+                return `
+                    <div style="background: var(--card-bg); border: 3px solid var(--border); box-shadow: 0 6px 16px rgba(120, 95, 70, 0.09); display: flex; flex-direction: column; justify-content: space-between; padding: 14px; border-radius: 8px;">
+                        <div style="text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 8px;">
+                            <div style="font-size: 28px; margin-bottom: 2px;">${mascot}</div>
+                            <strong style="font-size: 16px;">${g.name}</strong>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">均级 Lv.${g.avgLevel} · ${g.count}人</div>
+                            <div style="font-size: 18px; font-weight: 900; color: var(--accent); margin-top: 4px; font-family: monospace;">${g.totalExp} EXP</div>
+                        </div>
+
+                        <div style="flex: 1; min-height: 260px; background: var(--bg-secondary); border: 2px dashed var(--border); margin: 12px 0; display: flex; align-items: flex-end; justify-content: center; position: relative; border-radius: 6px; padding: 10px;">
+                            <div style="width: 70%; height: ${heightPct}%; background: ${barColor}; border: 2.5px solid var(--border); border-radius: 6px 6px 0 0; transition: height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; box-shadow: 2px -2px 0 rgba(0,0,0,0.15);">
+                                <span style="font-size: 11px; font-weight: 900; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.6); background: rgba(0,0,0,0.25); padding: 1px 6px; border-radius: 4px;">${g.totalExp}</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn-header-touch" style="flex: 1; height: 42px; justify-content: center; background: #DCFCE7; color: #15803D; font-weight: 900;" onclick="scoreGroup(${g.group}, 5)">+5</button>
+                            <button class="btn-header-touch" style="flex: 1; height: 42px; justify-content: center; background: #FEE2E2; color: #B91C1C; font-weight: 900;" onclick="scoreGroup(${g.group}, -3)">-3</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 2. 横向赛道跑道
+            boxH.innerHTML = groups.map(g => {
+                const percent = Math.min(88, Math.max(5, Math.round((g.totalExp / maxExp) * 85)));
+                const mascot = g.group === 1 ? '🐱' : (g.group === 2 ? '🐶' : (g.group === 3 ? '🦊' : '🐰'));
+                return `
+                    <div style="background:var(--card-bg);border:3px solid var(--border);box-shadow:4px 4px 0 var(--shadow-color);padding:12px 18px;display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                        <div style="width:150px;">
+                            <strong style="font-size:15px;">${g.name}</strong>
+                            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">总分: <b style="color:var(--accent);">${g.totalExp}</b> · 均级 Lv.${g.avgLevel}</div>
+                        </div>
+                        <div style="flex:1;height:44px;background:var(--bg-secondary);border:2px dashed var(--border);position:relative;display:flex;align-items:center;">
+                            <div style="position:absolute;left:${percent}%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;transition:left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);">
+                                <span style="font-size:26px;">${mascot}</span>
+                                <span style="font-size:11px;font-weight:900;background:var(--warning);border:2px solid var(--border);padding:2px 6px;white-space:nowrap;">${g.totalExp} EXP</span>
+                            </div>
+                        </div>
+                        <button class="btn-header-touch" style="background:#DCFCE7;color:#15803D;height:42px;padding:0 16px;" onclick="scoreGroup(${g.group}, 5)">组加分 +5</button>
+                        <button class="btn-header-touch" style="background:#FEE2E2;color:#B91C1C;height:42px;padding:0 16px;" onclick="scoreGroup(${g.group}, -3)">组扣分 -3</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function scoreGroup(g, d) {
+            const list = store.students.filter(s => s.group === g && !s.isArchived);
+            store.batchScore(list.map(s => s.id), d, `第${g}大组${d>0?'奖励':'扣分'}`);
+            if (d > 0) store.audio.playDing();
+            else store.audio.playDeduct();
+            renderAll();
+        }
+
+        function quickModalScore(delta, reason) {
+            if (!activeModalStudent) return;
+            store.scoreStudent(activeModalStudent.id, delta, reason, false, activeModalSubject);
+            refreshModal();
+            renderAll();
+        }
+
+        // ==========================================
+        // ==========================================
+        // 电子宠物破壳认领中心逻辑 (联动教师学科属性与王者觉醒自由选择)
+        // ==========================================
+        function openHatchModal(studentId, targetSubject = null) {
+            closeDetailsModal();
+            const s = store.students.find(x => x.id === studentId);
+            if (!s) return;
+            hatchTargetStudentId = studentId;
+            currentSelectedHatchSpecies = 'cat';
+
+            // 获取学科认领权限规则
+            const hatchSubjInfo = store.getAvailableHatchSubjects ? store.getAvailableHatchSubjects(studentId) : {
+                allowedSubjects: ['chinese'],
+                defaultSubject: 'chinese',
+                reason: '请选择认领学科'
+            };
+
+            const subNameMap = { chinese: '📖 语文', math: '📐 数学', english: '🔤 英语' };
+            const isUnlockedFn = (key) => store.isSubjectUnlocked ? store.isSubjectUnlocked(studentId, key) : (key === 'chinese');
+            const hasAwaken = (s.level >= 20) || (s.pets && Object.values(s.pets).some(p => (p.level || 0) >= 20));
+
+            // 若外部传入了优先认领学科，必须同时满足：未孵化 + 已解锁（前置满级）！
+            if (targetSubject && isUnlockedFn(targetSubject) && (!s.pets?.[targetSubject]?.isHatched || (s.pets?.[targetSubject]?.species === 'egg'))) {
+                currentSelectedHatchSubject = targetSubject;
+            } else if (hatchSubjInfo.allowedSubjects && hatchSubjInfo.allowedSubjects.length > 0) {
+                currentSelectedHatchSubject = hatchSubjInfo.defaultSubject || hatchSubjInfo.allowedSubjects[0];
+            } else {
+                currentSelectedHatchSubject = 'chinese';
+            }
+
+            const subGroup = document.getElementById('hatchSubjectBtnGroup');
+            const subHint = document.getElementById('hatchSubjectRuleHint');
+            if (subHint) {
+                subHint.textContent = hatchSubjInfo.reason || '一人多宠规则：前置学科达成 Lv.20 满级方可解锁认领下一门萌宠';
+            }
+
+            if (subGroup) {
+                subGroup.innerHTML = ['chinese', 'math', 'english'].map(subKey => {
+                    const pet = s.pets?.[subKey];
+                    const isPetHatched = !!(pet && (pet.isHatched || (pet.species && pet.species !== 'egg')));
+                    const isUnlocked = isUnlockedFn(subKey);
+                    // 只有未孵化、已解锁，且在允许认领学科列表中
+                    const canSelectThis = !isPetHatched && isUnlocked && (hatchSubjInfo.allowedSubjects || []).includes(subKey);
+                    const isSelected = subKey === currentSelectedHatchSubject;
+                    let statusTag = '';
+                    if (isPetHatched) statusTag = ' (已认领)';
+                    else if (!isUnlocked) {
+                        const lockPrompt = store.getSubjectLockPrompt ? store.getSubjectLockPrompt(s.id, subKey) : '需前置满级';
+                        const shortPrompt = lockPrompt.replace('学科宠物升至 Lv.20 满级方可唤醒', '满级').replace('均升至 Lv.20 满级方可唤醒', '满级');
+                        statusTag = ` (🔒${shortPrompt})`;
+                    } else if (!canSelectThis) statusTag = ' (不可选)';
+
+                    return `
+                        <button type="button" class="btn-header-touch" id="btnHatchSubj_${subKey}" 
+                            style="height: 34px; padding: 0 12px; font-size: 12px; ${isSelected ? 'background: var(--accent); color: white;' : 'background: var(--bg-primary);'} ${!canSelectThis ? 'opacity: 0.5; cursor: not-allowed;' : ''}"
+                            onclick="selectHatchSubject('${subKey}', ${canSelectThis})">
+                            ${subNameMap[subKey]}${statusTag}
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('hatchStudentTitle').textContent = `🐣 电子宠物破壳认领中心 · ${s.name} (#${s.no})`;
+            document.getElementById('hatchStudentSub').textContent = `破壳在即！请挑选心仪的 8 大物种之一，认领为【${subNameMap[currentSelectedHatchSubject] || '专属'}】电子宠物：`;
+
+            const catalog = window.PET_SPECIES_CATALOG || {};
+            const grid = document.getElementById('hatchSpeciesGrid');
+            grid.innerHTML = Object.keys(catalog).map(key => {
+                const item = catalog[key];
+                const isSel = key === currentSelectedHatchSpecies;
+                const previewImg = window.getPetImagePath ? window.getPetImagePath(key, 1) : '';
+                return `
+                    <div class="hatch-card-option ${isSel ? 'selected' : ''}" id="hatchCard_${key}" onclick="selectHatchSpecies('${key}')">
+                        <div class="hatch-pet-preview">
+                            <img src="${previewImg}" alt="${item.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+                            <span style="font-size: 38px; display: none;">${item.icon}</span>
+                        </div>
+                        <strong style="font-size: 14px; margin-bottom: 2px;">${item.name}</strong>
+                        <span style="font-size: 11px; color: var(--text-secondary); line-height: 1.3;">${item.motto}</span>
+                    </div>
+                `;
+            }).join('');
+
+            updateHatchSelectedBar();
+            document.getElementById('modalHatchCenter').style.display = 'flex';
+        }
+
+        function selectHatchSubject(subKey, isAllowed) {
+            if (!isAllowed) {
+                showClassroomToast('根据一人多宠满级解锁阶梯或教师学科规则，暂不可选择此学科', '⚠️');
+                return;
+            }
+            currentSelectedHatchSubject = subKey;
+            ['chinese', 'math', 'english'].forEach(k => {
+                const btn = document.getElementById('btnHatchSubj_' + k);
+                if (btn) {
+                    if (k === subKey) {
+                        btn.style.background = 'var(--accent)';
+                        btn.style.color = 'white';
+                    } else {
+                        btn.style.background = 'var(--bg-primary)';
+                        btn.style.color = 'var(--text-primary)';
+                    }
+                }
+            });
+            updateHatchSelectedBar();
+        }
+
+        function selectHatchSpecies(spKey) {
+            currentSelectedHatchSpecies = spKey;
+            document.querySelectorAll('.hatch-card-option').forEach(el => el.classList.remove('selected'));
+            const card = document.getElementById(`hatchCard_${spKey}`);
+            if (card) card.classList.add('selected');
+            updateHatchSelectedBar();
+        }
+
+        function updateHatchSelectedBar() {
+            const info = (window.PET_SPECIES_CATALOG || {})[currentSelectedHatchSpecies] || {};
+            const subMap = { chinese: '语文', math: '数学', english: '英语' };
+            document.getElementById('selectedSpeciesNameText').textContent = `${info.name || '猫咪'} · 【${subMap[currentSelectedHatchSubject] || '语文'}】专属`;
+            document.getElementById('selectedSpeciesMottoText').textContent = info.motto || '';
+        }
+
+        function closeHatchModal() {
+            document.getElementById('modalHatchCenter').style.display = 'none';
+        }
+
+        function confirmHatchPet() {
+            if (!hatchTargetStudentId) return;
+            const targetStudentId = hatchTargetStudentId;
+            const hatched = store.hatchStudentPet(targetStudentId, currentSelectedHatchSpecies, currentSelectedHatchSubject);
+            closeHatchModal();
+            if (hatched) {
+                const subMap = { chinese: '语文', math: '数学', english: '英语' };
+                triggerSpotlightCelebration(targetStudentId, 1, `🐣 恭喜破壳诞生！成功认领【${subMap[currentSelectedHatchSubject] || '语文'}】专属电子宠物！`, currentSelectedHatchSubject);
+                if (window.classroomFireworks && typeof window.classroomFireworks.launchCelebration === 'function') {
+                    window.classroomFireworks.launchCelebration();
+                }
+            } else {
+                showClassroomToast('破壳认领失败：未满足前置学科满级解锁条件', '⚠️');
+            }
+            renderAll();
+        }
+
+        // ==========================================
+        // 学生详情空间与治愈互动
+        // ==========================================
+        function openStudentDetailsModal(id) {
+            const s = store.students.find(x => x.id === id);
+            if (!s) return;
+            activeModalStudent = s;
+            const currentTeachingSub = store.getCurrentTeachingSubject ? store.getCurrentTeachingSubject() : null;
+            activeModalSubject = currentTeachingSub || s.activeSubject || 'chinese';
+            refreshModal();
+            document.getElementById('modalStudentDetails').style.display = 'flex';
+        }
+
+        function refreshModal() {
+            if (!activeModalStudent) return;
+            const s = activeModalStudent;
+            const pet = (s.pets && (s.pets[activeModalSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { subject: '语文', name: '小宠', icon: '🐣', visualStage: 1, species: 'egg', exp: 0, level: 0, isHatched: false };
+
+            const isThisPetHatched = !!(pet.isHatched || (pet.species && pet.species !== 'egg'));
+            const petExp = Math.max(0, pet.exp !== undefined ? pet.exp : 0);
+            const petLevel = isThisPetHatched ? Math.max(1, pet.level || 1) : 0;
+            const hatchThresh = store.getHatchThreshold ? store.getHatchThreshold() : 15;
+            const maxExpThresh = (store.getCurrentLevelMinExp ? store.getCurrentLevelMinExp(20) : (window.CLASS_LEVEL_THRESHOLDS?.[20] || 1250));
+
+            // 👑 检查单科满级与第二/第三萌宠觉醒特权 (严格链式解锁：第一门满足解锁条件且未孵化的学科)
+            const hasAnyMaxSubject = (s.level >= 20) || (s.pets && Object.values(s.pets).some(p => (p.level || 0) >= 20));
+            const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
+            const isThisSubjectUnlocked = store.isSubjectUnlocked ? store.isSubjectUnlocked(s.id, activeModalSubject) : true;
+
+            const unlockableSubKeys = ['chinese', 'math', 'english'].filter(k => {
+                const p = s.pets?.[k];
+                const pIsEgg = !p || !p.isHatched || p.species === 'egg' || (p.visualStage === 0);
+                const isUnlocked = store.isSubjectUnlocked ? store.isSubjectUnlocked(s.id, k) : true;
+                return pIsEgg && isUnlocked;
+            });
+
+            // 更新顶部王者觉醒特权 Banner
+            const awakenBanner = document.getElementById('modalAwakenBanner');
+            if (awakenBanner) {
+                if (hasAnyMaxSubject && unlockableSubKeys.length > 0) {
+                    const isChoice = unlockableSubKeys.length > 1;
+                    const subBtns = unlockableSubKeys.map(k => {
+                        const unlockName = subNameMap[k] || k;
+                        return `
+                            <button type="button" class="btn-header-touch" style="height: 42px; padding: 0 16px; background: #D97706; color: white; font-weight: 900; font-size: 14px; border: 2.5px solid #000; box-shadow: 3px 3px 0 #000; flex-shrink: 0; cursor: pointer;" onclick="openHatchModal('${s.id}', '${k}')">
+                                ✨ 觉醒认领【${unlockName}】萌宠 ➔
+                            </button>
+                        `;
+                    }).join('');
+
+                    const choiceText = isChoice 
+                        ? `已具备认领下一学科萌宠资格！二选一：可自由认领【数学】或【英语】专属电子宠物：`
+                        : `已具备认领下一学科萌宠资格！可直接唤醒【${subNameMap[unlockableSubKeys[0]] || unlockableSubKeys[0]}】专属电子宠物：`;
+
+                    awakenBanner.style.display = 'block';
+                    awakenBanner.innerHTML = `
+                        <div style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border: 2.5px solid #F59E0B; padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25); gap: 12px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 220px;">
+                                <div style="font-weight: 900; color: #92400E; font-size: 15px; display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 18px;">👑</span>
+                                    <span>王者觉醒特权：已有学科达成 20 级 MAX 顶峰！</span>
+                                    <span style="font-size: 11px; background: #EA580C; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 900;">${isChoice ? '二选一特权' : '特权解锁'}</span>
+                                </div>
+                                <div style="font-size: 13px; color: #78350F; margin-top: 4px; font-weight: 700;">
+                                    ${choiceText}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                ${subBtns}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    awakenBanner.style.display = 'none';
+                    awakenBanner.innerHTML = '';
+                }
+            }
+
+            // 更新学科 Tab 按钮的高亮与状态微标 (严格锁止显示)
+            ['chinese', 'math', 'english'].forEach(k => {
+                const capitalized = k.charAt(0).toUpperCase() + k.slice(1);
+                const btn = document.getElementById('tabSubj' + capitalized);
+                if (btn) {
+                    const isTarget = k === activeModalSubject;
+                    const p = s.pets?.[k];
+                    const pIsEgg = !p || !p.isHatched || p.species === 'egg' || (p.visualStage === 0);
+                    const isUnlocked = store.isSubjectUnlocked ? store.isSubjectUnlocked(s.id, k) : true;
+                    const canAwaken = pIsEgg && isUnlocked && hasAnyMaxSubject;
+                    const iconMap = { chinese: '📖 语文', math: '📐 数学', english: '🔤 英语' };
+                    let label = iconMap[k];
+                    if (!isUnlocked) {
+                        label += ' 🔒';
+                    } else if (canAwaken) {
+                        label += ' 👑[可觉醒]';
+                    } else if (pIsEgg) {
+                        label += ' 🐣';
+                    } else if ((p?.level || 0) >= 20) {
+                        label += ' ⭐MAX';
+                    }
+                    btn.innerHTML = label;
+                    btn.style.background = isTarget ? 'var(--accent)' : 'var(--bg-secondary)';
+                    btn.style.color = isTarget ? 'white' : 'var(--text-primary)';
+                }
+            });
+
+            document.getElementById('modalStudentName').textContent = `${s.name} · #${s.no}`;
+            document.getElementById('modalStudentSub').textContent = `三年级二班 · 第 ${s.group} 大组 · ${pet.subject}专属空间`;
+            
+            const heroImg = document.getElementById('heroPetImg');
+            const heroIcon = document.getElementById('heroPetIcon');
+            const petSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(isThisPetHatched ? pet.species : 'egg', isThisPetHatched ? (pet.visualStage || 1) : 0) : '');
+            heroImg.src = petSrc;
+            heroImg.style.display = 'inline';
+            heroImg.style.opacity = isThisSubjectUnlocked ? '1' : '0.45';
+            heroImg.style.filter = isThisSubjectUnlocked ? 'none' : 'grayscale(80%)';
+            heroIcon.textContent = isThisPetHatched ? (pet.icon || '🐾') : '🐣';
+            heroIcon.style.display = 'none';
+
+            // 设为大屏主展示/培养宠物按钮区域动态更新
+            const setDispContainer = document.getElementById('btnSetDisplayPetContainer');
+            if (setDispContainer) {
+                const isCurrentActive = activeModalSubject === (s.activeSubject || 'chinese');
+                if (!isThisSubjectUnlocked) {
+                    setDispContainer.innerHTML = `<span style="font-size: 12px; font-weight: 700; color: #94A3B8; padding: 4px 8px;">🔒 萌宠锁定中</span>`;
+                } else if (isCurrentActive) {
+                    setDispContainer.innerHTML = `<span style="font-size: 12px; font-weight: 900; background: #DCFCE7; color: #15803D; border: 2px solid #86EFAC; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">⭐ 当前大屏主宠</span>`;
+                } else {
+                    setDispContainer.innerHTML = `<button type="button" class="btn-header-touch" style="height:34px; font-size: 12px; background: #FEF3C7; color: #92400E; border: 2px solid #F59E0B; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="triggerSetAsDisplayPet()">⭐ 设为大屏主宠</button>`;
+                }
+            }
+
+            // 经验条计算：全面统一使用官方标准区间模型 (store.getExpProgress)
+            const prog = store.getExpProgress ? store.getExpProgress(petExp, isThisPetHatched ? petLevel : 0, isThisPetHatched) : {
+                percent: 0,
+                barLabelLeft: '🌟 升级进度',
+                barLabelRight: `${petExp} EXP`,
+                startMilestone: '0 EXP',
+                targetMilestone: '15 EXP',
+                detailText: `累计总经验: ${petExp} EXP`
+            };
+
+            let percent = prog.percent;
+            let levelLabel = '';
+            let nameLabel = '';
+            let expRateLabel = '';
+            let expDetailLabel = '';
+            let barLabelLeft = prog.barLabelLeft;
+            let startMilestone = prog.startMilestone;
+            let targetMilestone = prog.targetMilestone;
+
+            if (!isThisSubjectUnlocked) {
+                const lockPrompt = store.getSubjectLockPrompt ? store.getSubjectLockPrompt(s.id, activeModalSubject) : '需前置学科满级解锁';
+                nameLabel = `🔒 待解锁学科萌宠蛋`;
+                levelLabel = `Lv.0 (锁定)`;
+                percent = 0;
+                barLabelLeft = `🔒 学科锁定`;
+                expRateLabel = `未解锁`;
+                startMilestone = `Lv.0 锁定`;
+                targetMilestone = `需前置满级`;
+                expDetailLabel = `🔒 ${lockPrompt}`;
+            } else if (!isThisPetHatched) {
+                // 蛋形态：满 15 经验破壳
+                nameLabel = `神秘宠物蛋 (待破壳)`;
+                levelLabel = `Lv.0 (蛋形态)`;
+                barLabelLeft = `🐣 孵化破壳能量`;
+                expRateLabel = `当前 ${Math.min(hatchThresh, petExp)} / 破壳 ${hatchThresh} EXP (${prog.percent}%)`;
+                startMilestone = `0 EXP (诞生起点)`;
+                targetMilestone = `${hatchThresh} EXP (破壳目标)`;
+                expDetailLabel = `⭐ 累计总经验: ${petExp} / ${maxExpThresh} EXP · 破壳还差 ${Math.max(0, hatchThresh - petExp)} EXP`;
+            } else if (petLevel >= 20) {
+                // 满级王者状态
+                nameLabel = `${pet.name} (Stage ${pet.visualStage || 5} 终极王者形态)`;
+                levelLabel = `Lv.20 👑 MAX`;
+                barLabelLeft = `👑 王者巅峰 · 终极形态达成`;
+                expRateLabel = `100% (${petExp} EXP 👑 满级顶峰)`;
+                startMilestone = `${maxExpThresh} EXP (Lv.20 起点)`;
+                targetMilestone = `👑 MAX 荣耀顶峰`;
+                expDetailLabel = `⭐ 累计总经验: ${petExp} / ${maxExpThresh} EXP · 已达成全班最高满级 (王者神兽)`;
+            } else {
+                // 正常升级阶梯 (Lv.1 ~ Lv.19)
+                nameLabel = `${pet.name} (Stage ${pet.visualStage || 1} 形态)`;
+                levelLabel = `LV.${petLevel}`;
+                barLabelLeft = `🌟 升级进度 (Lv.${petLevel} ➔ Lv.${petLevel + 1})`;
+                const currentLevelEarned = (typeof prog.progressInLevel === 'number')
+                    ? Math.max(0, prog.progressInLevel)
+                    : Math.max(0, petExp - (prog.levelMinExp || 0));
+                expRateLabel = `本级已攒 ${currentLevelEarned} / ${prog.levelSpan || 25} EXP (${prog.percent}%)`;
+                startMilestone = `Lv.${petLevel} 起点 (${prog.levelMinExp || 0} EXP)`;
+                targetMilestone = `Lv.${petLevel + 1} 目标 (${prog.levelNextExp || 0} EXP)`;
+                expDetailLabel = `⭐ 累计总经验: ${petExp} / ${maxExpThresh} EXP · 升至 Lv.${petLevel + 1} 还差 ${prog.needExp || 0} EXP`;
+            }
+
+            document.getElementById('heroPetName').textContent = nameLabel;
+            document.getElementById('heroPetLevel').textContent = levelLabel;
+            const heroBarLeftEl = document.getElementById('heroExpBarLabelLeft');
+            if (heroBarLeftEl) heroBarLeftEl.textContent = barLabelLeft;
+            const heroRateEl = document.getElementById('heroExpRate');
+            if (heroRateEl) heroRateEl.textContent = expRateLabel;
+            const mStartEl = document.getElementById('heroMilestoneStart');
+            if (mStartEl) mStartEl.textContent = startMilestone;
+            const mTargetEl = document.getElementById('heroMilestoneTarget');
+            if (mTargetEl) mTargetEl.textContent = targetMilestone;
+            const heroExpEl = document.getElementById('heroExpText');
+            if (heroExpEl) heroExpEl.textContent = expDetailLabel;
+            document.getElementById('heroProgressBar').style.width = percent + '%';
+
+            // 破壳按钮与王者觉醒特权检测 (未解锁状态严格隐藏并提示)
+            const isThisPetEgg = !isThisPetHatched || pet.species === 'egg' || (pet.visualStage === 0);
+            const canHatchByExp = isThisPetEgg && isThisSubjectUnlocked && petExp >= hatchThresh;
+            const hasAwakenPrivilege = isThisPetEgg && isThisSubjectUnlocked && hasAnyMaxSubject;
+            const canHatch = canHatchByExp || hasAwakenPrivilege;
+
+            const hatchBox = document.getElementById('modalHatchTriggerBox');
+            if (hatchBox) {
+                if (!isThisSubjectUnlocked) {
+                    const lockPrompt = store.getSubjectLockPrompt ? store.getSubjectLockPrompt(s.id, activeModalSubject) : '需前置学科满级解锁';
+                    hatchBox.style.display = 'block';
+                    hatchBox.innerHTML = `
+                        <div style="background: #F1F5F9; border: 2px dashed #94A3B8; padding: 10px 14px; border-radius: 8px; text-align: center; color: #475569; font-weight: 700; font-size: 13px;">
+                            🔒 萌宠蛋锁定中 · ${lockPrompt}
+                        </div>
+                    `;
+                } else if (canHatch) {
+                    hatchBox.style.display = 'block';
+                    const hatchBtnText = (hasAwakenPrivilege && petExp < hatchThresh)
+                        ? `👑 王者特权破壳：认领【${pet.subject}】专属电子宠物！`
+                        : `🐣 能量达标 (${petExp}/${hatchThresh} EXP) · 立即破壳认领【${pet.subject}】！`;
+                    hatchBox.innerHTML = `
+                        <button class="btn-header-touch" id="btnModalHatch" style="width: 100%; height: 42px; background: linear-gradient(135deg, #F59E0B, #D97706); color: white; font-size: 13px; font-weight: 900; justify-content: center; box-shadow: 3px 3px 0 #000; border-color: #000; animation: pulseHatch 1.5s infinite; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px;" onclick="openHatchFromDetailsModal()">
+                            ${hatchBtnText}
+                        </button>
+                    `;
+                } else {
+                    hatchBox.style.display = 'none';
+                    hatchBox.innerHTML = '';
+                }
+            }
+            if (canHatch) {
+                heroImg.style.cursor = 'pointer';
+                heroImg.title = '🌟 萌宠蛋已积攒满破壳能量，点击立即破壳！';
+                heroImg.onclick = openHatchFromDetailsModal;
+            } else {
+                heroImg.style.cursor = 'default';
+                heroImg.title = '';
+                heroImg.onclick = null;
+            }
+
+            // 进阶突破检测与操作条 (Stage 2~5 突破)
+            const curStage = pet.visualStage || (isThisPetHatched ? 1 : 0);
+            const expectedStage = store.calcVisualStage ? store.calcVisualStage(pet.level, 0) : curStage;
+            const canEvolve = isThisPetHatched && (expectedStage > curStage) && (curStage < 5);
+            const evolveBox = document.getElementById('modalEvolveTriggerBox');
+            if (evolveBox) {
+                evolveBox.style.display = canEvolve ? 'block' : 'none';
+            }
+
+            // 更新今日互动收益提示 (统一使用 Store 本地时区与班级隔离方法)
+            const todayUsed = store.getDailyInteractPoints ? store.getDailyInteractPoints(s.id) : 0;
+            document.getElementById('interactionDailyTip').textContent = `今日互动收益：${todayUsed}/5 EXP ${todayUsed >= 5 ? '(已达上限)' : ''}`;
+
+            // 独立更新当前学生的 6 项互动冷却倒计时与按钮可用状态
+            updateInteractionButtonsUI();
+        }
+
+        // 切换大屏主展示宠物动作
+        function triggerSetAsDisplayPet() {
+            if (!activeModalStudent) return;
+            const sId = activeModalStudent.id;
+            const sub = activeModalSubject;
+            const success = store.setStudentDisplayPet ? store.setStudentDisplayPet(sId, sub) : false;
+            if (success) {
+                const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
+                showClassroomToast(`已将【${subNameMap[sub] || sub}】设为大屏主展示宠物！`, '⭐');
+                refreshModal();
+                renderAll();
+            }
+        }
+
+        // 卡片内原地一键破壳
+        function openHatchFromDetailsModal() {
+            if (!activeModalStudent) return;
+            const sId = activeModalStudent.id;
+            const targetSubject = activeModalSubject;
+            closeDetailsModal();
+            openHatchModal(sId, targetSubject);
+        }
+
+        // 卡片内原地升级宠物形态并绽放烟花
+        function triggerEvolveFromDetailsModal() {
+            if (!activeModalStudent) return;
+            const s = activeModalStudent;
+            const pet = (s.pets && (s.pets[activeModalSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]);
+            if (!pet) return;
+
+            const curStage = pet.visualStage || (pet.isHatched ? 1 : 0);
+            const targetStage = store.calcVisualStage ? store.calcVisualStage(pet.level, 0) : curStage;
+            if (targetStage <= curStage) {
+                console.warn('[Evolve] 萌宠当前形态已是最新阶段，无需进阶');
+                refreshModal();
+                return;
+            }
+
+            pet.visualStage = targetStage;
+            pet.image = window.getPetImagePath ? window.getPetImagePath(pet.species, targetStage) : '';
+            if (activeModalSubject === (s.activeSubject || 'chinese')) {
+                s.visualStage = targetStage;
+                s.stamp = (s.level >= 20 || targetStage >= 5) ? 'MAX' : null;
+            }
+            store.save();
+            const classId = store.getClassId ? store.getClassId() : 'c_class02_01';
+            if (window.electronAPI && window.electronAPI.db && typeof window.electronAPI.db.saveStudent === 'function') {
+                window.electronAPI.db.saveStudent(s, classId);
+            }
+            store.broadcast('STATE_SYNC', { students: store.students });
+
+            // 烟花从底部升腾绽放
+            if (window.classroomFireworks && typeof window.classroomFireworks.launchCelebration === 'function') {
+                window.classroomFireworks.launchCelebration(5500, 12);
+            }
+            store.audio.playFanfare();
+
+            refreshModal();
+            renderAll();
+            triggerSpotlightCelebration(s, pet.level, `🎉 恭喜【${pet.subject}】萌宠突破蜕变至【Stage ${targetStage}】进阶形态！`, activeModalSubject);
+        }
+
+        // 大屏全班滚动随机点名全屏遮罩逻辑
+        let rollcallTimer = null;
+        let activeRollcallStudentId = null;
+
+        function startRandomPicker() {
+            if (typeof closeRadialMenu === 'function') closeRadialMenu();
+
+            const presentStudents = store.students.filter(s => !s.isAbsent && !s.isArchived);
+            if (!presentStudents || presentStudents.length === 0) {
+                showClassroomToast('暂无可抽选的学生（全员出勤异常或已归档）', '⚠️');
+                return;
+            }
+
+            const modal = document.getElementById('modalRandomRollcall');
+            if (!modal) {
+                const chosen = store.startRandomPick();
+                if (chosen) openStudentDetailsModal(chosen.id);
+                return;
+            }
+            modal.style.display = 'flex';
+
+            const subTitle = document.getElementById('rollcallSubTitle');
+            const nameEl = document.getElementById('rollcallName');
+            const metaEl = document.getElementById('rollcallMeta');
+            const imgEl = document.getElementById('rollcallAvatarImg');
+            const btnDetails = document.getElementById('btnRollcallDetails');
+            const btnAgain = document.getElementById('btnRollcallAgain');
+
+            if (subTitle) subTitle.innerHTML = '🎲 课堂随堂点名 · 正在快速抽选中...';
+            if (btnDetails) btnDetails.style.display = 'none';
+            if (btnAgain) btnAgain.style.display = 'none';
+
+            let tick = 0;
+            const totalTicks = 24 + Math.floor(Math.random() * 8); // 24~32 次跳动
+            let speed = 45;
+
+            if (rollcallTimer) clearTimeout(rollcallTimer);
+
+            function step() {
+                const randomIdx = Math.floor(Math.random() * presentStudents.length);
+                const stu = presentStudents[randomIdx];
+                const pet = (stu.pets && stu.pets[stu.activeSubject || 'chinese']) || (stu.pets && stu.pets.chinese) || {};
+                const isEgg = !pet.isHatched || pet.species === 'egg' || (pet.visualStage === 0);
+                const petImg = pet.image || (window.getPetImagePath ? window.getPetImagePath(isEgg ? 'egg' : pet.species, isEgg ? 0 : (pet.visualStage || 1)) : './assets/pets/shared/egg.png');
+
+                if (nameEl) nameEl.textContent = stu.name;
+                if (metaEl) metaEl.textContent = `学号 #${stu.no} · 第 ${stu.group} 组 · Lv.${stu.level || 0}`;
+                if (imgEl) imgEl.src = petImg;
+
+                try {
+                    store.audio.playDing();
+                } catch (e) {}
+
+                tick++;
+                if (tick < totalTicks) {
+                    if (tick > totalTicks - 8) speed += 30; // 逐步平缓减速
+                    rollcallTimer = setTimeout(step, speed);
+                } else {
+                    // 确定最终选中的学生
+                    const chosen = store.startRandomPick();
+                    const finalStudent = chosen || stu;
+                    activeRollcallStudentId = finalStudent.id;
+                    const finalPet = (finalStudent.pets && finalStudent.pets[finalStudent.activeSubject || 'chinese']) || (finalStudent.pets && finalStudent.pets.chinese) || {};
+                    const finalIsEgg = !finalPet.isHatched || finalPet.species === 'egg' || (finalPet.visualStage === 0);
+                    const finalImg = finalPet.image || (window.getPetImagePath ? window.getPetImagePath(finalIsEgg ? 'egg' : finalPet.species, finalIsEgg ? 0 : (finalPet.visualStage || 1)) : './assets/pets/shared/egg.png');
+
+                    if (nameEl) nameEl.textContent = finalStudent.name;
+                    if (metaEl) metaEl.textContent = `学号 #${finalStudent.no} · 第 ${finalStudent.group} 组 · Lv.${finalStudent.level || 0} (${finalIsEgg ? '🐣 蛋形态' : (finalPet.name || '电子宠物')})`;
+                    if (imgEl) imgEl.src = finalImg;
+
+                    if (subTitle) subTitle.innerHTML = '🎉 恭喜本轮被抽中的幸运同学：';
+                    if (btnDetails) btnDetails.style.display = 'inline-flex';
+                    if (btnAgain) btnAgain.style.display = 'inline-flex';
+
+                    try {
+                        store.audio.playLevelUp();
+                    } catch (e) {}
+                    if (window.classroomFireworks && typeof window.classroomFireworks.launchCelebration === 'function') {
+                        window.classroomFireworks.launchCelebration(2500, 8);
+                    }
+                }
+            }
+
+            step();
+        }
+
+        function closeRandomRollcallModal() {
+            if (rollcallTimer) clearTimeout(rollcallTimer);
+            const modal = document.getElementById('modalRandomRollcall');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function openDetailsFromRollcall() {
+            closeRandomRollcallModal();
+            if (activeRollcallStudentId) {
+                openStudentDetailsModal(activeRollcallStudentId);
+            }
+        }
+
+        function rollcallAgain() {
+            startRandomPicker();
+        }
+
+        function switchModalSubject(sub) {
+            activeModalSubject = sub;
+            ['Chinese', 'Math', 'English'].forEach(k => {
+                const btn = document.getElementById('tabSubj' + k);
+                if (btn) {
+                    const isTarget = k.toLowerCase() === sub;
+                    btn.style.background = isTarget ? 'var(--accent)' : 'var(--bg-secondary)';
+                    btn.style.color = isTarget ? 'white' : 'var(--text-primary)';
+                }
+            });
+            refreshModal();
+        }
+
+        const INTERACTION_CONFIG = [
+            { key: 'greet', label: '👋 打招呼 (+1)', name: '打招呼', exp: 1 },
+            { key: 'pet', label: '🖐️ 抚摸 (+1)', name: '抚摸', exp: 1 },
+            { key: 'play', label: '🎾 玩耍 (+2)', name: '玩耍', exp: 2 },
+            { key: 'water', label: '💧 喂水 (+2)', name: '喂水', exp: 2 },
+            { key: 'feed', label: '🍖 喂食 (+2)', name: '喂食', exp: 2 },
+            { key: 'comfort', label: '✨ 安抚 (+2)', name: '安抚', exp: 2 }
+        ];
+
+        function getStudentCooldownRemaining(studentId, key) {
+            if (!studentId) return 0;
+            const expireAt = studentInteractCooldowns[`${studentId}_${key}`] || 0;
+            return Math.max(0, Math.ceil((expireAt - Date.now()) / 1000));
+        }
+
+        // 针对当前打开的学生卡片，独立刷新 6 大互动行为按钮的冷却倒计时与可用状态 (各学生严格隔离，互不干扰)
+        function updateInteractionButtonsUI() {
+            if (activeCooldownTimer) {
+                clearInterval(activeCooldownTimer);
+                activeCooldownTimer = null;
+            }
+            if (!activeModalStudent) return;
+            const stuId = activeModalStudent.id;
+
+            function renderCooldownFrame() {
+                let hasActiveCooldown = false;
+                INTERACTION_CONFIG.forEach(item => {
+                    const btn = document.getElementById('btnInteract_' + item.key);
+                    const lbl = document.getElementById('label_' + item.key);
+                    if (!btn || !lbl) return;
+                    const remaining = getStudentCooldownRemaining(stuId, item.key);
+                    if (remaining > 0) {
+                        hasActiveCooldown = true;
+                        btn.disabled = true;
+                        btn.style.opacity = '0.65';
+                        btn.style.cursor = 'not-allowed';
+                        lbl.textContent = `⏳ 冷却 (${remaining}s)`;
+                    } else {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                        lbl.textContent = item.label;
+                    }
+                });
+                return hasActiveCooldown;
+            }
+
+            const isCooling = renderCooldownFrame();
+            if (isCooling) {
+                activeCooldownTimer = setInterval(() => {
+                    const stillCooling = renderCooldownFrame();
+                    if (!stillCooling && activeCooldownTimer) {
+                        clearInterval(activeCooldownTimer);
+                        activeCooldownTimer = null;
+                    }
+                }, 500);
+            }
+        }
+
+        function triggerInteraction(key, actionName, exp) {
+            if (!activeModalStudent) return;
+            const stuId = activeModalStudent.id;
+            if (getStudentCooldownRemaining(stuId, key) > 0) {
+                return;
+            }
+
+            // 严格仅对当前学生记录该动作的冷却时间 (15秒)，绝对不影响其他任何学生
+            studentInteractCooldowns[`${stuId}_${key}`] = Date.now() + 15000;
+            updateInteractionButtonsUI();
+
+            store.audio.playDing();
+            const result = store.doPetInteraction(activeModalStudent.id, actionName, exp, activeModalSubject);
+            if (result && result.limitReached) {
+                showClassroomToast('今日互动经验已达上限 (5 EXP) 啦~', '🐾');
+            }
+            if (result && result.quote) {
+                const bubble = document.getElementById('heroSpeechBubble');
+                bubble.textContent = `“${result.quote}”`;
+                bubble.style.display = 'block';
+
+                if (bubbleHideTimer) clearTimeout(bubbleHideTimer);
+                bubbleHideTimer = setTimeout(() => {
+                    bubble.style.display = 'none';
+                }, 4500);
+            }
+
+            refreshModal();
+            renderAll();
+        }
+
+        function toggleReachability() {
+            const w = document.getElementById('stageWrapper');
+            const isActive = w.classList.toggle('reachability-active');
+            const icon = document.getElementById('reachIcon');
+            const text = document.getElementById('reachText');
+            if (icon) icon.textContent = isActive ? '⬆️' : '⬇️';
+            if (text) text.textContent = isActive ? '还原大屏原位' : '屏幕下沉';
+            showClassroomToast(isActive ? '大屏已下沉 260px，便于低位触控' : '大屏已复位还原', isActive ? '⬇️' : '⬆️');
+        }
+
+        function toggleClassroomAudio() {
+            store.audio.muted = !store.audio.muted;
+            const btn = document.getElementById('btnHeaderAudio');
+            if (btn) btn.textContent = store.audio.muted ? '🔇 静音' : '🔊 音效';
+            showClassroomToast(store.audio.muted ? '已开启课堂静音模式' : '已恢复课堂激励音效', store.audio.muted ? '🔇' : '🔊');
+        }
+
+        let currentSortBy = 'no';
+        function handleCardSort(by) {
+            currentSortBy = by;
+            const bNo = document.getElementById('btnSortNo');
+            const bLvl = document.getElementById('btnSortLevel');
+            if (bNo) {
+                bNo.style.background = by === 'no' ? 'var(--accent)' : 'var(--bg-secondary)';
+                bNo.style.color = by === 'no' ? 'white' : 'var(--text-primary)';
+            }
+            if (bLvl) {
+                bLvl.style.background = by === 'level' ? 'var(--accent)' : 'var(--bg-secondary)';
+                bLvl.style.color = by === 'level' ? 'white' : 'var(--text-primary)';
+            }
+            sortCards(by);
+            showClassroomToast(`已按【${by === 'no' ? '学号顺序' : '等级经验排行'}】重排卡片`, by === 'no' ? '🔢' : '⭐');
+        }
+
+        function sortCards(by) {
+            if (by === 'no') {
+                store.students.sort((a, b) => (parseInt(a.no, 10) || 0) - (parseInt(b.no, 10) || 0) || String(a.no).localeCompare(String(b.no)));
+            } else {
+                store.students.sort((a, b) => (b.level || 0) - (a.level || 0) || (b.exp || 0) - (a.exp || 0));
+            }
+            renderGrid();
+        }
+
+        function closeDetailsModal() {
+            if (activeCooldownTimer) {
+                clearInterval(activeCooldownTimer);
+                activeCooldownTimer = null;
+            }
+            activeModalStudent = null;
+            const m = document.getElementById('modalStudentDetails');
+            if (m) m.style.display = 'none';
+        }
+
+        // 精准学生对象定位与学科感知 C 位升级庆祝 (杜绝串人、杜绝误弹 20 级)
+        function triggerSpotlightCelebration(target, lvl, customMsg, targetSubject = null) {
+            let s = null;
+            if (typeof target === 'object' && target !== null) {
+                s = target.student || target;
+            } else if (target !== undefined && target !== null) {
+                s = store.students.find(x => String(x.id) === String(target));
+            }
+            if (!s || !s.id) return;
+
+            const subKey = targetSubject || (typeof target === 'object' && target.subject) || s.activeSubject || 'chinese';
+            const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
+            const subName = subNameMap[subKey] || '专属';
+
+            const pet = (s.pets && (s.pets[subKey] || s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { name: s.name, icon: '🐾', species: 'cat', visualStage: s.visualStage || 1, level: lvl || 1 };
+            const effectiveLevel = lvl !== undefined ? lvl : (pet.level || s.level || 1);
+            const imgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(pet.species, pet.visualStage || 1) : '');
+
+            document.getElementById('spotPetIcon').innerHTML = `<img src="${imgSrc}" style="width:130px;height:130px;object-fit:contain;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.18));animation: petHeroFloat 2.6s ease-in-out infinite;" onerror="this.outerHTML='<span style=\\'font-size:72px;\\'>${pet.icon || '🐾'}</span>'" />`;
+            document.getElementById('spotStudentName').textContent = `${s.name} (#${s.no})`;
+            document.getElementById('spotLevelMsg').textContent = customMsg || `恭喜【${subName}】成功晋升至 Lv.${effectiveLevel}！`;
+
+            const badgeEl = document.getElementById('spotBadgeTitle');
+            if (badgeEl) {
+                const stages = store.getStageMinLevels ? store.getStageMinLevels() : [];
+                const s2L = stages[2]?.minLevel || 4;
+                const s3L = stages[3]?.minLevel || 8;
+                const s4L = stages[4]?.minLevel || 13;
+                if (customMsg && (customMsg.includes('破壳') || customMsg.includes('诞生') || customMsg.includes('认领'))) {
+                    badgeEl.textContent = `🐣 HATCHED! 萌宠破壳认领 ★`;
+                } else if ([s2L, s3L, s4L].includes(effectiveLevel)) {
+                    badgeEl.textContent = `★ LEVEL UP! 形态进阶 ★`;
+                } else {
+                    badgeEl.textContent = `★ LEVEL UP! 升级庆祝 ★`;
+                }
+            }
+
+            store.audio.playFanfare();
+            document.getElementById('spotlightModal').style.display = 'flex';
+
+            // 第15点：升级/形态变换恢复底部发射礼炮烟花动画
+            if (window.classroomFireworks && typeof window.classroomFireworks.launchCelebration === 'function') {
+                window.classroomFireworks.launchCelebration(4500, 10);
+            }
+        }
+
+        function closeSpotlightCelebration() { document.getElementById('spotlightModal').style.display = 'none'; }
+
+        let fireworksRunning = false;
+        let fireworksAnimationId = null;
+
+        function triggerFullFireworksCelebration(target, targetSubject = null) {
+            let s = null;
+            if (typeof target === 'object' && target !== null) {
+                s = target.student || target;
+            } else if (target !== undefined && target !== null) {
+                s = store.students.find(x => String(x.id) === String(target));
+            }
+            if (!s || !s.id) return;
+
+            const subKey = targetSubject || (typeof target === 'object' && target.subject) || s.activeSubject || 'chinese';
+            const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
+            const subName = subNameMap[subKey] || '专属';
+
+            const pet = (s.pets && (s.pets[subKey] || s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]);
+            const petImgSrc = pet && pet.image ? pet.image : (pet && window.getPetImagePath ? window.getPetImagePath(pet.species, pet.visualStage || 5) : '');
+
+            const iconEl = document.getElementById('fireworksPetIcon');
+            if (iconEl) {
+                if (petImgSrc) {
+                    iconEl.innerHTML = `<img src="${petImgSrc}" style="width:140px;height:140px;object-fit:contain;filter:drop-shadow(0 8px 20px rgba(255,215,0,0.6));animation: petHeroFloat 2.2s ease-in-out infinite;" onerror="this.outerHTML='<span style=\\'font-size:64px;\\'>👑</span>'" />`;
+                } else {
+                    iconEl.innerHTML = `👑`;
+                }
+            }
+
+            const titleBadge = document.getElementById('fireworksTitleBadge');
+            if (titleBadge) {
+                titleBadge.textContent = `★ 【${subName}】终极满级神兽达成 ★`;
+            }
+
+            document.getElementById('fireworksStudentName').textContent = `${s.name} (#${s.no})`;
+            document.getElementById('fireworksPetMsg').textContent = `恭喜【${subName}】达成 Lv.20 满级终极形态！`;
+            document.getElementById('fireworksLayer').style.display = 'flex';
+            store.audio.playFanfare();
+
+            // 恢复全屏烟花引擎盛大庆典
+            if (window.classroomFireworks && typeof window.classroomFireworks.launchCelebration === 'function') {
+                window.classroomFireworks.launchCelebration(6000, 14);
+            }
+
+            const canvas = document.getElementById('fireworksCanvas');
+            if (!canvas) return;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const ctx = canvas.getContext('2d');
+
+            fireworksRunning = true;
+            let particles = [];
+            let rockets = [];
+
+            function loop() {
+                if (!fireworksRunning) return;
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.globalCompositeOperation = 'lighter';
+
+                if (Math.random() < 0.22) {
+                    const startX = canvas.width * (0.06 + Math.random() * 0.88);
+                    const destX = Math.max(canvas.width * 0.05, Math.min(canvas.width * 0.95, startX + (Math.random() - 0.5) * (canvas.width * 0.25)));
+                    const destY = canvas.height * (0.12 + Math.random() * 0.48);
+                    const spd = 9 + Math.random() * 6;
+                    const flightTicks = Math.max(16, (canvas.height - destY) / spd);
+                    const vx = (destX - startX) / flightTicks;
+
+                    rockets.push({
+                        x: startX,
+                        y: canvas.height,
+                        vx: vx,
+                        vy: -spd,
+                        targetY: destY,
+                        color: `hsl(${Math.random() * 360}, 100%, 65%)`
+                    });
+                }
+
+                for (let i = rockets.length - 1; i >= 0; i--) {
+                    const r = rockets[i];
+                    r.x += r.vx;
+                    r.y += r.vy;
+                    ctx.beginPath();
+                    ctx.arc(r.x, r.y, 3.5, 0, Math.PI * 2);
+                    ctx.fillStyle = r.color;
+                    ctx.fill();
+
+                    if (r.y <= r.targetY) {
+                        const count = 70 + Math.floor(Math.random() * 35);
+                        for (let j = 0; j < count; j++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const speed = Math.random() * 7 + 1.8;
+                            // 多彩彩虹与金钻火花交融
+                            let pColor;
+                            const randTone = Math.random();
+                            if (randTone < 0.35) {
+                                pColor = '#FFD700'; // 闪耀皇家金
+                            } else if (randTone < 0.65) {
+                                pColor = r.color;
+                            } else {
+                                pColor = `hsl(${Math.floor(Math.random() * 360)}, 100%, ${58 + Math.random() * 26}%)`;
+                            }
+
+                            particles.push({
+                                x: r.x, y: r.y,
+                                vx: Math.cos(angle) * speed,
+                                vy: Math.sin(angle) * speed,
+                                alpha: 1, 
+                                color: pColor,
+                                decay: Math.random() * 0.016 + 0.012
+                            });
+                        }
+                        rockets.splice(i, 1);
+                    }
+                }
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vx *= 0.965;
+                    p.vy *= 0.965;
+                    p.vy += 0.11;
+                    p.alpha -= p.decay;
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = Math.max(0, p.alpha);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+
+                    if (p.alpha <= 0) particles.splice(i, 1);
+                }
+
+                fireworksAnimationId = requestAnimationFrame(loop);
+            }
+
+            loop();
+        }
+
+        function closeFireworksCelebration() {
+            fireworksRunning = false;
+            if (fireworksAnimationId) cancelAnimationFrame(fireworksAnimationId);
+            document.getElementById('fireworksLayer').style.display = 'none';
+        }
+
+        // ==========================================
+        // 🐾 讲台一体机触控与防误触：悬浮可移动小球与辐射菜单 (第5点 & 第6点)
+        // 6个二级核心功能模块 + 动态三级极坐标扇形辐射联动展开系统
+        // ==========================================
+        let radialMenuTimer = null;
+        let activeRadialModule = null;
+
+        const RADIAL_SUB_MENUS = {
+            theme: {
+                title: '换风格',
+                baseAngle: 270, // 正上
+                items: [
+                    { id: 'thm_classic', label: '经典米白', icon: '📜', themeKey: 'classic', action: (e) => setGlobalTheme('classic', e) },
+                    { id: 'thm_orange', label: '活力暖橙', icon: '🍊', themeKey: 'orange', action: (e) => setGlobalTheme('orange', e) },
+                    { id: 'thm_forest', label: '护眼森林', icon: '🌲', themeKey: 'forest', action: (e) => setGlobalTheme('forest', e) },
+                    { id: 'thm_ocean', label: '晴空蓝调', icon: '🌊', themeKey: 'ocean', action: (e) => setGlobalTheme('ocean', e) }
+                ]
+            },
+            view: {
+                title: '大屏排布',
+                baseAngle: 330, // 右上
+                items: [
+                    { id: 'view_grid', label: '全班平铺', icon: '🔲', action: () => { switchView('grid'); showClassroomToast('已切换至【全班平铺】', '🔲'); } },
+                    { id: 'view_seat', label: '按组排布', icon: '🪑', action: () => { switchView('seat'); showClassroomToast('已切换至【按组排布】', '🪑'); } },
+                    { id: 'view_pk', label: '小组PK榜', icon: '🏆', action: () => { switchView('pk'); showClassroomToast('已切换至【小组PK榜】', '🏆'); } }
+                ]
+            },
+            scale: {
+                title: '卡片放大',
+                baseAngle: 150, // 左下
+                items: [
+                    { id: 'scale_100', label: '1.0x 默认', icon: '🏷️', action: () => selectScalePreset(1.0) },
+                    { id: 'scale_125', label: '1.25x 放大', icon: '🔍', action: () => selectScalePreset(1.25) },
+                    { id: 'scale_150', label: '1.5x 巨幅', icon: '🌟', action: () => selectScalePreset(1.5) },
+                    { id: 'scale_175', label: '1.75x 特大', icon: '👑', action: () => selectScalePreset(1.75) }
+                ]
+            }
+        };
+
+        function ensureRadialMenuSafePosition() {
+            const container = document.getElementById('floatingBallContainer');
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            const safeMarginX = 225;
+            const safeMarginY = 225;
+            let targetLeft = rect.left;
+            let targetTop = rect.top;
+
+            if (targetLeft < safeMarginX) targetLeft = safeMarginX;
+            if (targetLeft > window.innerWidth - safeMarginX - rect.width) targetLeft = window.innerWidth - safeMarginX - rect.width;
+            if (targetTop < safeMarginY) targetTop = safeMarginY;
+            if (targetTop > window.innerHeight - safeMarginY - rect.height) targetTop = window.innerHeight - safeMarginY - rect.height;
+
+            if (Math.abs(targetLeft - rect.left) > 4 || Math.abs(targetTop - rect.top) > 4) {
+                container.style.transition = 'left 0.22s ease-out, top 0.22s ease-out';
+                container.style.left = targetLeft + 'px';
+                container.style.top = targetTop + 'px';
+                container.style.right = 'auto';
+                container.style.bottom = 'auto';
+                setTimeout(() => {
+                    if (container) container.style.transition = '';
+                }, 240);
+            }
+        }
+
+        function toggleRadialMenu(e) {
+            if (e) e.stopPropagation();
+            const menu = document.getElementById('classpetRadialMenu');
+            if (!menu) return;
+            const isOpen = menu.classList.toggle('open');
+            clearTimeout(radialMenuTimer);
+            if (!isOpen) {
+                closeRadialSubMenu();
+                activeRadialModule = null;
+            } else {
+                ensureRadialMenuSafePosition();
+                // 10 秒无操作自动收回，防课堂遮挡
+                radialMenuTimer = setTimeout(() => {
+                    closeRadialMenu();
+                }, 10000);
+            }
+        }
+
+        function openRadialMenu() {
+            const menu = document.getElementById('classpetRadialMenu');
+            if (!menu) return;
+            menu.classList.add('open');
+            ensureRadialMenuSafePosition();
+            clearTimeout(radialMenuTimer);
+            radialMenuTimer = setTimeout(() => {
+                closeRadialMenu();
+            }, 10000);
+        }
+
+        function closeRadialMenu() {
+            const menu = document.getElementById('classpetRadialMenu');
+            if (menu) menu.classList.remove('open');
+            closeRadialSubMenu();
+            activeRadialModule = null;
+            clearTimeout(radialMenuTimer);
+        }
+
+        function closeRadialSubMenu() {
+            const subContainer = document.getElementById('classpetRadialSubMenu');
+            if (subContainer) {
+                subContainer.classList.remove('open');
+                subContainer.innerHTML = '';
+            }
+            document.querySelectorAll('.radial-item').forEach(btn => btn.classList.remove('active'));
+        }
+
+        function handleRadialModuleClick(modKey, e) {
+            if (e) e.stopPropagation();
+            clearTimeout(radialMenuTimer);
+
+            // 直达动词 1: 🎲 随机点名 (一步直达，无三级菜单)
+            if (modKey === 'lottery' || modKey === 'rollcall') {
+                startRandomPicker();
+                closeRadialMenu();
+                return;
+            }
+            // 直达动词 2: ⬇️ 屏幕下沉 (一步直达，下沉260px，无三级菜单)
+            if (modKey === 'reach' || modKey === 'sink') {
+                toggleReachability();
+                closeRadialMenu();
+                return;
+            }
+            // 直达动词 3: ⚡ 教师控制台 (一步直达，无三级菜单)
+            if (modKey === 'tools' || modKey === 'workstation') {
+                openTeacherWorkstation();
+                closeRadialMenu();
+                return;
+            }
+
+            // 延时重置定时器
+            radialMenuTimer = setTimeout(() => {
+                closeRadialMenu();
+            }, 10000);
+
+            const modData = RADIAL_SUB_MENUS[modKey];
+            if (!modData) return;
+
+            // 若点击已展开的模块，直接收起
+            if (activeRadialModule === modKey) {
+                closeRadialSubMenu();
+                activeRadialModule = null;
+                return;
+            }
+
+            activeRadialModule = modKey;
+            document.querySelectorAll('.radial-item').forEach(btn => btn.classList.remove('active'));
+            const currentBtn = document.getElementById('radialMod_' + modKey);
+            if (currentBtn) currentBtn.classList.add('active');
+
+            const subContainer = document.getElementById('classpetRadialSubMenu');
+            if (!subContainer) return;
+
+            const items = modData.items || [];
+            const N = items.length;
+            const R3 = 188; // 三级圆圈半径 188px (宽裕展开 64px 大圆，文字彻底被包裹)
+            const baseRad = (modData.baseAngle * Math.PI) / 180;
+            const stepRad = (24 * Math.PI) / 180; // 扇形角间隔 24°
+            const curTheme = document.documentElement.getAttribute('data-theme') || 'classic';
+
+            subContainer.innerHTML = items.map((it, idx) => {
+                const offsetIdx = idx - (N - 1) / 2;
+                const angle = baseRad + offsetIdx * stepRad;
+                const srx = R3 * Math.cos(angle);
+                const sry = R3 * Math.sin(angle);
+
+                let extraStyle = '';
+                if (it.themeKey === 'classic') extraStyle = 'background: #FFFDF8; color: #78350F; border: 2px solid #D97706;';
+                else if (it.themeKey === 'orange') extraStyle = 'background: #FFF7ED; color: #9A3412; border: 2px solid #EA580C;';
+                else if (it.themeKey === 'forest') extraStyle = 'background: #F0FDF4; color: #166534; border: 2px solid #16A34A;';
+                else if (it.themeKey === 'ocean') extraStyle = 'background: #F0F9FF; color: #075985; border: 2px solid #0284C7;';
+
+                if (it.themeKey && it.themeKey === curTheme) {
+                    extraStyle += 'box-shadow: 0 0 0 3px #2563EB, 3px 3px 0 var(--shadow-color); font-weight: 900;';
+                }
+
+                return `
+                    <button class="radial-sub-item ${it.themeKey && it.themeKey === curTheme ? 'active-sub-item' : ''}" 
+                        style="--srx: ${srx.toFixed(1)}px; --sry: ${sry.toFixed(1)}px; ${extraStyle}" 
+                        onclick="triggerRadialSubAction('${modKey}', '${it.id}', event)" title="${it.label}">
+                        <span>${it.icon}</span>
+                        <small>${it.label}</small>
+                    </button>
+                `;
+            }).join('');
+
+            // 触发回流以产生展开过渡动画
+            requestAnimationFrame(() => {
+                subContainer.classList.add('open');
+            });
+        }
+
+        function triggerRadialSubAction(modKey, actionId, e) {
+            if (e) e.stopPropagation();
+            const modData = RADIAL_SUB_MENUS[modKey];
+            if (!modData) return;
+            const item = (modData.items || []).find(it => it.id === actionId);
+            if (item && typeof item.action === 'function') {
+                item.action(e);
+            }
+            // 执行完毕平滑收起整个轮盘菜单
+            closeRadialMenu();
+        }
+
+        function cycleGlobalTheme() {
+            const themes = ['classic', 'orange', 'forest', 'ocean'];
+            const cur = document.documentElement.getAttribute('data-theme') || 'classic';
+            const curIdx = themes.indexOf(cur);
+            const nextTheme = themes[(curIdx + 1) % themes.length];
+            setGlobalTheme(nextTheme, null);
+            const themeNames = { classic: '经典档案', orange: '活力暖橙', forest: '森林绿野', ocean: '晴空蓝调' };
+            showClassroomToast(`已切换主题至【${themeNames[nextTheme] || nextTheme}】`, '🎨');
+        }
+
+        function resetFloatingBallPos() {
+            const container = document.getElementById('floatingBallContainer');
+            if (container) {
+                container.style.right = '48px';
+                container.style.bottom = '88px';
+                container.style.left = 'auto';
+                container.style.top = 'auto';
+                localStorage.removeItem('classpet_floating_ball_pos');
+                showClassroomToast('悬浮小球位置已恢复默认', '🎯');
+            }
+        }
+
+        function openTeacherWorkstation() {
+            if (window.electronAPI && typeof window.electronAPI.openTeacherWindow === 'function') {
+                window.electronAPI.openTeacherWindow();
+            } else {
+                window.location.href = './teacher_panel_touch_pro.html';
+            }
+        }
+
+        function goToPortal() {
+            if (window.electronAPI && typeof window.electronAPI.openPortalWindow === 'function') {
+                window.electronAPI.openPortalWindow();
+            } else {
+                window.location.href = './portal_auth.html';
+            }
+        }
+
+        // 悬浮小球触摸与鼠标拖拽移动逻辑
+        (function initFloatingBallDrag() {
+            const ballContainer = document.getElementById('floatingBallContainer');
+            const ball = document.getElementById('classpetFloatingBall');
+            if (!ballContainer || !ball) return;
+
+            // 读取保存的位置
+            try {
+                const savedPos = JSON.parse(localStorage.getItem('classpet_floating_ball_pos') || 'null');
+                if (savedPos && typeof savedPos.left === 'number' && typeof savedPos.top === 'number') {
+                    ballContainer.style.left = Math.min(window.innerWidth - 70, Math.max(10, savedPos.left)) + 'px';
+                    ballContainer.style.top = Math.min(window.innerHeight - 70, Math.max(10, savedPos.top)) + 'px';
+                    ballContainer.style.bottom = 'auto';
+                }
+            } catch (e) {}
+
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let initialLeft = 0, initialTop = 0;
+            let hasMoved = false;
+
+            function onPointerDown(e) {
+                if (e.target.closest('.radial-item')) return;
+                isDragging = true;
+                hasMoved = false;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startX = clientX;
+                startY = clientY;
+                const rect = ballContainer.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+            }
+
+            function onPointerMove(e) {
+                if (!isDragging) return;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const dx = clientX - startX;
+                const dy = clientY - startY;
+                if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+                    hasMoved = true;
+                    closeRadialMenu();
+                }
+
+                if (hasMoved) {
+                    let newLeft = initialLeft + dx;
+                    let newTop = initialTop + dy;
+                    newLeft = Math.max(8, Math.min(window.innerWidth - 72, newLeft));
+                    newTop = Math.max(8, Math.min(window.innerHeight - 72, newTop));
+                    ballContainer.style.left = newLeft + 'px';
+                    ballContainer.style.top = newTop + 'px';
+                    ballContainer.style.bottom = 'auto';
+                }
+            }
+
+            function onPointerUp() {
+                if (!isDragging) return;
+                isDragging = false;
+                if (hasMoved) {
+                    const rect = ballContainer.getBoundingClientRect();
+                    try {
+                        localStorage.setItem('classpet_floating_ball_pos', JSON.stringify({ left: rect.left, top: rect.top }));
+                    } catch (e) {}
+                }
+            }
+
+            ball.addEventListener('mousedown', onPointerDown);
+            window.addEventListener('mousemove', onPointerMove);
+            window.addEventListener('mouseup', onPointerUp);
+
+            ball.addEventListener('touchstart', onPointerDown, { passive: true });
+            window.addEventListener('touchmove', onPointerMove, { passive: true });
+            window.addEventListener('touchend', onPointerUp);
+
+            // 点击外侧收回辐射菜单
+            document.addEventListener('click', (e) => {
+                if (!ballContainer.contains(e.target)) {
+                    closeRadialMenu();
+                }
+            });
+        })();
+
+        function toggleAppFullscreen() {
+            if (window.electronAPI && typeof window.electronAPI.toggleFullscreen === 'function') {
+                window.electronAPI.toggleFullscreen();
+            } else {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        }
+
+        // 🌟 动态卡片缩放引擎 (持久化与全自适应响应)
+        let currentCardScale = parseFloat(localStorage.getItem('classpet_card_scale')) || 1.0;
+
+        function applyCardScale(scale) {
+            scale = Math.round(scale * 100) / 100;
+            if (scale < 0.7) scale = 0.7;
+            if (scale > 1.8) scale = 1.8;
+
+            currentCardScale = scale;
+            try {
+                localStorage.setItem('classpet_card_scale', scale);
+            } catch(e) {}
+
+            const root = document.documentElement;
+            root.style.setProperty('--card-scale', scale);
+            root.style.setProperty('--card-min-w', `${Math.round(136 * scale)}px`);
+            root.style.setProperty('--card-h', `${Math.round(168 * scale)}px`);
+            root.style.setProperty('--pet-box-size', `${Math.round(66 * scale)}px`);
+            root.style.setProperty('--pet-icon-fs', `${Math.round(34 * scale)}px`);
+            root.style.setProperty('--pet-margin-b', `${Math.max(3, Math.round(6 * scale))}px`);
+            root.style.setProperty('--name-fs', `${Math.max(11, Math.round(13 * Math.sqrt(scale)))}px`);
+            root.style.setProperty('--no-fs', `${Math.max(9, Math.round(10 * Math.sqrt(scale)))}px`);
+            root.style.setProperty('--level-fs', `${Math.max(9, Math.round(10 * Math.sqrt(scale)))}px`);
+            root.style.setProperty('--bar-h', `${Math.max(4, Math.round(6 * scale))}px`);
+            root.style.setProperty('--card-gap', `${Math.round(11 * scale)}px`);
+            root.style.setProperty('--stamp-fs', `${Math.max(7, Math.round(8 * scale))}px`);
+            root.style.setProperty('--tag-fs', `${Math.max(7, Math.round(8 * scale))}px`);
+            root.style.setProperty('--card-pad', `${Math.round(9 * scale)}px ${Math.round(8 * scale)}px ${Math.round(7 * scale)}px`);
+
+            const pct = Math.round(scale * 100) + '%';
+            const topLabel = document.getElementById('topScaleLabel');
+            if (topLabel) topLabel.textContent = pct;
+            const dockLabel = document.getElementById('dockScaleLabel');
+            if (dockLabel) dockLabel.textContent = pct;
+
+            // 更新预设按钮激活样式
+            document.querySelectorAll('.scale-preset-item').forEach(btn => {
+                const pVal = parseFloat(btn.getAttribute('data-preset'));
+                if (Math.abs(pVal - scale) < 0.06) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        function adjustScale(delta) {
+            applyCardScale(currentCardScale + delta);
+        }
+
+        function resetScale() {
+            applyCardScale(1.0);
+        }
+
+        function selectScalePreset(val) {
+            applyCardScale(val);
+            closeAllScaleMenus();
+        }
+
+        function toggleHeaderScaleMenu(event) {
+            if (event) event.stopPropagation();
+            const headerMenu = document.getElementById('headerScaleMenu');
+            const dockMenu = document.getElementById('dockScaleMenu');
+            if (dockMenu) dockMenu.style.display = 'none';
+            if (headerMenu) {
+                headerMenu.style.display = headerMenu.style.display === 'flex' ? 'none' : 'flex';
+            }
+        }
+
+        function toggleDockScaleMenu(event) {
+            if (event) event.stopPropagation();
+            const headerMenu = document.getElementById('headerScaleMenu');
+            const dockMenu = document.getElementById('dockScaleMenu');
+            if (headerMenu) headerMenu.style.display = 'none';
+            if (dockMenu) {
+                dockMenu.style.display = dockMenu.style.display === 'flex' ? 'none' : 'flex';
+            }
+        }
+
+        function closeAllScaleMenus() {
+            const h = document.getElementById('headerScaleMenu');
+            const d = document.getElementById('dockScaleMenu');
+            if (h) h.style.display = 'none';
+            if (d) d.style.display = 'none';
+        }
+
+        document.addEventListener('click', (e) => {
+            const h = document.getElementById('headerScaleMenu');
+            const d = document.getElementById('dockScaleMenu');
+            const tb = document.getElementById('topScaleBadge');
+            const db = document.getElementById('dockScaleBadge');
+            if (h && h.style.display === 'flex' && !h.contains(e.target) && (!tb || !tb.contains(e.target))) {
+                h.style.display = 'none';
+            }
+            if (d && d.style.display === 'flex' && !d.contains(e.target) && (!db || !db.contains(e.target))) {
+                d.style.display = 'none';
+            }
+        });
+
+        function isModalElementOpen(el) {
+            if (!el) return false;
+            return el.style.display === 'flex' || el.style.display === 'block';
+        }
+
+        // 🌟 键盘 Escape 键与蒙层遮罩 Backdrop 点击快捷关闭弹窗 (极大提升智慧大屏/无线键盘操作便利度)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                const confModal = document.getElementById('classroomModalConfirm');
+                if (isModalElementOpen(confModal)) {
+                    const btn = document.getElementById('customConfirmBtnCancel');
+                    if (btn) btn.click(); else confModal.style.display = 'none';
+                    return;
+                }
+                const alertModal = document.getElementById('classroomModalAlert');
+                if (isModalElementOpen(alertModal)) {
+                    const btn = document.getElementById('customAlertBtnOk');
+                    if (btn) btn.click(); else alertModal.style.display = 'none';
+                    return;
+                }
+                const hatchModal = document.getElementById('modalHatchCenter');
+                if (isModalElementOpen(hatchModal)) {
+                    closeHatchModal();
+                    return;
+                }
+                const spotModal = document.getElementById('spotlightModal');
+                if (isModalElementOpen(spotModal)) {
+                    closeSpotlightCelebration();
+                    return;
+                }
+                const detailsModal = document.getElementById('modalStudentDetails');
+                if (isModalElementOpen(detailsModal)) {
+                    closeDetailsModal();
+                    return;
+                }
+                closeAllScaleMenus();
+                if (typeof closeRadialMenu === 'function') closeRadialMenu();
+            }
+        });
+
+        // 蒙层背景点击自动快速关闭
+        ['modalStudentDetails', 'modalHatchCenter', 'spotlightModal', 'classroomModalAlert', 'classroomModalConfirm'].forEach(modalId => {
+            const el = document.getElementById(modalId);
+            if (el) {
+                el.addEventListener('click', (e) => {
+                    if (e.target === el) {
+                        if (modalId === 'modalStudentDetails') closeDetailsModal();
+                        else if (modalId === 'modalHatchCenter') closeHatchModal();
+                        else if (modalId === 'spotlightModal') closeSpotlightCelebration();
+                        else if (modalId === 'classroomModalAlert') {
+                            const btn = document.getElementById('customAlertBtnOk');
+                            if (btn) btn.click(); else el.style.display = 'none';
+                        }
+                        else if (modalId === 'classroomModalConfirm') {
+                            const btn = document.getElementById('customConfirmBtnCancel');
+                            if (btn) btn.click(); else el.style.display = 'none';
+                        }
+                    }
+                });
+            }
+        });
+
+        applyCardScale(currentCardScale);
+        setPKDisplayMode(currentPKMode);
+        updateHeaderClassInfo();
+        renderAll();
+    </script>
+
+<script>
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (typeof openStudentDetailsModal === 'function' && typeof store !== 'undefined' && store.students && store.students.length > 0) {
+            openStudentDetailsModal(store.students[0].id);
+        }
+    }, 2000);
+});
+</script>
+</body>
+
+</html>

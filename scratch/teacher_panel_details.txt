@@ -1,0 +1,162 @@
+=== ONCLICKS ===
+- applyMoveGroup(1)
+- applyMoveGroup(2)
+- applyMoveGroup(3)
+- applyMoveGroup(4)
+- applyThresholdPreset(
+- autoDistribute4Groups()
+- changeStudentListZoom(-0.15)
+- changeStudentListZoom(0.15)
+- clearSelection()
+- closeAddStudentModal()
+- closeAuditLogModal()
+- closeBackupModal()
+- closeCustomRuleModal()
+- closeEditStudentModal()
+- closeExcelModal()
+- closeGroupMoveModal()
+- closeLevelThresholdsModal()
+- closeStudentAuditModal()
+- confirmExcelImport()
+- document.getElementById(
+- downloadStandardTemplate()
+- event.stopPropagation()
+- event.stopPropagation(); archiveStudentDirect(
+- event.stopPropagation(); deleteRule(
+- event.stopPropagation(); deleteStudentPermanently(
+- event.stopPropagation(); openAuditLogModal(
+- event.stopPropagation(); openEditStudentModal(
+- event.stopPropagation(); restoreArchivedStudent(
+- filterGroup(
+- filterGroup(1)
+- filterGroup(2)
+- filterGroup(3)
+- filterGroup(4)
+- generateLinearThresholds()
+- goToPortal()
+- handleExportBackup()
+- handleRadialModuleClick(
+- handleStudentRowClick(
+- openAddStudentModal()
+- openCustomRuleModal(
+- openExcelModal()
+- openGroupMoveModal()
+- quickOpenSubjectMenu(event)
+- resetAuditFilter()
+- resetStudentListZoom()
+- resetToDefaultThresholds()
+- saveCustomRule()
+- saveCustomThresholds()
+- stepHatchExp(+5)
+- stepHatchExp(-5)
+- stepRulePoints(-1)
+- stepRulePoints(1)
+- stepStageLevel(2, -1)
+- stepStageLevel(2, 1)
+- stepStageLevel(3, -1)
+- stepStageLevel(3, 1)
+- stepStageLevel(4, -1)
+- stepStageLevel(4, 1)
+- stepStageLevel(5, -1)
+- stepStageLevel(5, 1)
+- stepStepExp(+5)
+- stepStepExp(-5)
+- stepThreshLevel(${l}, -5)
+- stepThreshLevel(${l}, 5)
+- submitAddStudent()
+- submitEditStudent()
+- toggleRadialMenu(event)
+- toggleSelectGroup()
+- triggerExcelFileInput(event)
+- triggerRadialSubAction(
+- triggerScore(${r.points}, 
+- undoSingleAuditRecord(
+- undoSpecificAuditRecord(
+
+=== BUTTONS ===
+- ← 门户
+- ➕ 新增
+- 全班
+- 1组
+- 2组
+- 3组
+- 4组
+- 📦 归档
+- ➖
+- ➕
+- 100%
+- 清空选择
+- ➕ 新增加分项
+- ➕ 新增扣分项
+- 🐾
+- 🎨 换风格
+- 📚 授课科目
+- 🖥️ 打开大屏
+- ↩ 撤销加分
+- 👥 班级学生
+- ⚙️ 讲台设置
+- ✕
+- 📥 下载标准 Excel 模板
+- ✅ 确认导入并替换花名册
+- 取消
+- 关闭
+- ✕
+- 移至 第 1 大组
+- 移至 第 2 大组
+- 移至 第 3 大组
+- 移至 第 4 大组
+- ⚡ 按学号顺序自动均分 4 大组
+- ✕ 关闭
+- 查看全班
+- 关闭
+- ✕
+- −
+- +
+- 保存规则
+- 取消
+- ✕
+- 确认新增学生
+- 取消
+- ✕
+- 保存修改
+- 取消
+- ✕ 关闭
+- 📥 立即导出班级全量备份包 (.json)
+- 关闭
+- ✕
+- ⚡ 极速示范档 10分破壳 · 10分/级 适合公开课 / 快速演示
+- 🎯 学期平稳档 (推荐) 15分破壳 · 20分/级 日常最常用 · 进阶平稳
+- 🏔️ 学年长跑档 20分破壳 · 50分/级 整学年慢慢养成
+- −
+- +
+- −
+- +
+- ⚡ 按上方参数生成整套升级规则
+- −
+- +
+- −
+- +
+- −
+- +
+- −
+- +
+- 💾 保存并应用到全班
+- ↺ 恢复默认
+- 取消
+- ✕ 关闭
+- 已查看 / 完成
+- 好的，知道了
+- 取消
+- 确认
+- 📊 批量导入 Excel 花名册
+- ➕ 手动添加第一个学生
+- 还原
+- 删除
+- 📜
+- ✏️
+- 📦
+- ↩ 撤销该次
+- ↩️ 撤销
+- −
+- +
+- ${it.icon} ${it.label}

@@ -1,0 +1,215 @@
+=== test_csv_template_import.js ===
+// test_csv_template_import.js - Automated test for importing D:\Desk\班级花名册标准导入模板.csv
+const { app, BrowserWindow, ipcMain } = require('electron');
+const path = require('path');
+const fs = require('fs');
+
+ipcMain.on('toggle-fullscreen', () => {});
+ipcMain.on('open-display-window', () => {});
+ipcMain.on('open-teacher-window', () => {});
+ipcMain.on('open-portal-window', () => {});
+ipcMain.on('broadcast-sync', () => {});
+ipcMain.handle('get-displays', async () => []);
+ipcMain.handle('db:loadAllState', async () => null);
+ipcMain.handle('db:importStudents', async () => ({ success: true }));
+ipcMain.handle('db:saveAllStudents', async () => ({ success: true }));
+
+app.whenReady().then(async () => {
+    try {
+        console.log('🧪 Starting CSV Roster Import Test...');
+        const preloadPath = path.join(__dirname, 'electron-app', 'preload.js');
+        const csvPath = 'D:\\Desk\\班级花名册标准导入模板.csv';
+
+        if (!fs.existsSync(csvPath)) {
+            console.error('❌ CSV file not found:', csvPath);
+            process.exit(1);
+        }
+
+        const csvBuffer = fs.readFileSync(csvPath);
+        console.log(`  📄 Loaded CSV file (${csvBuffer.length} bytes, starts with: ${csvBuffer.slice(0, 4).toString('hex')})`);
+
+        const win = new BrowserWindow({
+            width: 1440,
+            height: 900,
+            show: false,
+            webPreferences: {
+                preload: preloadPath,
+                contextIsolation: true,
+                nodeIntegration: false
+            }
+        });
+
+
+
+=== test_global_master_verification.js ===
+// test_global_master_verification.js - Master Global Verification for ClassPet Core & UI
+const { app, BrowserWindow, ipcMain } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+
+process.on('uncaughtException', (err) => {
+    console.error('❌ Uncaught Exception:', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+});
+
+let winBigscreen = null;
+let winTeacher = null;
+let consoleErrors = [];
+
+let teacherWindowOpened = false;
+let displayWindowOpened = false;
+
+// Mock environment for Node.js main process
+const storage = {};
+global.localStorage = {
+    getItem: (k) => storage[k] !== undefined ? storage[k] : null,
+    setItem: (k, v) => { storage[k] = String(v); },
+    removeItem: (k) => { delete storage[k]; },
+    clear: () => { Object.keys(storage).forEach(k => delete storage[k]); }
+};
+global.BroadcastChannel = class {
+    constructor(name) { this.name = name; }
+    postMessage(msg) {}
+    close() {}
+};
+global.Audio = class {
+    play() { return Promise.resolve(); }
+    pause() {}
+};
+
+
+=== test_restart_scoring_freeze.js ===
+// test_restart_scoring_freeze.js
+// Verification for:
+// 1. Restart EXP race condition and progress bar responsiveness
+// 2. Dynamic threshold calculation (60 EXP -> dynamic adjustments)
+
+const path = require('path');
+const fs = require('fs');
+
+// Mock localStorage and BroadcastChannel for Node environment
+const storage = {};
+global.localStorage = {
+    getItem: (k) => storage[k] !== undefined ? storage[k] : null,
+    setItem: (k, v) => { storage[k] = String(v); },
+    removeItem: (k) => { delete storage[k]; },
+    clear: () => { Object.keys(storage).forEach(k => delete storage[k]); }
+};
+
+global.BroadcastChannel = class {
+    constructor(name) { this.name = name; }
+    postMessage(msg) {}
+    close() {}
+};
+
+// Mock Audio
+global.Audio = class {
+    play() { return Promise.resolve(); }
+    pause() {}
+};
+
+// Mock window
+global.window = {
+    addEventListener: () => {},
+    localStorage: global.localStorage,
+    BroadcastChannel: global.BroadcastChannel
+};
+
+// Load core
+const { ClassPetStore } = require('./electron-app/src/classpet_core.js');
+
+async function runTests() {
+
+
+=== test_subject_switch_locked_hatch.js ===
+// test_subject_switch_locked_hatch.js
+// Verification for:
+// 1. When switching subjects, unhatched or locked pets cannot be scored
+// 2. Strict defensive guards at Store and UI levels
+// 3. Permitted scoring after pet is properly unlocked and hatched
+
+const path = require('path');
+const fs = require('fs');
+
+// Mock localStorage and BroadcastChannel
+const storage = {};
+global.localStorage = {
+    getItem: (k) => storage[k] !== undefined ? storage[k] : null,
+    setItem: (k, v) => { storage[k] = String(v); },
+    removeItem: (k) => { delete storage[k]; },
+    clear: () => { Object.keys(storage).forEach(k => delete storage[k]); }
+};
+
+global.BroadcastChannel = class {
+    constructor(name) { this.name = name; }
+    postMessage(msg) {}
+    close() {}
+};
+
+global.Audio = class {
+    play() { return Promise.resolve(); }
+    pause() {}
+};
+
+global.window = {
+    addEventListener: () => {},
+    localStorage: global.localStorage,
+    BroadcastChannel: global.BroadcastChannel
+};
+
+const { ClassPetStore } = require('./electron-app/src/classpet_core.js');
+
+async function runTests() {
+    console.log('🧪 Starting Subject Switch & Unhatched/Locked Pet Scoring Guard Verification...\n');
+    let passed = 0;
+
+
+=== test_v114_verification.js ===
+// test_v114_verification.js - Comprehensive Electron verification for ClassPet 1.1.4
+const { app, BrowserWindow, ipcMain } = require('electron');
+const path = require('path');
+
+process.on('uncaughtException', (err) => {
+    console.error('❌ Uncaught Exception:', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+});
+
+let winBigscreen = null;
+let winTeacher = null;
+let errors = [];
+
+let teacherWindowOpened = false;
+let displayWindowOpened = false;
+
+// Setup IPC handlers to satisfy preload.js and window interactions
+ipcMain.on('toggle-fullscreen', (event) => {});
+ipcMain.on('open-display-window', (event) => { displayWindowOpened = true; });
+ipcMain.on('open-teacher-window', (event) => { teacherWindowOpened = true; });
+ipcMain.on('open-portal-window', (event) => {});
+ipcMain.on('broadcast-sync', (event, data) => {});
+ipcMain.handle('get-displays', async () => []);
+ipcMain.handle('db:loadAllState', async () => null);
+ipcMain.handle('db:recordScore', async () => ({ success: true, operationId: 'op_test' }));
+ipcMain.handle('db:undoScore', async () => ({ success: true }));
+ipcMain.handle('db:getStudentAuditLogs', async () => []);
+ipcMain.handle('db:hatchPet', async () => ({ success: true }));
+ipcMain.handle('db:saveStudent', async () => ({ success: true }));
+ipcMain.handle('db:importStudents', async () => ({ success: true }));
+ipcMain.handle('db:saveAllStudents', async () => ({ success: true }));
+ipcMain.handle('db:archiveStudent', async () => ({ success: true }));
+ipcMain.handle('db:deleteStudent', async () => ({ success: true }));
+ipcMain.handle('db:saveThresholds', async () => ({ success: true }));
+ipcMain.handle('db:saveBehaviorRules', async () => ({ success: true }));
+
+

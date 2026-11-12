@@ -1,0 +1,31 @@
+=== MODALS ===
+- modalAddStudent
+- modalAuditLog
+- modalBackupRestore
+- modalCustomRule
+- modalEditStudent
+- modalExcelImport
+- modalGroupMove
+- modalLevelThresholds
+- modalStudentAudit
+
+=== HEADINGS ===
+- 📊 上传 Excel 表格识别花名册与大组
+- 📦 调整学生所属大组
+- ➕ 添加自定义常用加减分项
+- ➕ 添加单个新学生
+- ✏️ 编辑学生基本信息
+- 温馨提示
+- 操作确认
+- 【${curAcc.className || '新班级'}】花名册为空
+
+=== PANELS / SECTIONS ===
+- previewTableBody
+- searchBox
+- tabGroup1
+- tabGroup2
+- tabGroup3
+- tabGroup4
+- tabGroupAll
+- tabGroupArchive
+- timelinePreviewBar

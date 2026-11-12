@@ -1,33 +1,28 @@
 # Dependencies
 node_modules/
-**/node_modules/
+package-lock.json.bak
 
-# Build and Packaging artifacts
-release/
-**/release/
+# Production build artifacts
 dist/
-**/dist/
-dist-electron/
-**/dist-electron/
+build/
+win-unpacked/
+builder-debug.yml
+builder-effective-config.yaml
+electron-app/release*/
 
-# Large Audio / Media files
-*.m4a
-*.mp3
-*.wav
-
-# Logs and runtime caches
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# OS specific files
+# OS and Editor
 .DS_Store
 Thumbs.db
-desktop.ini
+*.tmp
+*.log
+.vscode/
+.idea/
 
-# Environment and secrets
+# Local databases generated during dev
+*.sqlite-journal
+*.sqlite
+*.sqlite-*
+*.db
+*.petpkg
 .env
-.env.local
-.env.*.local
+.env.*

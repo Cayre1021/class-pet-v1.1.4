@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>班级电子宠物 · 修订预览</title>
+  <link rel="stylesheet" href="revision-preview.css">
+  <script src="revision-preview.js" defer></script>
+</head>
+<body>
+  <nav class="preview-nav" aria-label="预览页面">
+    <strong>设计预览 <span>模拟数据</span></strong>
+    <div class="preview-tabs"><button data-view="display" aria-pressed="true">宠物大屏</button><button data-view="login" aria-pressed="false">登录页</button><button data-view="hub" aria-pressed="false">入口页</button></div>
+    <label class="theme-label">主题 <select id="theme"><option value="green">森林</option><option value="orange">暖橙</option><option value="ocean">晴空</option><option value="classic">经典</option></select></label>
+  </nav>
+  <section id="display-view" class="view display-view">
+    <header class="app-header"><button class="icon-button" data-view="hub" title="返回入口" aria-label="返回入口">←</button><div><h1>班级电子宠物</h1><span class="subtext">三年级二班 · 刘老师 · 语文</span></div><div class="header-end"><span class="demo-badge">演示班级</span><button id="fullscreen" class="icon-button" title="全屏" aria-label="全屏">⛶</button><button id="sound" class="icon-button" title="音效预览：关闭" aria-label="音效预览：关闭" aria-pressed="false">♪</button></div></header>
+    <main class="pet-workspace">
+      <aside class="detail-pane" aria-label="选中宠物档案" aria-live="polite">
+        <div class="detail-label"><span>当前宠物</span><span id="detail-no"></span></div>
+        <div class="detail-stage"><img id="detail-image" alt=""></div>
+        <div class="detail-identity"><h2 id="detail-name"></h2><span id="detail-group"></span></div>
+        <p class="pet-species" id="detail-species"></p>
+        <div class="growth-head"><strong id="detail-level"></strong><span id="detail-exp"></span></div>
+        <progress id="detail-progress" max="100" value="0"></progress>
+        <p class="next-level" id="detail-next"></p>
+        <section class="subjects"><h3>学科成长</h3><div id="subject-rows"></div></section>
+        <div class="detail-commands"><button class="primary" id="details">详情与互动</button><button disabled title="设计预览，不执行赋分">教师赋分</button></div>
+      </aside>
+      <section class="collection">
+        <div class="collection-top"><div class="collection-title"><h2>全班宠物</h2><span id="student-count"></span></div><div class="filters"><select id="group-filter" aria-label="小组筛选"><option value="all">全部小组</option><option value="1">第 1 小组</option><option value="2">第 2 小组</option><option value="3">第 3 小组</option><option value="4">第 4 小组</option></select><div class="sort-segments"><button data-sort="no" aria-pressed="true">学号 ↑</button><button data-sort="level" aria-pressed="false">等级 / 经验 ↓</button></div></div></div>
+        <div class="group-summary" id="group-summary"></div>
+        <div class="grid-scroll" id="grid-scroll"><div class="pet-grid" id="pet-grid"></div></div>
+        <div class="collection-bottom"><span id="collection-status">全班 88 位同学</span><button id="back-top" class="icon-button" title="回到顶部" aria-label="回到顶部">↑</button></div>
+      </section>
+    </main>
+    <details class="tools"><summary title="课堂工具" aria-label="课堂工具">⚙</summary><div><button data-preview="座位表">座位表</button><button data-preview="小组 PK">小组 PK</button><button data-preview="随机抽点">随机抽点</button><label>卡片缩放 <input id="card-scale" type="range" min="1" max="1.4" step="0.1" value="1"></label><button data-preview="屏幕下沉">屏幕下沉</button><button data-preview="教师控制台">教师控制台</button></div></details>
+  </section>
+  <section id="login-view" class="view login-view" hidden>
+    <header class="hub-header"><strong>班级电子宠物管理系统</strong></header>
+    <main class="login-shell"><div class="login-title"><div><h1>班级电子宠物管理系统</h1><h2>账号登录</h2></div><div class="login-art"><img src="../electron-app/src/assets/pets/cat/cat-stage2.png" alt="狸花猫"><img src="../electron-app/src/assets/pets/dog/dog-stage1.png" alt="金毛犬"></div></div><form id="login-form"><label for="account">班级账号</label><select id="account"><option>三年级二班 · 刘老师 · 语文</option><option>四年级一班 · 张老师 · 数学</option></select><div class="account-meta"><span>实验小学本部</span><span class="demo-badge">演示班级</span></div><label for="password">密码</label><input id="password" type="password" placeholder="请输入密码" autocomplete="off"><button class="primary" type="submit">登录</button></form><div class="login-links"><button data-preview="创建账号">创建账号</button><button data-preview="重置密码">重置密码</button></div></main>
+  </section>
+  <section id="hub-view" class="view hub-view" hidden>
+    <header class="hub-header"><strong>班级电子宠物管理系统</strong></header>
+    <main class="hub-main"><div class="hub-heading"><div><h1>班级电子宠物管理系统 · 控制总台</h1><p>实验小学本部 · 三年级二班（语文）· 教师：刘老师 <span class="demo-badge">演示班级</span></p></div><button data-view="login">切换 / 退出账号</button></div><div class="entry-grid"><button class="entry" data-view="display"><span class="entry-icon">▣</span><strong>班级电子宠物大屏</strong></button><button class="entry teacher" data-preview="教师快速赋分控制台"><span class="entry-icon">ϟ</span><strong>教师快速赋分控制台</strong></button></div></main>
+  </section>
+  <dialog id="preview-dialog"><div class="dialog-heading"><h2 id="dialog-title"></h2><button class="icon-button" id="close-dialog" title="关闭" aria-label="关闭">×</button></div><div id="dialog-content"></div></dialog>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>宠物大屏 · 布局规划</title>
+  <link rel="stylesheet" href="pet-layout-preview.css">
+  <script src="pet-layout-preview.js" defer></script>
+</head>
+<body data-scheme="a">
+  <nav class="scheme-bar" aria-label="规划方案">
+    <strong>布局规划</strong>
+    <div class="segments" role="tablist" aria-label="方案">
+      <button role="tab" data-scheme="a" aria-selected="true">A · 四列分页</button>
+      <button role="tab" data-scheme="b" aria-selected="false">B · 四列滚动</button>
+      <button role="tab" data-scheme="c" aria-selected="false">C · 三列大图</button>
+    </div>
+    <span class="preview-tag">模拟班级</span>
+  </nav>
+  <header class="app-header">
+    <a class="icon-button" href="../electron-app/src/portal_auth.html" aria-label="返回门户" title="返回门户">&#8592;</a>
+    <div class="class-title"><h1>班级电子宠物</h1><p>三年级二班 <span>刘老师 · 88 人</span></p></div>
+    <div class="segments subjects" role="tablist" aria-label="当前学科">
+      <button role="tab" data-subject="语文" aria-selected="true">语文</button>
+      <button role="tab" data-subject="数学" aria-selected="false">数学</button>
+      <button role="tab" data-subject="英语" aria-selected="false">英语</button>
+    </div>
+    <div class="header-actions">
+      <label class="sort-control">排序 <select id="sort" aria-label="排序"><option value="no">按学号</option><option value="level">按等级</option></select></label>
+      <button id="fullscreen" class="icon-button" title="全屏" aria-label="全屏">&#x26F6;</button>
+    </div>
+  </header>
+  <main class="workspace">
+    <aside class="detail" aria-label="选中宠物详情" aria-live="polite">
+      <div class="detail-heading"><span>宠物档案</span><span id="detail-no">#01</span></div>
+      <div class="portrait"><img id="detail-image" alt=""><span class="stage-label" id="detail-stage"></span></div>
+      <div class="identity"><h2 id="detail-name"></h2><p id="detail-species"></p></div>
+      <div class="detail-progress"><div><strong id="detail-level"></strong><span id="detail-exp"></span></div><progress id="detail-progress" max="100"></progress><p id="detail-next"></p></div>
+      <dl class="facts"><div><dt>所属小组</dt><dd id="detail-group"></dd></div><div><dt>当前学科</dt><dd id="detail-subject"></dd></div><div><dt>出勤</dt><dd id="detail-attendance">在校</dd></div></dl>
+      <section class="growth"><h3>学科成长</h3><div id="subject-growth"></div></section>
+      <section class="activity"><h3>最近记录</h3><div class="activity-row"><span class="activity-dot"></span><div>认真听讲 <strong>+3 EXP</strong><small>今日 09:42 · 语文</small></div></div><div class="activity-row"><span class="activity-dot green"></span><div>积极发言 <strong>+2 EXP</strong><small>今日 09:18 · 语文</small></div></div></section>
+    </aside>
+    <section class="collection" aria-label="班级宠物">
+      <div class="collection-heading"><div><h2>我们的宠物</h2><span id="range"></span></div><span class="current-subject">语文</span></div>
+      <div class="grid-scroll" id="grid-scroll"><div class="pet-grid" id="pet-grid"></div></div>
+      <footer class="pagination"><span id="total-label">全班 88 人</span><div><button id="prev" class="icon-button" aria-label="上一页" title="上一页">&#8592;</button><span id="page-label"></span><button id="next" class="icon-button" aria-label="下一页" title="下一页">&#8594;</button></div><span id="page-size"></span></footer>
+    </section>
+  </main>
+</body>
+</html>

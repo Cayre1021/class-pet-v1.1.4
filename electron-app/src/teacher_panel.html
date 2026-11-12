@@ -559,11 +559,11 @@
 
             container.innerHTML = list.map(s => {
                 const isSelected = selectedIds.has(s.id);
-                const pet = s.pets[s.activeSubject];
+                const pet = (s.pets && (s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { icon: '🐣' };
                 return `
-                    <div class="student-row-card ${isSelected ? 'selected' : ''} ${s.isAbsent ? 'absent' : ''}" onclick="handleStudentRowClick(${s.id})">
+                    <div class="student-row-card ${isSelected ? 'selected' : ''} ${s.isAbsent ? 'absent' : ''}" onclick="handleStudentRowClick('${s.id}')">
                         <div class="nb-checkbox">${isSelected ? '✓' : (s.isAbsent ? '假' : '')}</div>
-                        <div class="student-avatar-box">${pet.icon}</div>
+                        <div class="student-avatar-box">${pet.icon || '🐣'}</div>
                         <div style="flex: 1;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <strong style="font-size: 13px;">${s.name} <span style="font-family: monospace; font-size: 10px; color: var(--text-secondary);">#${s.no} (${s.group}组)</span></strong>
@@ -658,15 +658,21 @@
             }
 
             const targetIds = Array.from(selectedIds);
-            const targetNames = store.students.filter(s => targetIds.includes(s.id)).map(s => s.name).join('、');
             const isDignityProtected = delta < 0 && document.getElementById('chkProtectDignity').checked;
 
-            store.batchScore(targetIds, delta, label, isDignityProtected);
+            const scoreResult = store.batchScore(targetIds, delta, label, isDignityProtected);
+            if (scoreResult && scoreResult.blocked && (!scoreResult.eligibleIds || scoreResult.eligibleIds.length === 0)) {
+                alert('🔒 加分已被安全拦截：选中的学生宠物尚未解锁或未孵化破壳，不可加分！\n(' + (scoreResult.blockedRecords?.[0]?.reason || '') + ')');
+                return;
+            }
+
+            const eligibleIds = scoreResult?.eligibleIds || targetIds;
+            const targetNames = store.students.filter(s => eligibleIds.includes(s.id)).map(s => s.name).join('、');
 
             const record = {
                 time: new Date().toLocaleTimeString(),
                 names: targetNames,
-                targetIds,
+                targetIds: eligibleIds,
                 delta,
                 label,
                 isDignityProtected
@@ -787,23 +793,53 @@
             const file = event.target.files[0];
             if (!file) return;
 
+            const fileName = file.name || '';
+            const isCsv = fileName.toLowerCase().endsWith('.csv') || fileName.toLowerCase().endsWith('.txt') || file.type === 'text/csv';
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
-                    let workbook = null;
-                    if (typeof XLSX !== 'undefined') {
-                        workbook = XLSX.read(data, { type: 'array' });
+                    let rows = [];
+
+                    if (isCsv) {
+                        let text = '';
+                        if (data[0] === 0xEF && data[1] === 0xBB && data[2] === 0xBF) {
+                            text = new TextDecoder('utf-8').decode(data.subarray(3));
+                        } else {
+                            try {
+                                text = new TextDecoder('utf-8', { fatal: true }).decode(data);
+                            } catch (err) {
+                                try {
+                                    text = new TextDecoder('gbk').decode(data);
+                                } catch (err2) {
+                                    text = new TextDecoder('gb18030').decode(data);
+                                }
+                            }
+                        }
+                        if (typeof XLSX !== 'undefined') {
+                            try {
+                                const wb = XLSX.read(text, { type: 'string' });
+                                rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                            } catch (err) {
+                                rows = text.split(/\r?\n/).filter(l => l.trim().length > 0).map(l => l.split(/[,\t]/).map(c => c.trim()));
+                            }
+                        } else {
+                            rows = text.split(/\r?\n/).filter(l => l.trim().length > 0).map(l => l.split(/[,\t]/).map(c => c.trim()));
+                        }
+                    } else if (typeof XLSX !== 'undefined') {
+                        const workbook = XLSX.read(data, { type: 'array' });
                         const firstSheetName = workbook.SheetNames[0];
                         const worksheet = workbook.Sheets[firstSheetName];
-                        parsedExcelRawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                     } else {
                         const text = new TextDecoder().decode(data);
-                        parsedExcelRawData = text.split('\n').map(l => l.split(/[,\t]/).map(c => c.trim()));
+                        rows = text.split(/\r?\n/).filter(l => l.trim().length > 0).map(l => l.split(/[,\t]/).map(c => c.trim()));
                     }
 
+                    parsedExcelRawData = rows.filter(r => r && r.length > 0 && r.some(c => c !== undefined && c !== null && String(c).trim() !== ''));
                     if (!parsedExcelRawData || parsedExcelRawData.length < 2) {
-                        alert('⚠️ 表格为空或格式不正确！');
+                        alert('⚠️ 表格为空或格式不正确！首行必须为表头。');
                         return;
                     }
                     setupColumnMappingUI(parsedExcelRawData[0], parsedExcelRawData.slice(1));
