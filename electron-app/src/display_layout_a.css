@@ -113,7 +113,7 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
-    padding: 0;
+    padding: 10px 8px 16px 8px;
     align-content: start;
     flex: 1;
     min-height: 0;
@@ -121,6 +121,7 @@
     scrollbar-gutter: stable;
 }
 #gridFullView .pet-card {
+    position: relative;
     width: auto;
     min-width: 0;
     height: calc(260px * var(--card-scale, 1));
@@ -132,13 +133,24 @@
     justify-content: space-between;
     padding: 12px 10px 14px;
     box-sizing: border-box;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 #gridFullView .pet-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+    transform: translateY(-3px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 18px rgba(255, 143, 61, 0.18), 0 4px 10px rgba(0, 0, 0, 0.06);
+    z-index: 5;
 }
-#gridFullView .pet-card.selected { outline: 4px solid var(--accent); outline-offset: -4px; }
+#gridFullView .pet-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent), 0 6px 16px rgba(255, 143, 61, 0.18);
+    z-index: 4;
+}
+#gridFullView .pet-card.selected:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 0 2px var(--accent), 0 10px 22px rgba(255, 143, 61, 0.25), 0 4px 10px rgba(0, 0, 0, 0.08);
+    z-index: 6;
+}
 #gridFullView .pet-card.selected::after { content: '\2713'; position: absolute; left: 10px; top: 8px; color: var(--accent); font-weight: 900; }
 #gridFullView .pet-visual-box { flex: 1 1 auto; min-height: 0; width: 100%; height: auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; }
 #gridFullView .pet-thumb-img { width: 100%; height: 100%; max-height: 185px; object-fit: contain; }
@@ -156,7 +168,7 @@
     display: none !important;
 }
 
-.group-totals-strip { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 12px; flex-shrink: 0; }
+.group-totals-strip { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 4px; flex-shrink: 0; }
 .group-totals-strip .group-status-banner-card { height: auto; min-height: 44px; border-radius: 0; border: 0; border-right: 1px solid var(--border); background: transparent; padding: 4px; }
 .group-totals-strip .group-status-banner-card > span { display: none; }
 .group-totals-strip .group-status-banner-card:last-child { border-right: 0; }

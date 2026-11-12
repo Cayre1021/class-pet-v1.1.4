@@ -10,7 +10,16 @@
   - 默认情况下左侧档案面板自动收纳，大屏全宽展示 4 列学生网格，视野开阔整洁。
   - 点击任意学生卡片时，左侧档案面板平滑滑出/弹出，展示完整宠物大图、学号、三科学阶、经验进度、实时反馈与互动按钮。
   - 详情面板顶部提供显眼的【✕ 收起】按钮，并支持按键盘 Escape 键快速收起。
+- [x] 修复第一排学生卡片 Hover 向上浮动及 Selected 选中高亮外框被顶部大组遮挡/截断问题：
+  - 原因定位：`#gridFullView` 容器配置了 `overflow-y: auto` 且 `padding: 0`，导致第一排卡片位于 `y = 0` 处。当卡片在 hover 时向上位移（`translateY(-3px)`）或选中时带有外扩高亮框（4px 边框与光晕）时，超出 `y = 0` 的上边缘被滚动容器边界水平硬截断，视觉上呈现被上方小组栏遮挡。
+  - 解决方案：
+    1. 给 `#gridFullView.grid-full-view` 增加顶部呼吸内边距 `padding: 10px 8px 16px 8px;`，使卡片向上浮动时完全在可视区域内，绝不触碰截断边界。
+    2. 将上方 `.group-totals-strip` 的 `margin-bottom` 由 `12px` 调整为 `4px`，保持整体纵向视觉节奏紧凑自然（`4px + 10px = 14px`）。
+    3. 为 `#gridFullView .pet-card` 悬浮（`:hover`）赋予 `z-index: 5`，选中（`.selected`）赋予 `z-index: 4`，同时选中并悬浮赋予 `z-index: 6`，确保高亮与投影永远位于同层级之上，不被邻近网格遮挡。
+    4. 采用圆角贴合的 `box-shadow: 0 0 0 2px var(--accent)` 替代原生硬轮廓，使选中光晕完美契合卡片 8px 圆角。
+    5. 同步调整 `design/revision-preview.css` 中 `.grid-scroll` 与 `.pet-card` 对应属性。
 - [x] 静态回归与手势测试通过（`test_display_layout_a.cjs`、`test_floating_ball_gestures.cjs`）；git diff 空白与语法检查无误。
+- [x] 通过真实 Electron 环境完成全尺寸渲染与特写抓取验证（生成 `06_first_row_cards_unclipped.png` 与 `07_crop_first_row.png`）。
 
 ## 2026-11-12 源码同步
 

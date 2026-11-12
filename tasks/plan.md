@@ -17,7 +17,16 @@
   - `design/revision-preview.css`
   - `design/revision-preview.html`
   - `design/revision-preview.js`
-- **验证方式**：`tests/test_display_layout_a.cjs`、`tests/test_floating_ball_gestures.cjs` 与 `git diff --check`。
+- **第一排卡片 Hover/Selected 顶边框防遮挡与防截断微调**：
+  - 问题现象：用户反馈第一排卡片鼠标 hover 浮动及选中点击时，上边框高亮被顶部“第 X 大组 EXP”横栏遮挡/截断。
+  - 根因分析：网格容器 `#gridFullView` 设置了 `overflow-y: auto` 且顶部 `padding: 0`，导致卡片在发生 `translateY(-3px)` 向上漂浮或带外圈光晕/外框时，超出顶边界（`y < 0`）的部分被浏览器滚动视口硬性剪切（`overflow: hidden/auto` 效应），视觉上如被上方的 div 遮挡。
+  - 调整方案：
+    1. 为 `#gridFullView.grid-full-view` 增加顶部与四周内边距 `padding: 10px 8px 16px 8px;`，为卡片提供充足的向上浮动空间。
+    2. 上方 `.group-totals-strip` 的 `margin-bottom` 缩小至 `4px`，保持整体布局紧凑（`4px + 10px = 14px`）。
+    3. 为 `.pet-card:hover` 设置 `z-index: 5`，`.pet-card.selected` 设置 `z-index: 4`，两者结合设为 `z-index: 6`，确立网格内部层级优势。
+    4. 采用贴合圆角的 `box-shadow: 0 0 0 2px var(--accent)` 方案，解决原生 outline 尖角与截断问题。
+    5. 同步调整 `design/revision-preview.css` 中的 `.grid-scroll` 与卡片浮动样式。
+- **验证方式**：`tests/test_display_layout_a.cjs`、`tests/test_floating_ball_gestures.cjs`、`git diff --check` 以及 Electron 渲染截屏特写对比（`06_first_row_cards_unclipped.png` 与 `07_crop_first_row.png`）。
 
 ## 2026-11-12：源码推送
 
