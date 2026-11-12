@@ -27,6 +27,12 @@
             --shadow-color: rgba(140, 110, 80, 0.08); /* 柔和纸面微阴影，彻底消除生硬黑色块 */
             --card-radius: 20px;          /* 大圆角 */
             --btn-radius: 14px;
+            --positive-bg: #E6F4EA; --positive-text: #237A43; --positive-border: #9BCBAA;
+            --negative-bg: #FCEBEC; --negative-text: #B44A4A; --negative-border: #E2AAAA;
+            --status-muted-bg: #E6E3DE; --status-muted-text: #71685E;
+            --status-info-bg: #E8EEF7; --status-info-text: #47658A;
+            --status-ready-bg: #FFF0C7; --status-ready-text: #8A5B12; --status-ready-border: #D89B2B;
+            --status-max-bg: #E9DDF3; --status-max-text: #71418D;
         }
 
         :root[data-theme="orange"] {
@@ -47,6 +53,12 @@
             --shadow-color: rgba(150, 100, 70, 0.08);
             --card-radius: 20px;
             --btn-radius: 14px;
+            --positive-bg: #E7F5EB; --positive-text: #277545; --positive-border: #9BCBAA;
+            --negative-bg: #FCEBEB; --negative-text: #B04C3D; --negative-border: #E4AAA0;
+            --status-muted-bg: #E9E3DE; --status-muted-text: #76665B;
+            --status-info-bg: #E7EEF7; --status-info-text: #466B90;
+            --status-ready-bg: #FFF0C7; --status-ready-text: #8D5B15; --status-ready-border: #D8952B;
+            --status-max-bg: #EADFF2; --status-max-text: #71418D;
         }
 
         :root[data-theme="forest"] {
@@ -67,6 +79,12 @@
             --shadow-color: rgba(60, 100, 70, 0.08);
             --card-radius: 20px;
             --btn-radius: 14px;
+            --positive-bg: #E2F3E7; --positive-text: #267347; --positive-border: #9DCBA9;
+            --negative-bg: #FBE8E7; --negative-text: #A94444; --negative-border: #E0A5A0;
+            --status-muted-bg: #E1E8E0; --status-muted-text: #647164;
+            --status-info-bg: #E5EFE8; --status-info-text: #48705A;
+            --status-ready-bg: #FFF0BE; --status-ready-text: #7B5A12; --status-ready-border: #D6A12A;
+            --status-max-bg: #E6DDF0; --status-max-text: #6C4683;
         }
 
         :root[data-theme="ocean"] {
@@ -87,10 +105,16 @@
             --shadow-color: rgba(60, 90, 120, 0.08);
             --card-radius: 20px;
             --btn-radius: 14px;
+            --positive-bg: #E2F0FA; --positive-text: #2D6F9E; --positive-border: #9EC7E4;
+            --negative-bg: #FBE9E9; --negative-text: #A74D55; --negative-border: #E0A9AF;
+            --status-muted-bg: #E2E8EE; --status-muted-text: #617181;
+            --status-info-bg: #E2EDF7; --status-info-text: #3E6790;
+            --status-ready-bg: #FFF0C4; --status-ready-text: #7E5D16; --status-ready-border: #D5A02B;
+            --status-max-bg: #E6DDF0; --status-max-text: #694985;
         }
 
-        .btn-score-pos { background: #DCFCE7; color: #15803D; border-color: #86EFAC; }
-        .btn-score-neg { background: #FEE2E2; color: #B91C1C; border-color: #FCA5A5; }
+        .btn-score-pos { background: var(--positive-bg); color: var(--positive-text); border-color: var(--positive-border); }
+        .btn-score-neg { background: var(--negative-bg); color: var(--negative-text); border-color: var(--negative-border); }
 
 
         body {
@@ -251,7 +275,7 @@
         .pet-card.absent {
             opacity: 0.35;
             filter: grayscale(85%);
-            background: #E5E7EB;
+            background: var(--status-muted-bg);
             border-style: dashed;
         }
 
@@ -271,21 +295,21 @@
             white-space: nowrap;
         }
         .card-stamp.evolve { background: var(--warning); color: #0A0A0A; }
-        .card-stamp.max { background: #9C27B0; color: #FFFFFF; }
-        .card-stamp.absent { background: #6B7280; color: #FFFFFF; }
+        .card-stamp.max { background: var(--status-max-bg); color: var(--status-max-text); }
+        .card-stamp.absent { background: var(--status-muted-bg); color: var(--status-muted-text); }
         .card-stamp.hatch-ready {
             background: #FFD60A;
             color: #0A0A0A;
             border-color: #0A0A0A;
             animation: pulse-glow 1.4s infinite alternate;
         }
-        .card-stamp.egg-stage { background: #E0E7FF; color: #3730A3; }
+        .card-stamp.egg-stage { background: var(--status-info-bg); color: var(--status-info-text); }
         .card-stamp.awaken-ready {
-            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
-            color: #92400E;
-            border-color: #D97706;
+            background: var(--status-ready-bg);
+            color: var(--status-ready-text);
+            border-color: var(--status-ready-border);
             animation: awaken-glow 1.5s infinite alternate;
-            box-shadow: 0 0 6px rgba(217, 119, 6, 0.4);
+            box-shadow: 0 0 6px color-mix(in srgb, var(--status-ready-border) 40%, transparent);
         }
 
         @keyframes pulse-glow {
@@ -293,8 +317,8 @@
             100% { transform: rotate(-4deg) scale(1.04); box-shadow: 0 0 8px #FFD60A; }
         }
         @keyframes awaken-glow {
-            0% { transform: rotate(-4deg) scale(0.96); box-shadow: 0 0 3px #F59E0B; }
-            100% { transform: rotate(-4deg) scale(1.05); box-shadow: 0 0 10px #F59E0B; }
+            0% { transform: rotate(-4deg) scale(0.96); box-shadow: 0 0 3px var(--status-ready-border); }
+            100% { transform: rotate(-4deg) scale(1.05); box-shadow: 0 0 10px var(--status-ready-border); }
         }
 
         /* 🌟 即时积分跳跃微动效浮动气泡 (+N EXP / -N EXP) */
@@ -1040,6 +1064,7 @@
         }
 
     </style>
+    <link rel="stylesheet" href="./display_layout_a.css">
 </head>
 <body>
 
@@ -1067,7 +1092,21 @@
 
     <!-- 主展示舞台 (支持一键下沉) -->
     <div class="main-stage-wrapper" id="stageWrapper">
-        <div class="grid-full-view" id="gridFullView"></div>
+        <div class="pet-layout-workspace" id="gridWorkspace">
+            <aside class="pet-detail-panel" id="petDetailPanel" aria-live="polite"></aside>
+            <section class="pet-browser-panel">
+                <div class="pet-browser-toolbar">
+                    <label for="layoutGroupFilter">小组筛选</label>
+                    <select id="layoutGroupFilter" onchange="handleLayoutGroupFilter(this.value)">
+                        <option value="all">全部小组</option>
+                    </select>
+                    <span class="pet-result-count" id="layoutResultCount"></span>
+                </div>
+                <div class="group-totals-strip" id="layoutGroupTotals"></div>
+                <div class="grid-full-view" id="gridFullView"></div>
+                <div class="pet-grid-empty" id="layoutGridEmpty" hidden></div>
+            </section>
+        </div>
 
         <!-- 模式 2：座位表 (4大组) -->
         <div id="seatmapView" style="display:none; padding:14px; grid-template-columns:repeat(4,1fr); gap:12px;">
@@ -1370,7 +1409,6 @@
         let currentView = 'grid';
         let activeModalStudent = null;
         let activeModalSubject = 'chinese';
-
         // 统一大屏端 Toast 提示
         let __toastTimer = null;
         function showClassroomToast(msg, icon = '✅', duration = 2500) {
@@ -1639,12 +1677,97 @@
             }
         }
 
+        const petLayoutState = { selectedId: null, group: 'all' };
+        let layoutFeedback = null;
+        function setLayoutFeedback(student, tone, title, detail) {
+            layoutFeedback = student ? { studentId: String(student.id), tone, title, detail, at: Date.now() } : null;
+        }
+
+        function getLayoutPet(student) {
+            if (!student) return null;
+            return (student.pets && (student.pets[student.activeSubject] || student.pets.chinese))
+                || (student.pets && Object.values(student.pets)[0])
+                || null;
+        }
+
+        function updateLayoutGroupOptions(students) {
+            const select = document.getElementById('layoutGroupFilter');
+            if (!select) return;
+            const groups = [...new Set(students.map(s => Number(s.group)).filter(Number.isFinite))].sort((a, b) => a - b);
+            const previous = petLayoutState.group;
+            select.innerHTML = '<option value="all">全部小组</option>' + groups.map(g => `<option value="${g}">第 ${g} 组</option>`).join('');
+            if ([...select.options].some(o => o.value === previous)) select.value = previous;
+            else petLayoutState.group = 'all';
+        }
+
+        function renderLayoutDetail(student) {
+            const panel = document.getElementById('petDetailPanel');
+            if (!panel) return;
+            if (!student) {
+                panel.innerHTML = '<div class="detail-placeholder">当前没有可展示的宠物<br>请在教师工作台录入学生</div>';
+                return;
+            }
+            const pet = getLayoutPet(student) || { subject: '语文', name: '神秘宠物蛋', species: 'egg', visualStage: 0, level: 0, exp: 0 };
+            const isEgg = !pet.isHatched || pet.species === 'egg' || pet.visualStage === 0;
+            const level = pet.level ?? student.level ?? 0;
+            const exp = pet.exp ?? student.exp ?? 0;
+            const progress = store.getExpProgress ? store.getExpProgress(exp, isEgg ? 0 : level, !isEgg) : { percent: 0, cardRateText: `${exp} EXP` };
+            const image = pet.image || (window.getPetImagePath ? window.getPetImagePath(isEgg ? 'egg' : pet.species, isEgg ? 0 : pet.visualStage) : './assets/pets/shared/egg.png');
+            const hatchThreshold = store.getHatchThreshold ? store.getHatchThreshold() : 15;
+            const subjectNames = { chinese: '语文', math: '数学', english: '英语' };
+            const subjectRows = ['chinese', 'math', 'english'].map(key => {
+                const item = student.pets && student.pets[key];
+                const unlocked = store.isSubjectUnlocked ? store.isSubjectUnlocked(student.id, key) : key === 'chinese';
+                const itemEgg = !item || !item.isHatched || item.species === 'egg' || item.visualStage === 0;
+                const status = !unlocked ? '未解锁' : (itemEgg ? `${item?.exp || 0} EXP` : `Lv.${item.level || 0}`);
+                return `<div class="detail-subject"><strong>${subjectNames[key]}</strong><span>${item?.name || '神秘宠物蛋'}</span><span>${status}</span></div>`;
+            }).join('');
+            const canHatch = isEgg && exp >= hatchThreshold;
+            const currentStatus = student.isAbsent ? '请假中' : (canHatch ? '可破壳' : (isEgg ? '孵化中' : (level >= 20 ? '满级' : '学习中')));
+            const feedback = layoutFeedback && layoutFeedback.studentId === String(student.id) ? layoutFeedback : null;
+            panel.innerHTML = `
+                <div class="detail-kicker">当前选中 · 第 ${student.group || '-'} 组</div>
+                <div class="detail-pet-stage"><img src="${image}" alt="${student.name}的${pet.name || '宠物'}" onerror="this.src='./assets/pets/shared/egg.png'"></div>
+                <div class="detail-student-row"><h2>${student.name}</h2><span>学号 #${student.no}</span></div>
+                <div class="detail-pet-name">${pet.subject || subjectNames[student.activeSubject] || '学科'} · ${pet.name || '神秘宠物蛋'}</div>
+                <div class="detail-state-row"><span class="detail-state-pill ${canHatch ? 'ready' : (isEgg ? 'info' : 'active')}">${currentStatus}</span><span>${student.isAbsent ? '暂不参与课堂互动' : '可继续课堂操作'}</span></div>
+                <div class="detail-progress-head"><span>${isEgg ? '孵化进度' : `等级 Lv.${level}`}</span><span>${progress.cardRateText || `${exp} EXP`}</span></div>
+                <div class="detail-progress"><span style="width:${Math.max(0, Math.min(100, progress.percent || 0))}%"></span></div>
+                <div class="detail-subjects">${subjectRows}</div>
+                <div class="detail-feedback ${feedback ? `is-${feedback.tone}` : 'is-empty'}"><strong>${feedback ? feedback.title : '实时反馈'}</strong><span>${feedback ? feedback.detail : '选择课堂操作后，这里会显示最近一次结果。'}</span></div>
+                <div class="detail-actions">
+                    <button class="primary" onclick="openStudentDetailsModal('${student.id}')">详情与互动</button>
+                    ${canHatch ? `<button onclick="openHatchModal('${student.id}', '${student.activeSubject || 'chinese'}')">立即破壳</button>` : `<button onclick="openTeacherWorkstation()">教师赋分</button>`}
+                </div>`;
+        }
+
+        function selectLayoutStudent(id) {
+            petLayoutState.selectedId = String(id);
+            const student = store.students.find(s => String(s.id) === String(id) && !s.isArchived);
+            renderLayoutDetail(student || null);
+            document.querySelectorAll('#gridFullView .pet-card').forEach(card => {
+                const selected = String(card.dataset.studentId) === String(id);
+                card.classList.toggle('selected', selected);
+                card.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            });
+        }
+
+        function handleLayoutGroupFilter(group) {
+            petLayoutState.group = group;
+            renderGrid();
+            document.getElementById('gridFullView').scrollTop = 0;
+        }
+
         function renderGrid() {
             const container = document.getElementById('gridFullView');
-            const activeStudents = store.students.filter(s => !s.isArchived);
+            const allActiveStudents = store.students.filter(s => !s.isArchived);
+            updateLayoutGroupOptions(allActiveStudents);
+            const activeStudents = petLayoutState.group === 'all'
+                ? allActiveStudents
+                : allActiveStudents.filter(s => String(s.group) === String(petLayoutState.group));
             updateHeaderClassInfo();
 
-            if (activeStudents.length === 0) {
+            if (allActiveStudents.length === 0) {
                 const acc = store.getCurrentAccount ? store.getCurrentAccount() : {};
                 container.innerHTML = `
                     <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; text-align: center;">
@@ -1665,8 +1788,26 @@
                         </div>
                     </div>
                 `;
+                renderLayoutDetail(null);
+                document.getElementById('layoutGroupTotals').innerHTML = '';
+                document.getElementById('layoutResultCount').textContent = '0 位学生';
+                document.getElementById('layoutGridEmpty').hidden = true;
                 return;
             }
+
+            if (!activeStudents.length) {
+                container.innerHTML = '';
+                const empty = document.getElementById('layoutGridEmpty');
+                empty.hidden = false;
+                empty.textContent = '当前筛选条件下暂无学生';
+            } else {
+                document.getElementById('layoutGridEmpty').hidden = true;
+            }
+
+            if (!petLayoutState.selectedId || !activeStudents.some(s => String(s.id) === petLayoutState.selectedId)) {
+                petLayoutState.selectedId = activeStudents.length ? String(activeStudents[0].id) : null;
+            }
+            renderLayoutDetail(activeStudents.find(s => String(s.id) === petLayoutState.selectedId));
 
             const cardsHtml = activeStudents.map(s => {
                 const pet = (s.pets && (s.pets[s.activeSubject] || s.pets.chinese)) || (s.pets && Object.values(s.pets)[0]) || { subject: '语文', name: '小宠', icon: '🐣', visualStage: 1, species: 'egg', exp: s.exp, level: s.level };
@@ -1763,11 +1904,11 @@
                 }
 
                 const canDirectHatchThis = isEgg && (s.stamp === 'HATCH' || petExp >= hatchThresh || (canAwakenNewPet && store.isSubjectUnlocked && store.isSubjectUnlocked(s.id, s.activeSubject || 'chinese')));
-                const clickFn = canDirectHatchThis ? `openHatchModal('${s.id}', '${s.activeSubject || 'chinese'}')` : `openStudentDetailsModal('${s.id}')`;
+                const clickFn = `selectLayoutStudent('${s.id}')`;
                 const petImgSrc = pet.image || (window.getPetImagePath ? window.getPetImagePath(isEgg ? 'egg' : pet.species, isEgg ? 0 : pet.visualStage) : './assets/pets/shared/egg.png');
 
                 return `
-                    <div class="pet-card ${s.isAbsent ? 'absent' : ''}" id="petCard_${s.id}" data-student-id="${s.id}" onclick="${clickFn}">
+                    <div class="pet-card ${s.isAbsent ? 'absent' : ''} ${String(s.id) === petLayoutState.selectedId ? 'selected' : ''}" id="petCard_${s.id}" data-student-id="${s.id}" role="button" tabindex="0" aria-pressed="${String(s.id) === petLayoutState.selectedId}" onclick="${clickFn}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${clickFn}}">
                         ${stampHtml}
                         <div class="pet-visual-box">
                             <img src="${petImgSrc}" class="pet-thumb-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
@@ -1784,6 +1925,7 @@
                                 <div class="st-badges-cluster">${subBadgesHtml}</div>
                                 <span class="st-exp-compact" title="${expFullTitle}">${expText}</span>
                             </div>
+                            <div class="card-state-row"><span class="card-state-dot ${s.isAbsent ? 'muted' : (canDirectHatchThis ? 'ready' : (isEgg ? 'info' : 'active'))}"></span><span>${s.isAbsent ? '请假' : (canDirectHatchThis ? '可破壳' : (isEgg ? '孵化中' : (petLvl >= 20 ? '满级' : '学习中')))}</span><span class="card-group-label">第${s.group || '-'}组</span></div>
                             <div class="st-bar">
                                 <div class="st-bar-fill" style="width: ${percent}%;"></div>
                             </div>
@@ -1816,7 +1958,9 @@
                 </div>
             `;
 
-            container.innerHTML = cardsHtml + groupBannersHtml;
+            container.innerHTML = cardsHtml;
+            document.getElementById('layoutGroupTotals').innerHTML = groupBannersHtml;
+            document.getElementById('layoutResultCount').textContent = `${activeStudents.length} 位学生`;
         }
 
         function switchView(v) {
@@ -1825,7 +1969,7 @@
             document.getElementById('tabSeat')?.classList.toggle('active', v === 'seat');
             document.getElementById('tabPK')?.classList.toggle('active', v === 'pk');
 
-            document.getElementById('gridFullView').style.display = v === 'grid' ? 'grid' : 'none';
+            document.getElementById('gridWorkspace').style.display = v === 'grid' ? 'grid' : 'none';
             document.getElementById('seatmapView').style.display = v === 'seat' ? 'grid' : 'none';
             document.getElementById('pkRaceView').style.display = v === 'pk' ? 'flex' : 'none';
 
@@ -2013,12 +2157,16 @@
             store.batchScore(list.map(s => s.id), d, `第${g}大组${d>0?'奖励':'扣分'}`);
             if (d > 0) store.audio.playDing();
             else store.audio.playDeduct();
+            showClassroomToast(`第 ${g} 组 ${d > 0 ? '+' : ''}${d} 分已完成`, d > 0 ? '⬆️' : '⬇️');
             renderAll();
         }
 
         function quickModalScore(delta, reason) {
             if (!activeModalStudent) return;
-            store.scoreStudent(activeModalStudent.id, delta, reason, false, activeModalSubject);
+            const target = activeModalStudent;
+            store.scoreStudent(target.id, delta, reason, false, activeModalSubject);
+            setLayoutFeedback(target, delta > 0 ? 'positive' : 'negative', `${delta > 0 ? '加分成功' : '扣分成功'} · ${delta > 0 ? '+' : ''}${delta} 分`, reason);
+            showClassroomToast(`${target.name} ${delta > 0 ? '+' : ''}${delta} 分 · ${reason}`, delta > 0 ? '⬆️' : '⬇️');
             refreshModal();
             renderAll();
         }
@@ -2174,6 +2322,8 @@
         function openStudentDetailsModal(id) {
             const s = store.students.find(x => x.id === id);
             if (!s) return;
+            petLayoutState.selectedId = String(id);
+            renderLayoutDetail(s);
             activeModalStudent = s;
             const currentTeachingSub = store.getCurrentTeachingSubject ? store.getCurrentTeachingSubject() : null;
             activeModalSubject = currentTeachingSub || s.activeSubject || 'chinese';
@@ -2685,6 +2835,10 @@
             if (result && result.limitReached) {
                 showClassroomToast('今日互动经验已达上限 (5 EXP) 啦~', '🐾');
             }
+            if (result && !result.limitReached) {
+                setLayoutFeedback(activeModalStudent, 'positive', `${actionName}完成 · +${exp} EXP`, '互动结果已同步到当前宠物');
+                showClassroomToast(`${activeModalStudent.name} 完成${actionName} · +${exp} EXP`, '🐾');
+            }
             if (result && result.quote) {
                 const bubble = document.getElementById('heroSpeechBubble');
                 bubble.textContent = `“${result.quote}”`;
@@ -2731,6 +2885,7 @@
                 bLvl.style.color = by === 'level' ? 'white' : 'var(--text-primary)';
             }
             sortCards(by);
+            document.getElementById('gridFullView').scrollTop = 0;
             showClassroomToast(`已按【${by === 'no' ? '学号顺序' : '等级经验排行'}】重排卡片`, by === 'no' ? '🔢' : '⭐');
         }
 
@@ -3214,11 +3369,15 @@
             let startX = 0, startY = 0;
             let initialLeft = 0, initialTop = 0;
             let hasMoved = false;
+            let dragPointerId = null;
 
             function onPointerDown(e) {
+                if (isDragging || e.isPrimary === false || e.button > 0) return;
                 if (e.target.closest('.radial-item')) return;
                 isDragging = true;
                 hasMoved = false;
+                dragPointerId = e.pointerId;
+                ball.setPointerCapture(e.pointerId);
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 startX = clientX;
@@ -3229,7 +3388,7 @@
             }
 
             function onPointerMove(e) {
-                if (!isDragging) return;
+                if (!isDragging || e.pointerId !== dragPointerId) return;
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 const dx = clientX - startX;
@@ -3250,8 +3409,9 @@
                 }
             }
 
-            function onPointerUp() {
-                if (!isDragging) return;
+            function onPointerUp(e) {
+                if (!isDragging || e.pointerId !== dragPointerId) return;
+                if (e.type === 'pointercancel') hasMoved = true;
                 isDragging = false;
                 if (hasMoved) {
                     const rect = ballContainer.getBoundingClientRect();
@@ -3261,13 +3421,17 @@
                 }
             }
 
-            ball.addEventListener('mousedown', onPointerDown);
-            window.addEventListener('mousemove', onPointerMove);
-            window.addEventListener('mouseup', onPointerUp);
-
-            ball.addEventListener('touchstart', onPointerDown, { passive: true });
-            window.addEventListener('touchmove', onPointerMove, { passive: true });
-            window.addEventListener('touchend', onPointerUp);
+            ball.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+            window.addEventListener('pointercancel', onPointerUp);
+            // A drag can synthesize a click on release; intercept it before onclick.
+            ball.addEventListener('click', (e) => {
+                if (hasMoved && e.detail !== 0) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
+            }, true);
 
             // 点击外侧收回辐射菜单
             document.addEventListener('click', (e) => {

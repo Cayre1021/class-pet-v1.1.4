@@ -114,17 +114,6 @@
             align-items: center;
         }
 
-        .brand-badge {
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: 900;
-            font-size: 14px;
-            background: var(--text-primary);
-            color: var(--bg-primary);
-            padding: 4px 10px;
-            border: 2px solid var(--border);
-            display: inline-block;
-        }
-
         .theme-selector-group {
             display: flex;
             align-items: center;
@@ -406,34 +395,6 @@
             margin-bottom: 8px;
         }
 
-        .hub-card p {
-            font-size: 13px;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .hub-footer {
-            margin-top: 16px;
-            font-weight: 900;
-            font-size: 14px;
-            color: var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .hub-statusbar {
-            display: flex;
-            justify-content: space-between;
-            padding: 16px;
-            background: var(--bg-secondary);
-            border: 3px solid var(--border);
-            margin-top: 20px;
-            font-size: 13px;
-            font-weight: 700;
-            font-family: monospace;
-        }
-
         /* 模态框与轻量提示 */
         .modal-overlay {
             position: fixed;
@@ -480,14 +441,15 @@
             pointer-events: auto;
         }
     </style>
+    <link rel="stylesheet" href="portal_layout.css">
+    <script src="portal_background.js" defer></script>
 </head>
 <body>
 
     <!-- 顶部主题快速切换栏 -->
     <div class="global-bar">
         <div>
-            <span class="brand-badge">CLASS PET V1-LITE</span>
-            <span style="margin-left: 10px; font-weight: 800; font-size: 13px;">班级电子宠物管理系统</span>
+            <span style="font-weight: 800; font-size: 13px;">班级电子宠物管理系统</span>
         </div>
         <div class="theme-selector-group">
             <span style="font-size: 12px; font-weight: 800;">🎨 配色主题：</span>
@@ -502,41 +464,31 @@
 
         <!-- 视图 1：登录与账号认证 -->
         <div id="viewAuth" class="nb-card view-section active">
-            <div class="stamp-badge">OFFLINE LOCAL</div>
-            <div class="card-header">
-                <h1 class="card-title">教师账号登录</h1>
-                <p class="card-subtitle">单机离线运行 · 数据安全保存在本地 SQLite</p>
+            <div class="card-header auth-heading">
+                <div><h1 class="card-title">班级电子宠物管理系统</h1><h2 class="auth-subtitle">账号登录</h2></div>
+                <div class="auth-pets"><img src="./assets/pets/cat/cat-stage2.png" alt="狸花猫"><img src="./assets/pets/dog/dog-stage1.png" alt="金毛犬"></div>
             </div>
 
             <div class="tab-bar">
-                <button class="tab-btn active" onclick="switchAuthTab('login')">选择现有账号</button>
-                <button class="tab-btn" onclick="switchAuthTab('register')">创建新教师账号</button>
-                <button class="tab-btn" onclick="switchAuthTab('reset')">密码重置</button>
+                <button class="tab-btn active" onclick="switchAuthTab('login')">账号登录</button>
+                <button class="tab-btn" onclick="switchAuthTab('register')">创建账号</button>
+                <button class="tab-btn" onclick="switchAuthTab('reset')">重置密码</button>
             </div>
 
             <!-- TAB 1: 登录 -->
             <div id="tabLogin">
-                <div style="background: #FFFBEB; border: 2.5px dashed #F59E0B; padding: 12px 14px; margin-bottom: 16px; box-shadow: 3px 3px 0 var(--shadow-color);">
-                    <div style="display: flex; align-items: center; gap: 6px; font-weight: 900; font-size: 13.5px; color: #B45309; margin-bottom: 4px;">
-                        <span>💡 使用与体验指引：</span>
-                    </div>
-                    <p style="font-size: 12.5px; color: #78350F; line-height: 1.55;">
-                        下方列表中标记为<strong>【系统演示示例】</strong>的账号为预置测试环境（包含模拟学生与满级神兽效果供体验）。<br>
-                        👉 <strong>正式上课使用</strong>：建议直接点击上方 <strong>“创建新教师账号”</strong> 建立您的专属班级，数据完全独立隔离！
-                    </p>
-                </div>
-
+                <label class="form-label" for="loginAccount">班级账号</label>
+                <select class="form-input" id="loginAccount" onchange="selectAccountById(this.value)"></select>
                 <div class="account-list" id="accountListContainer">
                     <!-- 由 JavaScript 动态渲染账号列表 -->
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">账号密码 (PASSWORD)</label>
+                    <label class="form-label" for="inputLoginPassword">密码</label>
                     <input type="password" class="form-input" id="inputLoginPassword" placeholder="请输入当前教师账号密码" value="123456">
-                    <p class="form-hint">初始默认登录密码为 123456 (可自设)</p>
                 </div>
 
-                <button class="btn-nb" onclick="handleLoginSubmit()">进入班级控制台 →</button>
+                <button class="btn-nb" onclick="handleLoginSubmit()">登录</button>
             </div>
 
             <!-- TAB 2: 注册 -->
@@ -589,7 +541,6 @@
 
         <!-- 视图 2：主页控制台 (Home Hub) -->
         <div id="viewHub" class="nb-card wide view-section">
-            <div class="stamp-badge">ACTIVE SESSION</div>
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
                     <h1 class="card-title">班级电子宠物管理系统 · 控制总台</h1>
@@ -602,13 +553,11 @@
 
             <div class="hub-grid">
                 <!-- 入口 1：学生大屏 -->
-                <a href="./display_bigscreen_touch_pro.html" class="hub-card primary" onclick="launchDisplayApp(event)">
+                <a href="./display_bigscreen_touch_pro.html" class="hub-card" onclick="launchDisplayApp(event)">
                     <div>
                         <div class="hub-icon">🖥️</div>
                         <h3>班级电子宠物大屏</h3>
-                        <p>常驻教室投影展示全班宠物卡片、经验进度与成长状态。支持全屏投放、4组PK争霸榜与 C 位升级/满级烟花大招。</p>
                     </div>
-                    <div class="hub-footer">启动学生大屏 ➔</div>
                 </a>
 
                 <!-- 入口 2：教师操作台 -->
@@ -616,19 +565,10 @@
                     <div>
                         <div class="hub-icon">⚡</div>
                         <h3>教师快速赋分控制台</h3>
-                        <p>课堂批量赋分、正负向行为快速记录、3分钟误操作撤销、Excel花名册导入、考勤置灰免打扰与审计日志。</p>
                     </div>
-                    <div class="hub-footer">打开教师工作台 ➔</div>
                 </a>
             </div>
 
-            <!-- 辅助功能与状态条 -->
-            <div class="hub-statusbar">
-                <div>💾 本地存储：<span style="color: var(--accent); font-weight: 800;">SQLite 离线模式</span></div>
-                <div id="hubStudentCountTag">👥 班级学生：42 人</div>
-                <div id="hubActivePetTag">🐾 已激活宠物：126 只</div>
-                <div>🔒 数据本地安全落盘</div>
-            </div>
         </div>
 
     </div>
@@ -908,6 +848,16 @@
             }).join('');
 
             const curAcc = accounts.find(a => a.id === activeId) || accounts[0];
+            const accountSelect = document.getElementById('loginAccount');
+            if (accountSelect) {
+                accountSelect.replaceChildren(...accounts.map(acc => {
+                    const option = document.createElement('option');
+                    option.value = acc.id;
+                    option.textContent = `${acc.className} · ${acc.teacherName} · ${acc.subject || '综合'}`;
+                    return option;
+                }));
+                accountSelect.value = curAcc ? curAcc.id : '';
+            }
             if (curAcc && document.getElementById('resetAccountLabel')) {
                 document.getElementById('resetAccountLabel').value = `${curAcc.className} (${curAcc.teacherName})`;
             }
@@ -925,11 +875,14 @@
 
         // 切换登录/注册 Tab
         function switchAuthTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach((button, index) => {
+                const selected = ['login', 'register', 'reset'][index] === tab;
+                button.classList.toggle('active', selected);
+                button.setAttribute('aria-pressed', String(selected));
+            });
             document.getElementById('tabLogin').style.display = tab === 'login' ? 'block' : 'none';
             document.getElementById('tabRegister').style.display = tab === 'register' ? 'block' : 'none';
             document.getElementById('tabReset').style.display = tab === 'reset' ? 'block' : 'none';
-            if (event && event.target) event.target.classList.add('active');
             if (tab === 'login') renderAccountList();
         }
 
@@ -1038,10 +991,6 @@
                 : '<span style="background: #DCFCE7; color: #166534; border: 1.5px solid var(--border); padding: 2px 8px; font-size: 11px; font-weight: 900; border-radius: 4px; margin-left: 8px; box-shadow: 1px 1px 0 var(--shadow-color);">[正式教学班级]</span>';
             document.getElementById('currentAccountTitle').innerHTML = `${curAcc.school} · ${curAcc.className} (${curAcc.subject || '综合'}) · 教师：${curAcc.teacherName} ${badgeHtml}`;
             
-            const count = getAccountStudentsCount(curAcc.id);
-            document.getElementById('hubStudentCountTag').textContent = `👥 班级学生：${count} 人`;
-            document.getElementById('hubActivePetTag').textContent = `🐾 已激活宠物：${count * 3} 只`;
-
             document.getElementById('viewAuth').classList.remove('active');
             document.getElementById('viewHub').classList.add('active');
         }

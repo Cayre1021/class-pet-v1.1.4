@@ -773,13 +773,16 @@
             transform: translate(calc(-50% + var(--srx)), calc(-50% + var(--sry))) scale(1);
         }
     </style>
+    <link rel="stylesheet" href="./teacher_layout_c.css">
+    <script src="./teacher_layout_c.js"></script>
 </head>
 <body>
 
-    <!-- 顶部极简导航栏 (去按钮化：仅保留门户返回与班级信息，释放垂直空间) -->
+    <!-- 顶部导航栏：门户、学生大屏与班级信息均保持可达 -->
     <div class="top-navbar-pro">
         <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;">
             <button class="btn-header-touch" onclick="goToPortal()" title="返回班级选择门户">← 门户</button>
+            <button class="btn-header-touch teacher-display-link" onclick="openDisplayBigscreen()" title="打开学生宠物大屏">🖥️ 学生大屏</button>
             <h1 style="font-size: 18px; font-weight: 900; white-space: nowrap; margin: 0 4px; display: inline-flex; align-items: center; gap: 6px;">
                 <span>🐾 电子宠物 · 教师控制台</span>
             </h1>
@@ -807,14 +810,19 @@
                     <button class="btn-header-touch" style="height: 44px; background: var(--accent); color: white; padding: 0 14px; font-size: 14px;" onclick="openAddStudentModal()">➕ 新增</button>
                 </div>
                 <!-- 第二行：四大分组快速过滤 -->
-                <div style="display: flex; gap: 4px;">
-                    <button class="btn-header-touch" id="tabGroupAll" style="flex: 1; justify-content: center; height: 40px; font-size: 12px; background: var(--accent); color: white;" onclick="filterGroup('all')">全班</button>
-                    <button class="btn-header-touch" id="tabGroup1" style="flex: 1; justify-content: center; height: 40px; font-size: 12px;" onclick="filterGroup(1)">1组</button>
-                    <button class="btn-header-touch" id="tabGroup2" style="flex: 1; justify-content: center; height: 40px; font-size: 12px;" onclick="filterGroup(2)">2组</button>
-                    <button class="btn-header-touch" id="tabGroup3" style="flex: 1; justify-content: center; height: 40px; font-size: 12px;" onclick="filterGroup(3)">3组</button>
-                    <button class="btn-header-touch" id="tabGroup4" style="flex: 1; justify-content: center; height: 40px; font-size: 12px;" onclick="filterGroup(4)">4组</button>
-                    <button class="btn-header-touch" id="tabGroupArchive" style="flex: 1; justify-content: center; height: 40px; font-size: 12px; background: #E5E7EB;" onclick="filterGroup('archive')">📦 归档</button>
-                </div>
+                <details class="teacher-group-filter" id="teacherGroupFilter">
+                    <summary id="teacherGroupFilterSummary" aria-expanded="false" aria-controls="teacherGroupFilterMenu">
+                        <span aria-hidden="true">👥</span><span>小组筛选</span><strong id="groupFilterCurrent">全班</strong><span class="group-filter-caret" aria-hidden="true">▾</span>
+                    </summary>
+                    <div class="teacher-group-menu" id="teacherGroupFilterMenu">
+                        <button class="btn-header-touch" id="tabGroupAll" aria-pressed="true" onclick="filterGroup('all')"><span data-group-label>全班</span><span data-group-count>0</span></button>
+                        <button class="btn-header-touch" id="tabGroup1" aria-pressed="false" onclick="filterGroup(1)"><span data-group-label>1组</span><span data-group-count>0</span></button>
+                        <button class="btn-header-touch" id="tabGroup2" aria-pressed="false" onclick="filterGroup(2)"><span data-group-label>2组</span><span data-group-count>0</span></button>
+                        <button class="btn-header-touch" id="tabGroup3" aria-pressed="false" onclick="filterGroup(3)"><span data-group-label>3组</span><span data-group-count>0</span></button>
+                        <button class="btn-header-touch" id="tabGroup4" aria-pressed="false" onclick="filterGroup(4)"><span data-group-label>4组</span><span data-group-count>0</span></button>
+                        <button class="btn-header-touch" id="tabGroupArchive" aria-pressed="false" onclick="filterGroup('archive')"><span data-group-label>归档</span><span data-group-count>0</span></button>
+                    </div>
+                </details>
                 <!-- 第三行：左侧学生列表专属独立缩放套件 (严格只缩放左侧学生列表，右侧赋分区完全不动) -->
                 <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); border: 2px solid var(--border); padding: 4px 8px; box-shadow: 0 2px 6px rgba(120, 95, 70, 0.06); border-radius: 4px;">
                     <div style="font-size: 12px; font-weight: 900; display: flex; align-items: center; gap: 4px;">
@@ -846,7 +854,6 @@
             <div class="selected-banner-bar-pro">
                 <div>
                     <strong style="font-size: 15px;">✓ 当前已选中 <span id="bannerCount" style="color: var(--accent); font-size: 18px;">0</span> 名学生</strong>
-                    <span style="font-size: 12px; color: var(--text-secondary); margin-left: 10px;">点击下方行为按键即可记录赋分</span>
                 </div>
                 <button class="btn-header-touch" onclick="clearSelection()" style="height: 38px; padding: 0 12px; font-size: 12px;">清空选择</button>
             </div>
@@ -1097,7 +1104,7 @@
 
     <!-- 模态框 6：编辑学生资料 -->
     <div class="modal-overlay" id="modalEditStudent" style="display: none;">
-        <div class="modal-box" style="max-width: 480px;">
+        <div class="modal-box teacher-edit-modal-box" style="max-width: 480px;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid var(--border); padding-bottom: 8px;">
                 <h3 style="font-weight: 900;">✏️ 编辑学生基本信息</h3>
                 <button class="btn-header-touch" style="height:34px;" onclick="closeEditStudentModal()">✕</button>
@@ -1620,6 +1627,7 @@
         function renderStudentList() {
             const list = getFilteredStudents();
             const container = document.getElementById('studentListContainer');
+            syncTeacherGroupTabs(currentGroup);
             updateHeaderClassInfo();
 
             if (list.length === 0) {
@@ -1703,7 +1711,7 @@
                 }
 
                 return `
-                    <div class="student-row-card-pro ${isSelected ? 'selected' : ''} ${s.isAbsent ? 'absent' : ''} ${isScoreLocked ? 'pet-score-locked' : ''}" onclick="handleStudentRowClick('${s.id}')" oncontextmenu="event.preventDefault(); openAuditLogModal('${s.id}')" title="${isScoreLocked ? check.reason : '左键选中/取消，右键穿透查看加分明细流水'}">
+                    <div class="student-row-card-pro ${isSelected ? 'selected' : ''} ${s.isAbsent ? 'absent' : ''} ${isScoreLocked ? 'pet-score-locked' : ''}" data-student-group="${s.group}" role="checkbox" tabindex="0" aria-checked="${isSelected}" aria-disabled="${isScoreLocked}" onkeydown="if(event.target === this && (event.key === 'Enter' || event.key === ' ')){event.preventDefault();handleStudentRowClick('${s.id}')}" onclick="handleStudentRowClick('${s.id}')" oncontextmenu="event.preventDefault(); openAuditLogModal('${s.id}')" title="${isScoreLocked ? check.reason : '左键选中/取消，右键穿透查看加分明细流水'}">
                         <div class="nb-checkbox-pro ${isScoreLocked ? 'score-locked' : ''}">${isScoreLocked ? '🔒' : (isSelected ? '✓' : (s.isAbsent ? '假' : ''))}</div>
                         <div class="student-avatar-box-pro" style="${isScoreLocked ? 'opacity: 0.65; filter: grayscale(35%);' : ''}">
                             <img src="${petImgSrc}" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
@@ -1743,6 +1751,7 @@
                     </div>
                 `;
             }).join('');
+            arrangeTeacherGroups(container, currentGroup);
 
             document.getElementById('selectedNum').textContent = selectedIds.size;
             document.getElementById('bannerCount').textContent = selectedIds.size;
@@ -1839,6 +1848,8 @@
 
         function filterGroup(g) {
             currentGroup = g;
+            const groupFilter = document.getElementById('teacherGroupFilter');
+            if (groupFilter) groupFilter.open = false;
             renderStudentList();
         }
 
@@ -3568,9 +3579,10 @@
         }
         setTeacherActiveSubject(activeTeachingSubject, true);
 
-        function setGlobalTheme(themeName, clickEvent = null) {
+        function setGlobalTheme(themeName, clickEvent = null, silent = false) {
             const validThemes = ['classic', 'orange', 'forest', 'ocean'];
             const finalTheme = validThemes.includes(themeName) ? themeName : 'classic';
+            if (document.documentElement.getAttribute('data-theme') === finalTheme) return Promise.resolve();
 
             let x = (window.innerWidth || 1200) - 60;
             let y = 40;
@@ -3592,7 +3604,7 @@
                 } catch (e) {}
                 const themeNames = { classic: '经典米白', orange: '活力暖橙', forest: '护眼森林', ocean: '晴空蓝调' };
                 const themeIcons = { classic: '🍦', orange: '🍊', forest: '🌲', ocean: '🌊' };
-                showClassroomToast(`已切换主题至【${themeNames[finalTheme] || finalTheme}】`, themeIcons[finalTheme] || '🎨');
+                if (!silent) showClassroomToast(`已切换主题至【${themeNames[finalTheme] || finalTheme}】`, themeIcons[finalTheme] || '🎨');
             };
 
             let applied = false;
@@ -3601,6 +3613,11 @@
                 applied = true;
                 apply();
             };
+
+            if (silent) {
+                safeApply();
+                return Promise.resolve();
+            }
 
             if (document.startViewTransition && !document.hidden && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 try {
@@ -3843,11 +3860,15 @@
             let startX = 0, startY = 0;
             let initialLeft = 0, initialTop = 0;
             let hasMoved = false;
+            let dragPointerId = null;
 
             function onPointerDown(e) {
+                if (isDragging || e.isPrimary === false || e.button > 0) return;
                 if (e.target.closest('.radial-item')) return;
                 isDragging = true;
                 hasMoved = false;
+                dragPointerId = e.pointerId;
+                ball.setPointerCapture(e.pointerId);
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 startX = clientX;
@@ -3858,7 +3879,7 @@
             }
 
             function onPointerMove(e) {
-                if (!isDragging) return;
+                if (!isDragging || e.pointerId !== dragPointerId) return;
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 const dx = clientX - startX;
@@ -3879,8 +3900,9 @@
                 }
             }
 
-            function onPointerUp() {
-                if (!isDragging) return;
+            function onPointerUp(e) {
+                if (!isDragging || e.pointerId !== dragPointerId) return;
+                if (e.type === 'pointercancel') hasMoved = true;
                 isDragging = false;
                 if (hasMoved) {
                     const rect = ballContainer.getBoundingClientRect();
@@ -3890,13 +3912,17 @@
                 }
             }
 
-            ball.addEventListener('mousedown', onPointerDown);
-            document.addEventListener('mousemove', onPointerMove);
-            document.addEventListener('mouseup', onPointerUp);
-
-            ball.addEventListener('touchstart', onPointerDown, { passive: true });
-            document.addEventListener('touchmove', onPointerMove, { passive: true });
-            document.addEventListener('touchend', onPointerUp);
+            ball.addEventListener('pointerdown', onPointerDown);
+            document.addEventListener('pointermove', onPointerMove);
+            document.addEventListener('pointerup', onPointerUp);
+            document.addEventListener('pointercancel', onPointerUp);
+            // A drag can synthesize a click on release; intercept it before onclick.
+            ball.addEventListener('click', (e) => {
+                if (hasMoved && e.detail !== 0) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
+            }, true);
         })();
 
         // 点击页面空白处自动收起轮盘菜单
@@ -3910,10 +3936,10 @@
             }
         });
 
-        // 初始化载入保存的主题
+        // 初始化载入保存的主题，不提示为用户主动切换。
         try {
             const savedTheme = localStorage.getItem('classpet_theme');
-            if (savedTheme) setGlobalTheme(savedTheme);
+            if (savedTheme) setGlobalTheme(savedTheme, null, true);
         } catch (e) {}
 
         // 初始化绑定 Excel/CSV 上传事件

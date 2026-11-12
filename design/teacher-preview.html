@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Class Pet - 教师控制台方案预览</title>
+  <link rel="stylesheet" href="teacher-preview.css">
+</head>
+<body>
+  <header class="preview-bar">
+    <div class="preview-mark"><strong>教师控制台设计预览</strong><span>模拟数据 · 不执行真实业务</span></div>
+    <nav class="scheme-tabs" aria-label="设计方案">
+      <button data-scheme="a" aria-pressed="true"><b>A</b> 名册工作台</button>
+      <button data-scheme="b" aria-pressed="false"><b>B</b> 点名大画布</button>
+      <button data-scheme="c" aria-pressed="false"><b>C</b> 分组课堂板</button>
+    </nav>
+  </header>
+
+  <main class="app" data-scheme="a">
+    <header class="app-head">
+      <button class="square-btn" data-action="portal" title="返回入口页" aria-label="返回入口页">←</button>
+      <div class="class-title"><span class="class-stamp">五年级 2 班</span><h1>教师赋分控制台</h1></div>
+      <div class="head-actions">
+        <div class="subject-switch" role="group" aria-label="授课科目">
+          <button data-subject="语文" aria-pressed="true">语文</button>
+          <button data-subject="数学" aria-pressed="false">数学</button>
+          <button data-subject="英语" aria-pressed="false">英语</button>
+        </div>
+        <button data-action="bigscreen">打开大屏</button>
+        <button class="utility-toggle" aria-expanded="false">工具箱</button>
+      </div>
+    </header>
+
+    <section class="utility-panel" hidden aria-label="教师工具箱">
+      <button data-action="undo">撤回上一笔</button><button data-action="ledger">赋分台账</button>
+      <button data-action="import">导入 Excel</button><button data-action="add">添加学生</button>
+      <button data-action="threshold">经验阈值</button><button data-action="backup">备份与还原</button>
+      <button data-action="theme">切换风格</button>
+    </section>
+
+    <section class="control-strip">
+      <label class="search-box"><span>搜索</span><input id="student-search" type="search" placeholder="姓名或学号"></label>
+      <div class="group-tabs" role="group" aria-label="名单筛选">
+        <button data-group="all" aria-pressed="true">全班</button><button data-group="1" aria-pressed="false">1组</button>
+        <button data-group="2" aria-pressed="false">2组</button><button data-group="3" aria-pressed="false">3组</button>
+        <button data-group="4" aria-pressed="false">4组</button><button data-group="archive" aria-pressed="false">归档</button>
+      </div>
+      <div class="zoom-control" role="group" aria-label="学生卡片缩放">
+        <button data-zoom="out" title="缩小卡片">−</button><output id="zoom-label">100%</output><button data-zoom="in" title="放大卡片">＋</button><button data-zoom="reset">重置</button>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace" aria-live="polite"></section>
+  </main>
+
+  <dialog id="preview-dialog">
+    <div class="dialog-head"><strong id="dialog-title">预览说明</strong><button id="dialog-close" aria-label="关闭">×</button></div>
+    <div id="dialog-body"></div>
+    <button class="dialog-ok" id="dialog-ok">知道了</button>
+  </dialog>
+  <script src="teacher-preview.js"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const { parseHTML } = require('linkedom');
+const root = path.resolve(__dirname, '..');
+let checks = 0;
+function check(value, label){assert.ok(value,label);checks++;}
+function contextFor(html){
+  const { document, window: domWindow } = parseHTML(html);
+  const data = new Map();
+  const localStorage={getItem:key=>data.get(key)??null,setItem:(key,value)=>data.set(key,String(value))};
+  const window={innerWidth:1400,innerHeight:880,alert(){},location:{href:''},matchMedia:()=>({matches:false})};
+  const context=vm.createContext({document,window,localStorage,console,URLSearchParams,location:{search:''},history:{replaceState(){}},setTimeout,clearTimeout});
+  return {document,window,context,localStorage,domWindow};
+}
+const portalHtml=fs.readFileSync(path.join(root,'electron-app/src/portal_auth.html'),'utf8');
+const portal=contextFor(portalHtml);
+for(const script of portal.document.querySelectorAll('script')) vm.runInContext(script.textContent,portal.context);
+check(!portal.document.querySelector('.brand-badge'),'brand removed');
+check(!portal.document.querySelector('.hub-statusbar'),'status bar removed');
+check(!portal.document.querySelector('.hub-card p,.hub-footer'),'entry small text removed');
+check(portal.document.querySelectorAll('.hub-card').length===2,'two entry links retained');
+check(!portal.document.querySelector('.hub-card.primary'),'neither hub entry permanently highlighted');
+check(portal.document.getElementById('loginAccount').children.length===2,'account dropdown retains both accounts');
+vm.runInContext("selectAccountById('acc_demo_401')",portal.context);
+check(portal.document.getElementById('resetAccountLabel').value.includes('张老师'),'account selection updates reset target');
+vm.runInContext("switchAuthTab('register')",portal.context);
+check(portal.document.getElementById('tabRegister').style.display==='block','registration reachable');
+vm.runInContext("switchAuthTab('reset')",portal.context);
+check(portal.document.getElementById('tabReset').style.display==='block','reset reachable');
+vm.runInContext("selectAccountById('acc_demo_302');switchAuthTab('login')",portal.context);
+vm.runInContext('handleLoginSubmit()',portal.context);
+check(portal.document.getElementById('viewHub').classList.contains('active'),'login enters hub without removed-ID exception');
+check(portal.document.getElementById('currentAccountTitle').textContent.includes('刘老师'),'current account retained');
+vm.runInContext('launchDisplayApp({preventDefault(){}})',portal.context);
+check(portal.window.location.href==='./display_bigscreen_touch_pro.html','display browser navigation');
+vm.runInContext('launchTeacherApp({preventDefault(){}})',portal.context);
+check(portal.window.location.href==='./teacher_panel_touch_pro.html','teacher browser navigation');
+let displayCalls=0,teacherCalls=0;
+portal.window.electronAPI={openDisplayWindow(){displayCalls++;},openTeacherWindow(){teacherCalls++;}};
+vm.runInContext('launchDisplayApp(); launchTeacherApp();',portal.context);
+check(displayCalls===1&&teacherCalls===1,'Electron navigation bridge retained');
+vm.runInContext("setTheme('forest')",portal.context);
+check(portal.document.documentElement.getAttribute('data-theme')==='forest','theme switch retained');
+vm.runInContext('goToAuth()',portal.context);
+check(portal.document.getElementById('viewAuth').classList.contains('active'),'logout returns to auth');
+
+const preview=contextFor(fs.readFileSync(path.join(root,'design/pet-layout-preview.html'),'utf8'));
+vm.runInContext(fs.readFileSync(path.join(root,'design/pet-layout-preview.js'),'utf8'),preview.context);
+const doc=preview.document;
+check(doc.querySelectorAll('.pet-card').length===8,'A renders eight cards');
+check(doc.getElementById('page-label').textContent==='1 / 11','A page count');
+doc.querySelector('[data-student="2"]').click();
+check(doc.getElementById('detail-name').textContent==='李四','click updates left detail');
+check(doc.querySelector('[data-student="2"]').getAttribute('aria-pressed')==='true','selection marked');
+check(doc.querySelectorAll('[data-student][aria-pressed="true"]').length===1,'one selected card');
+doc.getElementById('next').click();
+check(doc.getElementById('page-label').textContent==='2 / 11','next page');
+check(doc.querySelector('.pet-card').dataset.student==='9','page two starts at student nine');
+doc.getElementById('prev').click();
+check(doc.getElementById('page-label').textContent==='1 / 11','previous page');
+doc.querySelector('[data-scheme="b"][role="tab"]').click();
+check(doc.querySelectorAll('.pet-card').length===88,'B renders continuous list');
+doc.querySelector('[data-scheme="c"][role="tab"]').click();
+check(doc.querySelectorAll('.pet-card').length===6,'C renders six cards');
+check(doc.getElementById('page-label').textContent==='1 / 15','C page count');
+doc.querySelector('[data-subject="英语"]').click();
+check(doc.getElementById('detail-subject').textContent==='英语','subject updates detail');
+check(doc.querySelector('.current-subject').textContent==='英语','subject updates header');
+// Select behavior is dispatched through the same change listener, without a browser engine.
+const sort=doc.getElementById('sort');
+sort.querySelector('option[value="level"]').selected=true;
+sort.dispatchEvent(new preview.domWindow.Event('change'));
+check(doc.querySelector('.card-level').textContent==='Lv.20','sort by level');
+for(let i=0;i<14;i++)doc.getElementById('next').click();
+check(doc.getElementById('page-label').textContent==='15 / 15','last page reachable');
+check(doc.querySelectorAll('.pet-card').length===4,'last page has four remaining students');
+check(doc.getElementById('next').disabled,'last-page next disabled');
+for(const img of doc.querySelectorAll('img')){
+  check(fs.existsSync(path.resolve(root,'design',img.getAttribute('src'))),`asset exists: ${img.getAttribute('src')}`);
+}
+console.log(`${checks} offline DOM checks passed. Browser rendering, responsive layout and native Electron were not tested.`);

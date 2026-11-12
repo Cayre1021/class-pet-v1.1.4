@@ -8,6 +8,7 @@ build/
 win-unpacked/
 builder-debug.yml
 builder-effective-config.yaml
+electron-app/release*/
 
 # OS and Editor
 .DS_Store
@@ -19,3 +20,9 @@ Thumbs.db
 
 # Local databases generated during dev
 *.sqlite-journal
+*.sqlite
+*.sqlite-*
+*.db
+*.petpkg
+.env
+.env.*

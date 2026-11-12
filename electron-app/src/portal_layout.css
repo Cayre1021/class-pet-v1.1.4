@@ -1,0 +1,49 @@
+body { isolation: isolate; }
+.app-container { position: relative; isolation: isolate; overflow: hidden; }
+.global-bar { position: relative; z-index: 1; gap: 16px; flex-wrap: wrap; }
+.card-title { letter-spacing: 0; overflow-wrap: anywhere; }
+.nb-card { max-width: 560px; padding: 32px 36px; }
+.nb-card.wide { max-width: 1160px; padding: 40px; }
+.auth-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 22px; }
+.auth-heading .card-title { font-size: 23px; line-height: 1.5; }
+.auth-subtitle { font-size: 16px; color: var(--text-secondary); margin-top: 8px; }
+.auth-pets { display: flex; flex-shrink: 0; }
+.auth-pets img { width: 64px; height: 90px; object-fit: contain; }
+.tab-bar { border-bottom: 0; gap: 12px; padding: 0; margin-bottom: 24px; }
+.tab-btn { flex: 1; min-height: 42px; padding: 8px; font-size: 13px; }
+.form-label { font-family: inherit; text-transform: none; }
+.form-input { min-height: 48px; border-width: 2px; box-shadow: none; }
+#loginAccount { margin-bottom: 12px; }
+#accountListContainer { max-height: 74px; overflow: auto; border: 0; margin-bottom: 20px; }
+#accountListContainer .account-item { display: none; }
+#accountListContainer .account-item.selected { display: block; padding: 8px 0; border: 0; box-shadow: none; background: transparent; }
+#accountListContainer .account-item.selected > span { display: none; }
+#accountListContainer h4 { font-size: 12px; }
+#accountListContainer p { font-size: 12px; line-height: 1.6; }
+.hub-card { min-height: 270px; border-radius: 0; }
+.hub-card:focus-visible,.hub-card:hover { border-color: var(--accent); background: var(--tag-bg); }
+#viewHub .card-header { gap: 24px; flex-wrap: wrap; }
+.paw-background { position: absolute; inset: 0; z-index: -1; pointer-events: none; user-select: none; overflow: hidden; }
+.paw-print { position: absolute; display: block; width: var(--paw-size); aspect-ratio: 1; background: var(--paw-color); transform: rotate(var(--paw-angle)); mask: url('./assets/decor/cat-paw.svg') center/contain no-repeat; -webkit-mask: url('./assets/decor/cat-paw.svg') center/contain no-repeat; }
+.paw-print.dog { mask-image: url('./assets/decor/dog-paw.svg'); -webkit-mask-image: url('./assets/decor/dog-paw.svg'); }
+.paw-print:nth-child(1) { left: 2%; top: 3%; }
+.paw-print:nth-child(2) { right: 3%; top: 4%; }
+.paw-print:nth-child(3) { left: 3%; bottom: 3%; }
+.paw-print:nth-child(4) { right: 3%; bottom: 3%; }
+.paw-print:nth-child(5) { left: 1%; top: 45%; }
+.paw-print:nth-child(6) { right: 2%; top: 42%; }
+.paw-print:nth-child(7) { left: 30%; top: 2%; }
+.paw-print:nth-child(8) { right: 31%; bottom: 6%; }
+.paw-print:nth-child(9) { left: 22%; bottom: 15%; }
+.paw-print:nth-child(10) { right: 23%; top: 78%; }
+@media(max-width:760px) {
+    .theme-selector-group { flex-wrap: wrap; }
+    .app-container { padding: 32px 20px; }
+    .nb-card,.nb-card.wide { padding: 26px 22px; }
+    .auth-heading .card-title { font-size: 20px; }
+    .auth-pets img { width: 42px; height: 70px; }
+    .hub-grid { grid-template-columns: 1fr; }
+    .hub-card { min-height: 185px; }
+    .paw-print { width: calc(var(--paw-size) * .5); }
+}
+@media(prefers-reduced-motion:reduce) { .view-section.active { animation: none; } }
