@@ -1,0 +1,24 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..'); const OUT = path.join(ROOT,'screenshots_v3');
+app.setPath('userData', path.join(process.env.TEMP || '.', 'cp-t9-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1920, height: 1080, show: true, webPreferences: { contextIsolation: true, backgroundThrottling: false } });
+  win.setContentSize(1920,1080); win.setAlwaysOnTop(true); win.focus();
+  const js = c => win.webContents.executeJavaScript(c, true);
+  const errs = [];
+  win.webContents.on('console-message', function(){ var a=[].slice.call(arguments); var d=a[1]; var lvl=(typeof d==='object'&&d)?d.level:a[1]; var m=(typeof d==='object'&&d)?d.message:a[2]; if(lvl==='error'||lvl===3) errs.push(String(m).slice(0,120)); });
+  await win.loadURL('file://' + path.join(ROOT, 'design', 'v3_teacher_desk.html').replace(/\\/g, '/'));
+  await sleep(1600);
+  const out = {};
+  out.portal = await js(`(function(){var a=document.getElementById('btn-portal');return {href:a.getAttribute('href'),title:a.title};})()`);
+  await js(`document.querySelector('.stu-more').click()`);
+  await sleep(500);
+  out.menu = await js(`(function(){var m=document.getElementById('row-menu');if(!m)return 'no-menu';return {items:[].slice.call(m.querySelectorAll('button')).map(function(b){return b.textContent.replace(/\\s+/g,' ').trim()}),text:m.textContent.replace(/\\s+/g,' ').trim()};})()`);
+  const im = await win.webContents.capturePage(); fs.writeFileSync(path.join(OUT,'teacher_visual_06_rowmenu.png'), im.toPNG());
+  out.errors = errs.slice(0,4);
+  fs.writeFileSync(path.join(OUT,'teacher_menu_check.json'), JSON.stringify(out,null,2));
+  console.log('done'); app.quit();
+});

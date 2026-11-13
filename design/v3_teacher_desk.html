@@ -828,7 +828,7 @@ body{ background:var(--paper) }
 
   <!-- ================= 顶栏 72px ================= -->
   <header class="topbar" id="topbar">
-    <a class="btn btn-ghost portal-btn" id="btn-portal" data-audit="btn-portal" href="../electron-app/src/portal_auth.html" title="返回班级电子宠物门户">
+    <a class="btn btn-ghost portal-btn" id="btn-portal" data-audit="btn-portal" href="v3_portal.html" title="返回登录与入口页">
       <span class="arrow" aria-hidden="true">←</span>返回门户
     </a>
     <div class="brand">
@@ -1001,10 +1001,6 @@ body{ background:var(--paper) }
   <button class="menu-item" role="menuitem" data-row-action="edit" data-audit="rm-edit" data-audit-label="编辑资料">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4l11-11-4-4L4 16z"/><path d="M14 5l4 4"/></svg></span>
     编辑资料
-  </button>
-  <button class="menu-item" role="menuitem" data-row-action="archive" data-audit="rm-archive" data-audit-label="归档或恢复学生">
-    <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18v4H3z"/><path d="M5 10v10h14V10"/><path d="M10 14h4"/></svg></span>
-    <span id="rm-archive-label">归档学生</span>
   </button>
 </div>
 
@@ -1402,7 +1398,7 @@ body{ background:var(--paper) }
           '<input type="checkbox" data-stu="' + s.id + '" data-audit="chk-' + s.id + '" ' + (state.selected.has(s.id) ? 'checked' : '') + ' aria-label="选中 ' + esc(s.name) + '">' +
           '<span class="chk-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l5 5L20 6"/></svg></span>' +
         '</label>' +
-        '<button class="stu-more" data-stu="' + s.id + '" data-audit="more-' + s.id + '" aria-label="更多操作：' + esc(s.name) + '" aria-haspopup="true" aria-expanded="false" title="更多操作（日志 / 编辑 / 归档）">⋯</button>' +
+        '<button class="stu-more" data-stu="' + s.id + '" data-audit="more-' + s.id + '" aria-label="更多操作：' + esc(s.name) + '" aria-haspopup="true" aria-expanded="false" title="更多操作（日志 / 编辑）">⋯</button>' +
         '<div class="stu-avatar' + (s.isEgg ? ' is-egg' : '') + '">' +
           '<img src="' + petSrc(s) + '" alt="' + esc(s.name) + '的宠物 ' + speciesName(s) + '" draggable="false" onerror="this.style.visibility=\'hidden\'">' +
           '<span class="stu-lv">LV' + s.level + '</span>' +
@@ -1424,7 +1420,7 @@ body{ background:var(--paper) }
     if (!cards.length) {
       wrap.innerHTML = '<div class="grid-empty">' + (state.query
         ? '没有匹配「' + esc(state.query) + '」的学生<br>试试清空搜索或切换分组'
-        : (state.filter === 'archive' ? '暂无归档学生<br>在卡片「⋯ → 归档学生」可移入此处' : '该分组暂无学生')) + '</div>';
+        : (state.filter === 'archive' ? '暂无归档学生<br>可在「⋯ → 编辑资料」里勾选「移入归档」' : '该分组暂无学生')) + '</div>';
       return;
     }
     wrap.innerHTML = cards.map(rowHTML).join('');
@@ -1746,8 +1742,6 @@ body{ background:var(--paper) }
     state.rowMenuId = id;
     var title = rowMenu.querySelector('.menu-title');
     if (title) title.textContent = s.name + ' · #' + pad2(s.id);
-    var archiveLabel = $('#rm-archive-label');
-    if (archiveLabel) archiveLabel.textContent = s.archived ? '恢复学生' : '归档学生';
     placeMenu(rowMenu, btn.getBoundingClientRect(), 'right');
     btn.setAttribute('aria-expanded', 'true');
     document.addEventListener('pointerdown', onDocPointerDown, true);
@@ -2653,7 +2647,7 @@ body{ background:var(--paper) }
       'subject2-yuwen', 'subject2-shuxue', 'subject2-yingyu',
       'search-input', 'btn-add', 'btn-select-all', 'btn-clear-sel', 'btn-move-group',
       'sel-clear', 'btn-open-ledger', 'btn-undo', 'btn-custom-rule', 'quiet-mode',
-      'rm-log', 'rm-edit', 'rm-archive', 'dlg-close', 'dlg-cancel'];
+      'rm-log', 'rm-edit', 'dlg-close', 'dlg-cancel'];
     var present = {};
     controls.forEach(function (c) { present[c.id] = true; });
     var missing = required.filter(function (id) { return !present[id]; });
