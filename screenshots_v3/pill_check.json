@@ -1,0 +1,31 @@
+{
+  "portalBtn": {
+    "text": "←返回登录页",
+    "href": "v3_portal.html",
+    "cls": "btn portal-btn"
+  },
+  "pillBefore": {
+    "hidden": true
+  },
+  "pillAfter": {
+    "hidden": false,
+    "text": "已选 3 人 清空",
+    "rect": [
+      1754,
+      77,
+      150,
+      44
+    ]
+  },
+  "pillCleared": {
+    "hidden": true,
+    "sel": 0
+  },
+  "audit": {
+    "pass": true,
+    "occluded": 0,
+    "missing": 0
+  },
+  "errors": [],
+  "fails": []
+}

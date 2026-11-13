@@ -6,34 +6,12 @@
       "docW": 1920,
       "innerW": 1920,
       "controls": 41,
-      "smallTargets": [
-        {
-          "t": "btn-sort",
-          "w": 108,
-          "h": 40
-        },
-        {
-          "t": "btn-tools",
-          "w": 69,
-          "h": 40
-        },
-        {
-          "t": "btn-teacher",
-          "w": 89,
-          "h": 40
-        }
-      ],
-      "smallCount": 3,
+      "smallTargets": [],
+      "smallCount": 0,
       "smallFonts": [],
       "smallFontCount": 0,
-      "lowContrast": [
-        {
-          "t": "32人",
-          "ratio": 4.16,
-          "fs": 12
-        }
-      ],
-      "lowContrastCount": 1,
+      "lowContrast": [],
+      "lowContrastCount": 0,
       "overflowText": [],
       "occluded": [],
       "vp": "1920x1080"
@@ -44,34 +22,12 @@
       "docW": 1440,
       "innerW": 1440,
       "controls": 41,
-      "smallTargets": [
-        {
-          "t": "btn-sort",
-          "w": 108,
-          "h": 40
-        },
-        {
-          "t": "btn-tools",
-          "w": 69,
-          "h": 40
-        },
-        {
-          "t": "btn-teacher",
-          "w": 89,
-          "h": 40
-        }
-      ],
-      "smallCount": 3,
+      "smallTargets": [],
+      "smallCount": 0,
       "smallFonts": [],
       "smallFontCount": 0,
-      "lowContrast": [
-        {
-          "t": "32人",
-          "ratio": 4.16,
-          "fs": 12
-        }
-      ],
-      "lowContrastCount": 1,
+      "lowContrast": [],
+      "lowContrastCount": 0,
       "overflowText": [],
       "occluded": [],
       "vp": "1440x900"
@@ -86,191 +42,61 @@
       "controls": 53,
       "smallTargets": [
         {
-          "t": "btn-portal",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "t": "btn-bigscreen",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "t": "btn-data-menu",
-          "w": 123,
-          "h": 40
-        },
-        {
           "t": "search-input",
           "w": 188,
           "h": 21
         },
         {
-          "t": "btn-add",
-          "w": 109,
+          "t": "语文",
+          "w": 92,
+          "h": 36
+        },
+        {
+          "t": "数学",
+          "w": 92,
+          "h": 36
+        },
+        {
+          "t": "英语",
+          "w": 92,
+          "h": 36
+        },
+        {
+          "t": "btn-select-all",
+          "w": 169,
           "h": 40
         },
         {
-          "t": "⋯",
-          "w": 40,
+          "t": "sel-clear",
+          "w": 169,
           "h": 40
         },
         {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
+          "t": "btn-custom-rul",
+          "w": 110,
+          "h": 32
         },
         {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
+          "t": "btn-open-ledge",
+          "w": 64,
+          "h": 25
         },
         {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
-        },
-        {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
-        },
-        {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
-        },
-        {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
-        },
-        {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
-        },
-        {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
+          "t": "btn-undo",
+          "w": 346,
+          "h": 38
         }
       ],
-      "smallCount": 45,
+      "smallCount": 9,
       "smallFonts": [
         {
-          "t": "LV5",
-          "fs": 11.5
-        },
-        {
-          "t": "LV4",
-          "fs": 11.5
-        },
-        {
-          "t": "LV1",
-          "fs": 11.5
-        },
-        {
-          "t": "待破壳",
-          "fs": 10
-        },
-        {
-          "t": "LV6",
-          "fs": 11.5
-        },
-        {
-          "t": "LV3",
-          "fs": 11.5
-        },
-        {
-          "t": "LV4",
-          "fs": 11.5
-        },
-        {
-          "t": "LV5",
-          "fs": 11.5
-        },
-        {
-          "t": "缺勤",
-          "fs": 10
-        },
-        {
-          "t": "LV3",
-          "fs": 11.5
-        },
-        {
-          "t": "LV4",
-          "fs": 11.5
-        },
-        {
-          "t": "LV5",
-          "fs": 11.5
+          "t": "0",
+          "fs": 11
         }
       ],
-      "smallFontCount": 37,
-      "lowContrast": [
-        {
-          "t": "LV5",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "LV4",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "LV1",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "待破壳",
-          "ratio": 4.35,
-          "fs": 10
-        },
-        {
-          "t": "LV6",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "LV3",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "LV9",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "满级",
-          "ratio": 4.42,
-          "fs": 10
-        },
-        {
-          "t": "LV7",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "LV8",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "+1",
-          "ratio": 4.2,
-          "fs": 13
-        },
-        {
-          "t": "+2",
-          "ratio": 4.2,
-          "fs": 13
-        }
-      ],
-      "lowContrastCount": 14,
+      "smallFontCount": 1,
+      "lowContrast": [],
+      "lowContrastCount": 0,
       "overflowText": [],
       "occluded": [
         "⋯",
@@ -294,191 +120,61 @@
       "controls": 53,
       "smallTargets": [
         {
-          "t": "btn-portal",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "t": "btn-bigscreen",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "t": "btn-data-menu",
-          "w": 123,
-          "h": 40
-        },
-        {
           "t": "search-input",
           "w": 188,
           "h": 21
         },
         {
-          "t": "btn-add",
-          "w": 109,
+          "t": "语文",
+          "w": 92,
+          "h": 36
+        },
+        {
+          "t": "数学",
+          "w": 92,
+          "h": 36
+        },
+        {
+          "t": "英语",
+          "w": 92,
+          "h": 36
+        },
+        {
+          "t": "btn-select-all",
+          "w": 169,
           "h": 40
         },
         {
-          "t": "⋯",
-          "w": 40,
+          "t": "sel-clear",
+          "w": 169,
           "h": 40
         },
         {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
+          "t": "btn-custom-rul",
+          "w": 110,
+          "h": 32
         },
         {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
+          "t": "btn-open-ledge",
+          "w": 64,
+          "h": 25
         },
         {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
-        },
-        {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
-        },
-        {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
-        },
-        {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
-        },
-        {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
-        },
-        {
-          "t": "⋯",
-          "w": 40,
-          "h": 40
+          "t": "btn-undo",
+          "w": 346,
+          "h": 38
         }
       ],
-      "smallCount": 45,
+      "smallCount": 9,
       "smallFonts": [
         {
-          "t": "LV5",
-          "fs": 11.5
-        },
-        {
-          "t": "LV4",
-          "fs": 11.5
-        },
-        {
-          "t": "LV1",
-          "fs": 11.5
-        },
-        {
-          "t": "待破壳",
-          "fs": 10
-        },
-        {
-          "t": "LV6",
-          "fs": 11.5
-        },
-        {
-          "t": "LV3",
-          "fs": 11.5
-        },
-        {
-          "t": "LV4",
-          "fs": 11.5
-        },
-        {
-          "t": "LV5",
-          "fs": 11.5
-        },
-        {
-          "t": "缺勤",
-          "fs": 10
-        },
-        {
-          "t": "LV3",
-          "fs": 11.5
-        },
-        {
-          "t": "LV4",
-          "fs": 11.5
-        },
-        {
-          "t": "LV5",
-          "fs": 11.5
+          "t": "0",
+          "fs": 11
         }
       ],
-      "smallFontCount": 37,
-      "lowContrast": [
-        {
-          "t": "LV5",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "LV4",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "LV1",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "待破壳",
-          "ratio": 4.35,
-          "fs": 10
-        },
-        {
-          "t": "LV6",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "LV3",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "LV9",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "满级",
-          "ratio": 4.42,
-          "fs": 10
-        },
-        {
-          "t": "LV7",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "LV8",
-          "ratio": 4.2,
-          "fs": 11.5
-        },
-        {
-          "t": "+1",
-          "ratio": 4.2,
-          "fs": 13
-        },
-        {
-          "t": "+2",
-          "ratio": 4.2,
-          "fs": 13
-        }
-      ],
-      "lowContrastCount": 14,
+      "smallFontCount": 1,
+      "lowContrast": [],
+      "lowContrastCount": 0,
       "overflowText": [],
       "occluded": [
         "⋯",
@@ -502,43 +198,19 @@
       "docW": 1920,
       "innerW": 1920,
       "controls": 5,
-      "smallTargets": [
-        {
-          "t": "tab-register",
-          "w": 75,
-          "h": 42
-        },
-        {
-          "t": "lg-class",
-          "w": 508,
-          "h": 42
-        },
-        {
-          "t": "lg-name",
-          "w": 508,
-          "h": 42
-        }
-      ],
-      "smallCount": 3,
+      "smallTargets": [],
+      "smallCount": 0,
       "smallFonts": [
         {
           "t": "本机教师档案",
           "fs": 10.5
         },
         {
-          "t": "班级信息",
-          "fs": 11.5
-        },
-        {
-          "t": "教师名字",
-          "fs": 11.5
-        },
-        {
           "t": "登录只比对本机档案，不会",
           "fs": 11.5
         }
       ],
-      "smallFontCount": 4,
+      "smallFontCount": 2,
       "lowContrast": [],
       "lowContrastCount": 0,
       "overflowText": [],
@@ -551,48 +223,19 @@
       "docW": 1440,
       "innerW": 1440,
       "controls": 5,
-      "smallTargets": [
-        {
-          "t": "tab-register",
-          "w": 75,
-          "h": 42
-        },
-        {
-          "t": "lg-class",
-          "w": 508,
-          "h": 40
-        },
-        {
-          "t": "lg-name",
-          "w": 508,
-          "h": 40
-        },
-        {
-          "t": "登录",
-          "w": 508,
-          "h": 42
-        }
-      ],
-      "smallCount": 4,
+      "smallTargets": [],
+      "smallCount": 0,
       "smallFonts": [
         {
           "t": "本机教师档案",
           "fs": 10.5
         },
         {
-          "t": "班级信息",
-          "fs": 11.5
-        },
-        {
-          "t": "教师名字",
-          "fs": 11.5
-        },
-        {
           "t": "登录只比对本机档案，不会",
           "fs": 11.5
         }
       ],
-      "smallFontCount": 4,
+      "smallFontCount": 2,
       "lowContrast": [],
       "lowContrastCount": 0,
       "overflowText": [],

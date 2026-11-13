@@ -712,14 +712,14 @@ body{ background:var(--paper) }
 .dock-head h2{ font-size:16px !important }
 .dock-subject-row{ display:flex; align-items:center; gap:8px; padding:10px 16px; border-bottom:1px solid rgba(17,17,17,.14); background:var(--surface) }
 .dock-subject-row #subject-seg-2{ flex:1; min-width:0 }
-.dock-subject-row #subject-seg-2 button{ flex:1; min-width:0; height:30px; font-size:13px }
+.dock-subject-row #subject-seg-2 button{ flex:1; min-width:0; height:36px; font-size:13.5px }
 .dock-scroll{ padding:0 16px 8px !important }
 .dock-sec{ padding:10px 0 !important; border-bottom:1px solid rgba(17,17,17,.12) !important }
 .chips .chip{ height:28px; padding-top:0; padding-bottom:0 }
 .dock-sec:last-child{ border-bottom:0 !important }
 .sec-title{ letter-spacing:.08em }
 .sel-actions{ display:flex; align-items:center; gap:8px; margin-bottom:8px }
-.sel-actions .btn{ flex:1; height:34px; padding:0 10px; font-size:13px; border-radius:10px }
+.sel-actions .btn{ flex:1; height:40px; padding:0 10px; font-size:13px; border-radius:10px }
 .sel-actions .btn:disabled{ opacity:.5; cursor:not-allowed }
 .chips{ min-height:34px }
 .sel-empty{ padding:10px 12px; font-size:12.5px; line-height:1.65 }
@@ -774,6 +774,30 @@ body{ background:var(--paper) }
   background:linear-gradient(transparent 64%, var(--accent-soft) 64%, var(--accent-soft) 94%, transparent 94%); }
 </style>
 <style>
+/* —— 触屏与可读性：点击区 ≥44、标签 ≥12、文字对比 ≥4.5 —— */
+.topbar .btn, .toolbar .btn{ height:44px }
+.toolbar .search{ height:44px }
+.lanes .stu-more{ width:44px !important; height:44px !important }
+.lanes .stu-lv{ font-size:12px !important }
+.lanes .stu-flag{ font-size:12px !important; height:19px !important; line-height:17px !important }
+.stu-flag.absent{ color:#8E2F1E !important }
+.stu-flag.egg{ color:#7A5200 !important }
+.stu-flag.max{ color:#6B4700 !important }
+.score-btn .val, .score-btn.pos .val{ color:color-mix(in srgb, var(--accent) 72%, #111111) }
+.score-btn.neg .val{ color:#8E2F1E }
+.lanes .stu-lv{ color:color-mix(in srgb, var(--accent) 72%, #111111) !important }
+.sel-pill{
+  margin-left:auto; display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 8px 0 16px;
+  border:var(--line-soft) solid var(--ink); border-radius:999px; background:var(--accent-soft);
+  font-size:13px; font-weight:800; color:var(--ink); white-space:nowrap;
+}
+.sel-pill[hidden]{ display:none !important }
+.sel-pill b{ font-size:15px; font-variant-numeric:tabular-nums }
+.sel-pill .link-btn{
+  height:30px; padding:0 12px; border:1.5px solid var(--ink); border-radius:999px;
+  background:var(--surface); color:var(--ink); font-size:12.5px; font-weight:800;
+}
+
 /* —— 主题切换：整页同步淡入新配色（学生大屏同款观感） —— */
 html.theme-fade,
 html.theme-fade *,
@@ -842,8 +866,8 @@ html.theme-fade *::after{
 
   <!-- ================= 顶栏 72px ================= -->
   <header class="topbar" id="topbar">
-    <a class="btn btn-ghost portal-btn" id="btn-portal" data-audit="btn-portal" href="v3_portal.html" title="返回登录与入口页">
-      <span class="arrow" aria-hidden="true">←</span>返回门户
+    <a class="btn portal-btn" id="btn-portal" data-audit="btn-portal" href="v3_portal.html" title="退出到登录与入口页">
+      <span class="arrow" aria-hidden="true">←</span>返回登录页
     </a>
     <div class="brand">
       <span class="brand-paw" aria-hidden="true">
@@ -884,6 +908,9 @@ html.theme-fade *::after{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       新增学生
     </button>
+    <div class="sel-pill" id="sel-pill" hidden aria-live="polite">已选 <b id="sel-pill-n">0</b> 人
+      <button class="link-btn" type="button" id="sel-pill-clear">清空</button>
+    </div>
   </div>
 
   <!-- ================= 主体 ================= -->
@@ -1543,6 +1570,8 @@ html.theme-fade *::after{
     $$('#score-grid .score-btn').forEach(function (b) {
       b.disabled = false;
     });
+    var pill = $('#sel-pill'), pn = $('#sel-pill-n');
+    if (pill) { pill.hidden = n === 0; if (pn) pn.textContent = String(n); }
   }
 
   function updateScoreMore() {
@@ -2375,6 +2404,8 @@ html.theme-fade *::after{
     else if (action === 'edit') openEditDialog(id);
   });
 
+  var pillClear = $('#sel-pill-clear');
+  if (pillClear) pillClear.addEventListener('click', function () { clearSelection(); });
   searchInput.addEventListener('input', onSearchInput);
   searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') renderLanes(); });
   $('#btn-search-clear').addEventListener('click', clearSearch);
