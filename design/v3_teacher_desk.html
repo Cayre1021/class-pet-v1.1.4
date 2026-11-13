@@ -1154,7 +1154,6 @@ body{ background:var(--paper) }
         isEgg: !!r.isEgg,
         isAbsent: !!r.isAbsent,
         isMax: !!r.isMax,
-        archived: false,
         log: []
       };
     });
@@ -1175,7 +1174,6 @@ body{ background:var(--paper) }
   function groupTotals() {
     var out = { 1: { count: 0, exp: 0 }, 2: { count: 0, exp: 0 }, 3: { count: 0, exp: 0 }, 4: { count: 0, exp: 0 } };
     state.students.forEach(function (s) {
-      if (s.archived) return;
       out[s.group].count += 1;
       out[s.group].exp += s.exp;
     });
@@ -1369,15 +1367,13 @@ body{ background:var(--paper) }
   }
   function visibleStudentsForGroup(group) {
     return state.students.filter(function (s) {
-      if (group === 'archive') return s.archived && matchesQuery(s);
-      return !s.archived && s.group === Number(group) && matchesQuery(s);
+      return s.group === Number(group) && matchesQuery(s);
     }).sort(function (a, b) {
       if (state.sort === 'level') return b.level - a.level || b.exp - a.exp || a.id - b.id;
       return a.id - b.id;
     });
   }
   function currentLanes() {
-    if (state.filter === 'archive') return [{ key: 'archive', label: '归档学生', group: 0 }];
     if (state.filter === 'all') return [1, 2, 3, 4].map(function (g) { return { key: String(g), label: g + '组', group: g }; });
     return [{ key: state.filter, label: state.filter + '组', group: Number(state.filter) }];
   }
@@ -1393,7 +1389,7 @@ body{ background:var(--paper) }
     if (s.isEgg) cls += ' is-egg';
     if (s.isMax || s.level >= 9) cls += ' is-max';
     return '' +
-      '<div class="' + cls + '" data-stu="' + s.id + '" data-group="' + (s.archived ? 'archive' : s.group) + '" role="checkbox" aria-checked="' + state.selected.has(s.id) + '" tabindex="0" data-audit-row="' + s.id + '">' +
+      '<div class="' + cls + '" data-stu="' + s.id + '" data-group="' + s.group + '" role="checkbox" aria-checked="' + state.selected.has(s.id) + '" tabindex="0" data-audit-row="' + s.id + '">' +
         '<label class="chk" title="选中 ' + esc(s.name) + '">' +
           '<input type="checkbox" data-stu="' + s.id + '" data-audit="chk-' + s.id + '" ' + (state.selected.has(s.id) ? 'checked' : '') + ' aria-label="选中 ' + esc(s.name) + '">' +
           '<span class="chk-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l5 5L20 6"/></svg></span>' +
@@ -1405,7 +1401,7 @@ body{ background:var(--paper) }
         '</div>' +
         '<div class="stu-main">' +
           '<div class="stu-name" title="' + esc(s.name) + '"><span class="nm">' + esc(s.name) + '</span></div>' +
-          '<div class="stu-meta"><span class="no">#' + pad2(s.id) + '</span><span>' + (s.archived ? '已归档' : s.group + '组') + '</span>' + flags + '</div>' +
+          '<div class="stu-meta"><span class="no">#' + pad2(s.id) + '</span><span>' + s.group + '组</span>' + flags + '</div>' +
           '<div class="stu-exp" title="经验 ' + s.exp + ' / ' + s.maxExp + '"><span style="width:' + expPct(s) + '%"></span></div>' +
         '</div>' +
       '</div>';
@@ -1420,7 +1416,7 @@ body{ background:var(--paper) }
     if (!cards.length) {
       wrap.innerHTML = '<div class="grid-empty">' + (state.query
         ? '没有匹配「' + esc(state.query) + '」的学生<br>试试清空搜索或切换分组'
-        : (state.filter === 'archive' ? '暂无归档学生' : '该分组暂无学生')) + '</div>';
+        : '该分组暂无学生') + '</div>';
       return;
     }
     wrap.innerHTML = cards.map(rowHTML).join('');
@@ -1582,7 +1578,6 @@ body{ background:var(--paper) }
     ids.forEach(function (id) {
       var s = byId(id);
       if (!s) return;
-      if (s.archived) { skipped.push(s.name); return; }
       if (s.isAbsent) { skipped.push(s.name); return; }
       snaps.push({ id: s.id, level: s.level, exp: s.exp });
       s.exp += value;
@@ -1613,7 +1608,7 @@ body{ background:var(--paper) }
       });
     });
     if (!applied.length) {
-      toast('所选学生均不可赋分（归档或缺勤）', 'warn');
+      toast('所选学生均不可赋分（缺勤）', 'warn');
       return;
     }
     var op = {
@@ -1646,7 +1641,7 @@ body{ background:var(--paper) }
       toast('恭喜！' + levelUps.map(function (s) { return s.name + ' 的宠物升到 LV' + s.level; }).join('、'));
     } else {
       playChime(value < 0 ? 'neg' : 'stamp');
-      toast(applied.length + ' 人 · ' + rule + ' ' + (value > 0 ? '+' : '') + value + ' · ' + state.subject + '（模拟）' + (skipped.length ? '，跳过 ' + skipped.length + ' 人（缺勤/归档）' : ''));
+      toast(applied.length + ' 人 · ' + rule + ' ' + (value > 0 ? '+' : '') + value + ' · ' + state.subject + '（模拟）' + (skipped.length ? '，跳过 ' + skipped.length + ' 人（缺勤）' : ''));
     }
     renderLanes(); renderDock(); renderBatch();
     applied.forEach(function (s) {
@@ -1896,7 +1891,7 @@ body{ background:var(--paper) }
         { label: '导出名单 CSV', primary: true, onClick: function () {
             var lines = ['学号,姓名,小组,等级,经验,物种,状态'];
             state.students.forEach(function (s) {
-              lines.push([pad2(s.id), s.name, s.group, s.level, s.exp, s.isEgg ? '蛋' : speciesName(s), s.archived ? '已归档' : s.isAbsent ? '缺勤' : '在读'].join(','));
+              lines.push([pad2(s.id), s.name, s.group, s.level, s.exp, s.isEgg ? '蛋' : speciesName(s), s.isAbsent ? '缺勤' : '在读'].join(','));
             });
             if (downloadFile('班级名单-三年级二班-' + Date.now() + '.csv', lines.join('\n'), 'text/csv;charset=utf-8')) toast('名单 CSV 已导出（模拟数据）');
           } },
@@ -1967,7 +1962,7 @@ body{ background:var(--paper) }
               kind: 'classpet-v3-teacher-backup', version: 1, exportedAt: new Date().toISOString(),
               expPerLevel: state.expPerLevel, theme: state.theme,
               students: state.students.map(function (s) {
-                return { id: s.id, name: s.name, group: s.group, species: s.species, level: s.level, exp: s.exp, isEgg: s.isEgg, isAbsent: s.isAbsent, archived: s.archived };
+                return { id: s.id, name: s.name, group: s.group, species: s.species, level: s.level, exp: s.exp, isEgg: s.isEgg, isAbsent: s.isAbsent };
               })
             };
             if (downloadFile('班级备份-三年级二班-' + Date.now() + '.json', JSON.stringify(payload, null, 2), 'application/json')) toast('JSON 备份已导出（模拟数据）');
@@ -2009,7 +2004,7 @@ body{ background:var(--paper) }
               id: id, name: name, group: Number($('#add-group').value) || 1,
               species: $('#add-species').value, level: level, exp: exp,
               maxExp: level * state.expPerLevel, isEgg: false, isAbsent: false, isMax: level >= 9,
-              archived: false, log: [{ time: nowTime(), tag: '新增', text: '学生被加入 ' + $('#add-group').value.replace('value', '') + '组' }]
+              log: [{ time: nowTime(), tag: '新增', text: '学生被加入 ' + $('#add-group').value.replace('value', '') + '组' }]
             };
             s.log[0].text = '学生被加入 ' + s.group + ' 组';
             state.students.push(s);
@@ -2022,7 +2017,7 @@ body{ background:var(--paper) }
     setTimeout(function () {
       var body = $('#dlg-body');
       var g = body.querySelector('#add-group');
-      if (g) g.value = String(state.filter === 'archive' || state.filter === 'all' ? 1 : Number(state.filter));
+      if (g) g.value = String(state.filter === 'all' ? 1 : Number(state.filter));
     }, 0);
   }
 
@@ -2088,11 +2083,11 @@ body{ background:var(--paper) }
       ? s.log.slice().reverse().map(function (l) {
           return '<div class="log-item"><time>' + l.time + '</time><span class="lg-tag' + (l.tag === '扣分' || l.tag === '撤销' ? ' neg' : '') + '">' + esc(l.tag) + '</span><span>' + esc(l.text) + '</span></div>';
         }).join('')
-      : '<div class="empty-state">暂无日志。<br>赋分、编辑、归档、破壳都会记入这里。</div>';
+      : '<div class="empty-state">暂无日志。<br>赋分、编辑、破壳都会记入这里。</div>';
     openDialog({
       title: '学生日志 · ' + s.name,
       body: '<p class="note">#' + pad2(s.id) + ' · ' + s.group + '组 · LV' + s.level + ' · ' + s.exp + ' / ' + s.maxExp + ' EXP · ' + speciesName(s) +
-        (s.archived ? ' · 已归档' : s.isAbsent ? ' · 缺勤' : s.isEgg ? ' · 蛋形态' : '') + '</p>' +
+        (s.isAbsent ? ' · 缺勤' : s.isEgg ? ' · 蛋形态' : '') + '</p>' +
         '<div class="log-list">' + items + '</div>',
       actions: [{ label: '编辑资料', onClick: function () { closeDialog(); openEditDialog(s.id); } }]
     });
@@ -2122,7 +2117,7 @@ body{ background:var(--paper) }
             toast(moved ? '已将 ' + moved + ' 人移动到 ' + target + ' 组' : '所选学生已在 ' + target + ' 组');
           } },
         { label: '按学号自动均分', onClick: function () {
-            var list = state.students.filter(function (s) { return !s.archived; }).sort(function (a, b) { return a.id - b.id; });
+            var list = state.students.slice().sort(function (a, b) { return a.id - b.id; });
             list.forEach(function (s, i) {
               var g = (i % 4) + 1;
               if (s.group !== g) { s.group = g; s.log.push({ time: nowTime(), tag: '移组', text: '自动均分到 ' + g + ' 组' }); }
@@ -2223,7 +2218,7 @@ body{ background:var(--paper) }
         id: id, name: name, group: clamp(Number(cols[2]) || 1, 1, 4),
         level: level, exp: clamp(Number(cols[4]) || 0, 0, level * state.expPerLevel),
         maxExp: level * state.expPerLevel, isEgg: false, isAbsent: false, isMax: level >= 9,
-        archived: false, species: SPECIES_ORDER[(id - 1) % SPECIES_ORDER.length],
+        species: SPECIES_ORDER[(id - 1) % SPECIES_ORDER.length],
         log: [{ time: nowTime(), tag: '导入', text: '从 CSV 导入' }]
       });
     });
@@ -2246,7 +2241,7 @@ body{ background:var(--paper) }
         species: SPECIES[s.species] ? s.species : 'cat', level: level,
         exp: clamp(Number(s.exp) || 0, 0, level * state.expPerLevel),
         maxExp: level * state.expPerLevel,
-        isEgg: !!s.isEgg, isAbsent: !!s.isAbsent, isMax: level >= 9, archived: !!s.archived,
+        isEgg: !!s.isEgg, isAbsent: !!s.isAbsent, isMax: level >= 9, 
         log: [{ time: nowTime(), tag: '还原', text: '从 JSON 备份还原' }]
       };
     });
@@ -2304,7 +2299,7 @@ body{ background:var(--paper) }
     var sel = $('#group-select');
     if (sel) sel.value = v;
     renderLanes(); renderBatch();
-    var label = v === 'all' ? '全班四个小组' : v === 'archive' ? '归档学生' : v + '组';
+    var label = v === 'all' ? '全班四个小组' : v + '组';
     toast('已筛选：' + label + (state.query ? ' · 搜索「' + state.query + '」' : ''));
     playChime('select');
   }
@@ -2363,13 +2358,6 @@ body{ background:var(--paper) }
     if (!s) return;
     if (action === 'log') openLogDialog(id);
     else if (action === 'edit') openEditDialog(id);
-    else if (action === 'archive') {
-      s.archived = !s.archived;
-      if (s.archived) state.selected.delete(s.id);
-      s.log.push({ time: nowTime(), tag: s.archived ? '归档' : '恢复', text: s.archived ? '学生移入归档' : '学生从归档恢复' });
-      renderLanes(); renderDock(); renderBatch();
-      toast(s.archived ? s.name + ' 已移入归档（可在「归档」分段查看）' : s.name + ' 已从归档恢复');
-    }
   });
 
   searchInput.addEventListener('input', onSearchInput);
