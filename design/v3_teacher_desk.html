@@ -884,10 +884,6 @@ html.theme-fade *::after{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       新增学生
     </button>
-    <div class="strip-right">
-      <button class="btn btn-sm" id="btn-clear-sel" data-audit="btn-clear-sel">清空选择</button>
-      <button class="btn btn-sm" id="btn-move-group" data-audit="btn-move-group">调整分组</button>
-    </div>
   </div>
 
   <!-- ================= 主体 ================= -->
@@ -2387,8 +2383,6 @@ html.theme-fade *::after{
   });
   $('#btn-add').addEventListener('click', openAddDialog);
   $('#btn-select-all').addEventListener('click', selectAllVisible);
-  $('#btn-clear-sel').addEventListener('click', function () { clearSelection(); });
-  $('#btn-move-group').addEventListener('click', openMoveGroupDialog);
 
   $('#lanes').addEventListener('click', function (e) {
     var toggle = e.target.closest('[data-lane-toggle]');
@@ -2647,7 +2641,7 @@ html.theme-fade *::after{
     var required = ['btn-portal', 'btn-bigscreen', 'btn-data-menu', 'mi-ledger', 'mi-excel', 'mi-threshold', 'mi-backup',
       'mi-theme-orange', 'mi-theme-forest', 'mi-theme-ocean', 'mi-sound', 'mi-fullscreen', 'mi-reset',
       'subject2-yuwen', 'subject2-shuxue', 'subject2-yingyu',
-      'search-input', 'btn-add', 'btn-select-all', 'btn-clear-sel', 'btn-move-group',
+      'search-input', 'btn-add', 'btn-select-all',
       'sel-clear', 'btn-open-ledger', 'btn-undo', 'btn-custom-rule', 'quiet-mode',
       'rm-log', 'rm-edit', 'dlg-close', 'dlg-cancel'];
     var present = {};
