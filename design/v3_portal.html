@@ -8,7 +8,7 @@
 /* ============================================================
    班级电子宠物 V3 · 教师登录 / 注册 + 入口选择
    皮肤唯一来源：design/v3_looseleaf_paper.html
-   token 块、纸纹(–-grain/–-fiber)、墨线微抖滤镜(#inkWob/#inkWobSm)
+   token 块、纸纹(--grain/--fiber)、墨线微抖滤镜(#inkWob/#inkWobSm)
    均原样搬用；本页只加布局与表单零件。零外链。
    ============================================================ */
 :root{
@@ -66,18 +66,6 @@ h1,h2,p{margin:0}
 .svgdefs{position:absolute;width:0;height:0;overflow:hidden}
 
 /* ---------- 纸张与墨线原子（搬自 v3_looseleaf_paper） ---------- */
-.paper{position:relative;background:var(--surface);background-image:var(--grain);background-size:140px 140px}
-.paper::before{
-  content:'';position:absolute;inset:-1px;z-index:0;pointer-events:none;
-  border:var(--pen) solid var(--ink);border-radius:var(--rad-a)/var(--rad-b);
-  filter:url(#inkWob);
-}
-.paper::after{
-  content:'';position:absolute;inset:2px -2px -2px 2px;z-index:0;pointer-events:none;
-  border:1px solid rgba(17,17,17,.32);border-radius:var(--rad-b)/var(--rad-a);
-  filter:url(#inkWobSm);opacity:.55;
-}
-.paper>*{position:relative;z-index:1}
 .marker{position:relative;display:inline-block;isolation:isolate}
 .marker::before{
   content:'';position:absolute;left:-5px;right:-5px;top:24%;bottom:10%;z-index:-1;
@@ -134,7 +122,7 @@ h1,h2,p{margin:0}
 .crew{
   position:relative;flex:1 1 auto;min-height:0;min-width:0;
   display:grid;grid-template-columns:1.04fr .96fr;grid-template-rows:1fr 1fr;
-  margin:clamp(6px,1.6vh,20px) -6px clamp(2px,.8vh,10px);
+  margin:clamp(10px,2vh,24px) -6px clamp(2px,.8vh,10px);
 }
 .pet{
   position:relative;margin:0;min-width:0;min-height:0;
@@ -168,13 +156,6 @@ h1,h2,p{margin:0}
 .crew > .tape{width:64px;height:19px}
 .crew .tape.t1{left:6%;top:2%;transform:rotate(-13deg)}
 .crew .tape.t2{right:8%;top:44%;transform:rotate(11deg)}
-.sticker{
-  position:absolute;right:2%;top:0;z-index:4;
-  font-size:11px;font-weight:900;letter-spacing:.06em;line-height:1.2;
-  padding:5px 8px;background:var(--surface);border:var(--line-soft) solid var(--ink);
-  border-radius:9px 7px 10px 8px;box-shadow:0 3px 0 var(--ink);
-  transform:rotate(6deg);text-align:center;
-}
 .verinfo{
   flex:none;display:flex;align-items:center;gap:var(--s2);
   font-size:var(--t-xs);color:var(--ink-3);font-weight:700;letter-spacing:.04em;
@@ -182,67 +163,145 @@ h1,h2,p{margin:0}
 }
 .verinfo::before{content:'';flex:0 0 26px;height:1.5px;background:var(--ink);opacity:.3;filter:url(#inkWobSm)}
 
-/* ============================== 右栏：纸感卡片 ============================== */
+/* ============================== 右栏 ============================== */
 .formpane{
-  position:relative;min-width:0;min-height:0;display:grid;place-items:center;
-  padding:clamp(16px,3.2vh,40px) clamp(18px,2.8vw,48px);
+  position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;
+  padding:clamp(14px,2.6vh,32px) clamp(18px,2.8vw,48px);
   overflow:hidden;
 }
+/* 右上角：已登录身份 + 退出 */
+.whoami{
+  flex:none;display:flex;align-items:center;justify-content:flex-end;gap:var(--s2);
+  margin-bottom:clamp(8px,1.2vh,14px);min-height:0;
+}
+.who-chip{
+  display:inline-flex;align-items:center;gap:7px;max-width:100%;
+  padding:4px 13px;font-size:var(--t-sm);font-weight:900;letter-spacing:.02em;
+  background:var(--surface);border:var(--line) solid var(--ink);
+  border-radius:var(--r-pill);box-shadow:0 2px 0 var(--ink);transform:rotate(-1deg);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.who-chip::before{
+  content:'';width:7px;height:7px;flex:none;border-radius:50%;
+  background:var(--accent);border:1.2px solid var(--ink);
+}
+.cardwrap{flex:1 1 auto;min-height:0;display:grid;place-items:center}
+
+/* ---------- 纸感卡片：不对称圆角 + 墨线描边 + 硬阴影 ---------- */
 .card{
   position:relative;width:min(100%,560px);max-height:100%;
   display:flex;flex-direction:column;
-  padding:clamp(18px,2.4vh,28px) clamp(18px,1.9vw,30px) clamp(16px,2.2vh,26px);
+  padding:clamp(16px,2.2vh,22px) clamp(18px,1.9vw,26px) clamp(16px,2.2vh,24px);
+  background:var(--surface);background-image:var(--grain);background-size:140px 140px;
+  border-radius:18px 13px 20px 15px;
+  box-shadow:0 5px 0 rgba(17,17,17,.92), 0 16px 26px rgba(17,17,17,.10);
 }
-.card > .tape{left:50%;top:-11px;margin-left:-39px;transform:rotate(-2.6deg)}
+.card::before{
+  content:'';position:absolute;inset:-1px;border:var(--line) solid var(--ink);
+  border-radius:inherit;filter:url(#inkWob);pointer-events:none;
+}
+.card::after{
+  content:'';position:absolute;inset:3px -3px -3px 3px;border:1px solid rgba(17,17,17,.30);
+  border-radius:inherit;filter:url(#inkWobSm);opacity:.5;pointer-events:none;
+}
+.card > *{position:relative;z-index:1}
+.card > .tape{left:34px;top:-12px;transform:rotate(-3.6deg);width:82px}
+/* 右上角墨线贴纸角标 */
+.seal{
+  position:absolute;right:-13px;top:-15px;z-index:3;
+  width:62px;height:62px;display:grid;place-items:center;text-align:center;
+  background:var(--sun);border:var(--line) solid var(--ink);border-radius:50%;
+  box-shadow:0 3px 0 var(--ink);transform:rotate(9deg);
+  font-size:11px;font-weight:900;line-height:1.12;letter-spacing:.08em;color:var(--ink);
+}
+.seal::before{
+  content:'';position:absolute;inset:5px;border:1.4px dashed rgba(17,17,17,.55);
+  border-radius:50%;filter:url(#inkWobSm);
+}
+.seal span{position:relative;z-index:1}
 
-/* tabs */
-.tabs{display:flex;gap:var(--s1);border-bottom:var(--line) solid var(--ink);position:relative;flex:none}
+/* ---------- 卡片抬头：马克笔斜块高亮 ---------- */
+.card-head{flex:none;display:flex;flex-direction:column;gap:1px;margin-bottom:clamp(8px,1.4vh,14px)}
+.card-title{
+  font-size:clamp(20px,1.75vw,25px);font-weight:900;letter-spacing:.05em;
+  transform:rotate(-1deg);align-self:flex-start;
+}
+.card-sub{font-size:var(--t-sm);color:var(--ink-2);font-weight:700;margin-top:3px}
+
+/* ---------- tab：两枚贴纸标签 ---------- */
+.tabset{
+  position:relative;flex:none;display:flex;align-items:flex-end;gap:10px;
+  padding-bottom:2px;border-bottom:var(--line) solid var(--ink);
+}
 .tab{
-  position:relative;padding:5px 16px 9px;font-size:var(--t-lg);font-weight:900;letter-spacing:.06em;
-  color:var(--ink-3);border-radius:10px 10px 0 0;transition:color .12s,background-color .12s;
+  position:relative;z-index:1;margin-bottom:-2px;
+  padding:6px 18px 7px;background:var(--surface);
+  border:var(--line) solid var(--ink);border-radius:12px 10px 11px 9px;
+  font-size:var(--t-lg);font-weight:900;letter-spacing:.08em;color:var(--ink-3);
+  transform-origin:50% 100%;transform:rotate(-1.2deg);
+  box-shadow:0 2px 0 var(--ink);
+  transition:transform .16s ease,box-shadow .16s ease,background-color .16s ease,color .16s ease;
 }
-.tab:hover{color:var(--ink-2);background:var(--surface-2)}
-.tab[aria-selected="true"]{color:var(--ink)}
-.tab[aria-selected="true"]::after{
-  content:'';position:absolute;left:6px;right:6px;bottom:-3px;height:4px;
-  background:var(--accent);border-radius:2px 3px 2px 3px;filter:url(#inkWobSm);
+.tab:hover{color:var(--ink);background:var(--surface-2)}
+.tab[aria-selected="true"]{
+  z-index:2;color:var(--ink);background:var(--sun);
+  transform:scale(1.06) rotate(-1.8deg);box-shadow:0 3px 0 var(--ink);
 }
 
-/* panels */
+/* ---------- 表单分组节奏 20 / 24 ---------- */
 .panels{flex:1 1 auto;min-height:0}
-.panel{display:flex;flex-direction:column;gap:clamp(6px,1.1vh,11px);padding-top:clamp(10px,1.8vh,16px)}
-.field{display:flex;flex-direction:column;gap:3px}
-.field > label{font-size:var(--t-sm);font-weight:800;letter-spacing:.03em;color:var(--ink-2);display:flex;gap:5px;align-items:baseline}
-.req{color:var(--err);font-size:var(--t-xs)}
-.control{position:relative;display:flex;align-items:center}
+.panel{display:flex;flex-direction:column;padding-top:clamp(12px,1.9vh,18px)}
+.group{display:flex;flex-direction:column;gap:12px}
+.group + .group{margin-top:24px;padding-top:20px;border-top:1.5px dashed rgba(17,17,17,.32)}
+.group-label{
+  font-size:10.5px;font-weight:900;letter-spacing:.18em;color:var(--ink-3);
+  display:flex;align-items:center;gap:7px;
+}
+.group-label::after{content:'';flex:1 1 auto;height:1px;background:rgba(17,17,17,.16)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.lab{
+  align-self:flex-start;display:inline-flex;align-items:center;gap:4px;
+  padding:1px 9px 2px;background:var(--surface);
+  border:var(--line-soft) solid var(--ink);border-radius:var(--r-pill);
+  font-size:11.5px;font-weight:900;letter-spacing:.05em;color:var(--ink-2);
+  box-shadow:0 1px 0 rgba(17,17,17,.55);
+}
+.field.is-bad .lab{border-color:var(--err);color:var(--err)}
+.control{
+  position:relative;display:flex;align-items:center;
+  transition:transform .15s ease,box-shadow .15s ease;border-radius:13px;
+}
+.field:focus-within .control{transform:translate(-1px,-2px);box-shadow:0 4px 0 var(--ink)}
 input[type=text],input[type=password],input[type=tel]{
-  width:100%;height:clamp(38px,4.4vh,44px);padding:0 var(--s3);
-  background:var(--surface-2);border:var(--line) solid var(--ink);
+  width:100%;height:clamp(36px,4.2vh,40px);padding:0 var(--s3);
+  background:var(--surface-2);border:var(--line) solid rgba(17,17,17,.58);
   border-radius:12px 10px 12px 11px;
   font-size:var(--t-md);font-weight:700;color:var(--ink);
-  box-shadow:inset 0 1px 0 rgba(17,17,17,.07);
-  transition:background-color .12s,border-color .12s;
+  transition:background-color .14s,border-color .14s;
 }
 input::placeholder{color:var(--ink-3);font-weight:500;letter-spacing:.02em}
 input:hover{background:var(--surface)}
 input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;background:var(--surface)}
+.field:focus-within input{border-color:var(--ink)}
 .control.has-peek input{padding-right:66px}
 .field.is-bad input{border-color:var(--err);background:var(--surface)}
-.field.is-bad > label{color:var(--err)}
 .msg{
-  min-height:16px;font-size:var(--t-xs);font-weight:800;color:var(--err);
-  display:flex;align-items:center;gap:4px;letter-spacing:.01em;
+  min-height:15px;font-size:11.5px;font-weight:800;color:var(--err);
+  display:flex;align-items:center;gap:4px;letter-spacing:.01em;line-height:1.25;
 }
 .msg:not(:empty)::before{content:'';width:6px;height:6px;flex:none;border-radius:50%;background:var(--err)}
 .peek{
-  position:absolute;right:7px;top:50%;transform:translateY(-50%);
-  font-size:var(--t-xs);font-weight:900;padding:3px 9px;
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  font-size:var(--t-xs);font-weight:900;padding:2px 8px;
   border:var(--line-soft) solid var(--ink);border-radius:var(--r-pill);
   background:var(--surface);box-shadow:0 2px 0 rgba(17,17,17,.35);
   transition:background-color .12s,transform .1s;
 }
 .peek:hover{background:var(--sun)}
-.peek:active{transform:translateY(-50%) translateY(1px)}
+.peek:active{transform:translateY(calc(-50% + 1px))}
+
 .row{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);position:relative;flex:none}
 .check{display:inline-flex;align-items:center;gap:8px;font-size:var(--t-sm);font-weight:800;color:var(--ink-2);cursor:pointer;user-select:none}
 .check input{
@@ -254,52 +313,80 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
   background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4.6 12.7l4.9 4.9 9.9-11' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px 16px no-repeat;
 }
 .check:hover{color:var(--ink)}
-.linkbtn{
-  font-size:var(--t-sm);font-weight:800;color:var(--ink-2);padding:2px 3px;border-radius:6px;
-  text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:3px;
-  text-decoration-thickness:1.5px;transition:color .12s;
-}
-.linkbtn:hover{color:var(--ink)}
 .pop{
   position:absolute;right:0;top:calc(100% + 9px);width:min(296px,100%);z-index:6;
   padding:9px 11px;font-size:var(--t-xs);font-weight:700;line-height:1.55;color:var(--ink);
   background:var(--surface);border:var(--line) solid var(--ink);
   border-radius:11px 9px 12px 10px;box-shadow:0 4px 0 var(--ink);transform:rotate(-.7deg);
 }
-.btn-primary{
-  height:clamp(42px,4.8vh,50px);width:100%;flex:none;
-  border:var(--line) solid var(--ink);border-radius:12px 10px 12px 11px;
-  background:var(--accent);color:var(--accent-ink);
-  font-size:var(--t-lg);font-weight:900;letter-spacing:.14em;
-  box-shadow:0 5px 0 var(--ink);
-  transition:transform .12s ease,box-shadow .12s ease,filter .12s ease;
-}
-.btn-primary:hover{transform:translate(-1px,-2px);box-shadow:0 7px 0 var(--ink);filter:brightness(1.06)}
-.btn-primary:active{transform:translate(0,3px);box-shadow:0 2px 0 var(--ink)}
-.btn-primary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 
-/* 角色只读 chip */
+/* ---------- 分段选择：执教科目 ---------- */
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg label{position:relative;display:flex;min-width:0}
+.seg input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.seg span{
+  flex:1;display:flex;align-items:center;justify-content:center;height:clamp(36px,4.2vh,40px);
+  border:var(--line) solid rgba(17,17,17,.5);border-radius:11px 9px 12px 10px;
+  background:var(--surface);color:var(--ink-2);
+  font-size:var(--t-md);font-weight:900;letter-spacing:.12em;
+  transition:transform .14s ease,background-color .14s ease,box-shadow .14s ease,border-color .14s ease,color .14s ease;
+}
+.seg label:hover span{background:var(--surface-2);color:var(--ink)}
+.seg input:checked + span{
+  background:var(--sun);border-color:var(--ink);color:var(--ink);
+  box-shadow:0 3px 0 var(--ink);transform:translateY(-2px) rotate(-1deg);
+}
+.seg input:focus-visible + span{outline:3px solid var(--accent);outline-offset:2px}
+.field.is-bad .seg span{border-color:var(--err)}
+.field.is-bad .seg input:checked + span{border-color:var(--ink)}
+
+/* ---------- 角色只读 chip ---------- */
 .rolefield{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);flex:none}
 .rolefield .rlabel{font-size:var(--t-sm);font-weight:800;color:var(--ink-2)}
 .chip-ro{
   display:inline-flex;align-items:center;gap:6px;
-  padding:4px 12px;font-size:var(--t-sm);font-weight:900;letter-spacing:.06em;
+  padding:3px 12px;font-size:var(--t-sm);font-weight:900;letter-spacing:.06em;
   background:var(--accent-soft);border:var(--line-soft) solid var(--ink);
   border-radius:var(--r-pill);box-shadow:0 2px 0 var(--ink);transform:rotate(-1deg);
   color:var(--ink);
 }
 .chip-ro svg{width:13px;height:13px;flex:none}
 
-/* ============================== 选择入口 ============================== */
-.done{padding-top:clamp(10px,1.8vh,16px);gap:clamp(10px,1.8vh,16px)}
+/* ---------- 按钮：主 = 实心墨边 3px 硬阴影；次 = 线框 ---------- */
+.btn-primary{
+  margin-top:clamp(14px,2.1vh,20px);height:clamp(42px,4.7vh,48px);width:100%;flex:none;
+  border:var(--line) solid var(--ink);border-radius:12px 10px 12px 11px;
+  background:var(--accent);color:var(--accent-ink);
+  font-size:var(--t-lg);font-weight:900;letter-spacing:.14em;
+  box-shadow:0 3px 0 var(--ink);
+  transition:transform .12s ease,box-shadow .12s ease,filter .12s ease;
+}
+.btn-primary:hover{transform:translate(-1px,-2px);box-shadow:0 5px 0 var(--ink);filter:brightness(1.06)}
+.btn-primary:active{transform:translate(0,2px);box-shadow:0 1px 0 var(--ink)}
+.btn-primary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.btn-ghost{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:none;
+  height:32px;padding:0 13px;
+  border:var(--line) solid var(--ink);border-radius:10px 8px 10px 9px;
+  background:var(--surface);color:var(--ink);font-size:var(--t-sm);font-weight:900;letter-spacing:.04em;
+  box-shadow:0 2px 0 var(--ink);
+  transition:transform .12s ease,box-shadow .12s ease,background-color .12s ease;
+}
+.btn-ghost:hover{transform:translate(-1px,-1px);box-shadow:0 3px 0 var(--ink);background:var(--surface-2)}
+.btn-ghost:active{transform:translate(0,1px);box-shadow:0 1px 0 var(--ink)}
+.btn-ghost:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.btn-ghost.sm{height:28px;padding:0 11px;font-size:var(--t-xs)}
+
+/* ---------- 选择入口 ---------- */
+.done{padding-top:clamp(10px,1.6vh,14px)}
 .eyebrow{
   font-size:var(--t-xs);font-weight:900;letter-spacing:.16em;color:var(--accent);
-  display:flex;align-items:center;gap:7px;text-transform:none;
+  display:flex;align-items:center;gap:7px;
 }
 .eyebrow::before{content:'';width:18px;height:2px;background:var(--accent);filter:url(#inkWobSm)}
-.gate-title{font-size:clamp(21px,1.9vw,27px);font-weight:900;letter-spacing:.04em;transform:rotate(-.8deg);margin-top:-2px}
-.gate-sub{font-size:var(--t-sm);color:var(--ink-2);font-weight:700;margin-top:-2px}
-.gates{display:grid;gap:clamp(10px,1.6vh,14px);margin-top:2px}
+.gate-title{font-size:clamp(21px,1.9vw,27px);font-weight:900;letter-spacing:.04em;transform:rotate(-.8deg);margin-top:2px}
+.gate-sub{font-size:var(--t-sm);color:var(--ink-2);font-weight:700;margin-top:1px}
+.gates{display:grid;gap:clamp(10px,1.6vh,14px);margin-top:clamp(12px,1.8vh,18px)}
 .gate{
   position:relative;display:flex;align-items:center;gap:var(--s3);min-width:0;
   padding:clamp(11px,1.7vh,16px) clamp(12px,1.3vw,16px);
@@ -328,7 +415,7 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
 .gate:hover .gate-arrow,.gate:focus-visible .gate-arrow{transform:translateX(4px)}
 .fineprint{
   font-size:var(--t-xs);color:var(--ink-3);font-weight:700;letter-spacing:.03em;
-  display:flex;align-items:center;gap:7px;margin-top:2px;
+  display:flex;align-items:center;gap:7px;margin-top:clamp(10px,1.5vh,14px);
 }
 .fineprint::before{content:'';flex:0 0 16px;height:1.5px;background:var(--ink);opacity:.28;filter:url(#inkWobSm)}
 
@@ -376,7 +463,6 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     <div class="crew" role="img" aria-label="四只已成长到较高阶段的班级宠物：猫、狗、兔子、狐狸">
       <span class="tape t1" aria-hidden="true"></span>
       <span class="tape t2" aria-hidden="true"></span>
-      <span class="sticker" aria-hidden="true">本班宠物<br>4 只在线</span>
 
       <figure class="pet p1">
         <span class="halo" aria-hidden="true"></span>
@@ -404,148 +490,186 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
   </section>
 
   <!-- ================= 右栏 ================= -->
-  <section class="formpane" aria-label="登录与入口">
-    <div class="card paper" id="authCard">
-      <span class="tape" aria-hidden="true"></span>
+  <section class="formpane" aria-label="教师登录与入口">
+    <div class="whoami" id="whoami" hidden>
+      <span class="who-chip" id="who-chip"></span>
+      <button class="btn-ghost" type="button" id="logout" aria-label="退出并切换账号">退出</button>
+    </div>
 
-      <div class="tabs" role="tablist" aria-label="教师登录或注册">
-        <button class="tab" type="button" id="tab-login" role="tab" aria-selected="true" aria-controls="panel-login">登录</button>
-        <button class="tab" type="button" id="tab-register" role="tab" aria-selected="false" aria-controls="panel-register" tabindex="-1">注册</button>
-      </div>
+    <div class="cardwrap">
+      <div class="card" id="authCard">
+        <span class="tape" aria-hidden="true"></span>
+        <span class="seal" aria-hidden="true"><span>教师<br>专用</span></span>
 
-      <div class="panels">
-        <!-- 登录 -->
-        <form class="panel" id="panel-login" role="tabpanel" aria-labelledby="tab-login" novalidate>
-          <div class="field" id="f-lg-id">
-            <label for="lg-id">工号或手机号 <span class="req" aria-hidden="true">必填</span></label>
-            <div class="control">
-              <input id="lg-id" name="id" type="text" inputmode="text" autocomplete="username"
-                     placeholder="例如 1024 或 13800138000" aria-describedby="lg-id-msg" aria-invalid="false">
+        <div class="card-head" id="cardHead">
+          <h2 class="card-title"><span class="marker" id="cardTitle">教师登录</span></h2>
+          <p class="card-sub" id="cardSub">用手机号与密码进入班级</p>
+        </div>
+
+        <div class="tabset" id="tabset" role="tablist" aria-label="教师登录或注册">
+          <button class="tab" type="button" id="tab-login" role="tab" aria-selected="true" aria-controls="panel-login">登录</button>
+          <button class="tab" type="button" id="tab-register" role="tab" aria-selected="false" aria-controls="panel-register" tabindex="-1">注册</button>
+        </div>
+
+        <div class="panels">
+          <!-- 登录 -->
+          <form class="panel" id="panel-login" role="tabpanel" aria-labelledby="tab-login" novalidate>
+            <div class="group">
+              <p class="group-label">登录凭据</p>
+              <div class="field" id="f-lg-phone">
+                <label class="lab" for="lg-phone">手机号</label>
+                <div class="control">
+                  <input id="lg-phone" name="phone" type="tel" inputmode="numeric" maxlength="11" autocomplete="tel"
+                         placeholder="11 位手机号" aria-describedby="lg-phone-msg" aria-invalid="false">
+                </div>
+                <p class="msg" id="lg-phone-msg" role="status" aria-live="polite"></p>
+              </div>
+              <div class="field" id="f-lg-pw">
+                <label class="lab" for="lg-pw">密码</label>
+                <div class="control has-peek">
+                  <input id="lg-pw" name="password" type="password" autocomplete="current-password"
+                         placeholder="至少 6 位" aria-describedby="lg-pw-msg" aria-invalid="false">
+                  <button class="peek" type="button" data-peek="lg-pw" aria-pressed="false" aria-label="显示密码">显示</button>
+                </div>
+                <p class="msg" id="lg-pw-msg" role="status" aria-live="polite"></p>
+              </div>
+              <div class="row">
+                <label class="check" for="lg-remember">
+                  <input type="checkbox" id="lg-remember" name="remember">
+                  <span>记住我</span>
+                </label>
+                <button class="btn-ghost sm" type="button" id="forgot" aria-expanded="false" aria-controls="forgot-pop">忘记密码？</button>
+                <p class="pop" id="forgot-pop" hidden>演示原型：请联系年级管理员重置密码，这里不会真的发送短信。</p>
+              </div>
             </div>
-            <p class="msg" id="lg-id-msg" role="status" aria-live="polite"></p>
-          </div>
+            <button class="btn-primary" type="submit">登录</button>
+          </form>
 
-          <div class="field" id="f-lg-pw">
-            <label for="lg-pw">密码 <span class="req" aria-hidden="true">必填</span></label>
-            <div class="control has-peek">
-              <input id="lg-pw" name="password" type="password" autocomplete="current-password"
-                     placeholder="至少 6 位" aria-describedby="lg-pw-msg" aria-invalid="false">
-              <button class="peek" type="button" data-peek="lg-pw" aria-pressed="false" aria-label="显示密码">显示</button>
+          <!-- 注册 -->
+          <form class="panel" id="panel-register" role="tabpanel" aria-labelledby="tab-register" hidden novalidate>
+            <div class="group">
+              <p class="group-label">班级档案 · 保存在本机</p>
+              <div class="row2">
+                <div class="field" id="f-rg-class">
+                  <label class="lab" for="rg-class">班级信息</label>
+                  <div class="control">
+                    <input id="rg-class" name="class" type="text" autocomplete="off"
+                           placeholder="例如 三年级二班" aria-describedby="rg-class-msg" aria-invalid="false">
+                  </div>
+                  <p class="msg" id="rg-class-msg" role="status" aria-live="polite"></p>
+                </div>
+                <div class="field" id="f-rg-name">
+                  <label class="lab" for="rg-name">教师名字</label>
+                  <div class="control">
+                    <input id="rg-name" name="teacherName" type="text" autocomplete="name"
+                           placeholder="例如 李青" aria-describedby="rg-name-msg" aria-invalid="false">
+                  </div>
+                  <p class="msg" id="rg-name-msg" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <div class="field" id="f-rg-subject">
+                <span class="lab" id="rg-subject-lab">执教科目</span>
+                <div class="seg" id="rg-subject" role="radiogroup" aria-labelledby="rg-subject-lab" aria-invalid="false">
+                  <label><input type="radio" name="subject" value="语文"><span>语文</span></label>
+                  <label><input type="radio" name="subject" value="数学"><span>数学</span></label>
+                  <label><input type="radio" name="subject" value="英语"><span>英语</span></label>
+                </div>
+                <p class="msg" id="rg-subject-msg" role="status" aria-live="polite"></p>
+              </div>
             </div>
-            <p class="msg" id="lg-pw-msg" role="status" aria-live="polite"></p>
-          </div>
 
-          <div class="row">
-            <label class="check" for="lg-remember">
-              <input type="checkbox" id="lg-remember" name="remember">
-              <span>记住我</span>
-            </label>
-            <button class="linkbtn" type="button" id="forgot" aria-expanded="false" aria-controls="forgot-pop">忘记密码？</button>
-            <p class="pop" id="forgot-pop" hidden>演示原型：请联系年级管理员重置密码，这里不会真的发送短信。</p>
-          </div>
-
-          <button class="btn-primary" type="submit">登录</button>
-        </form>
-
-        <!-- 注册 -->
-        <form class="panel" id="panel-register" role="tabpanel" aria-labelledby="tab-register" novalidate hidden>
-          <div class="field" id="f-rg-name">
-            <label for="rg-name">姓名 <span class="req" aria-hidden="true">必填</span></label>
-            <div class="control">
-              <input id="rg-name" name="name" type="text" autocomplete="name"
-                     placeholder="例如 刘敏" aria-describedby="rg-name-msg" aria-invalid="false">
+            <div class="group">
+              <p class="group-label">登录凭据</p>
+              <div class="field" id="f-rg-phone">
+                <label class="lab" for="rg-phone">手机号</label>
+                <div class="control">
+                  <input id="rg-phone" name="phone" type="tel" inputmode="numeric" maxlength="11" autocomplete="tel"
+                         placeholder="11 位手机号" aria-describedby="rg-phone-msg" aria-invalid="false">
+                </div>
+                <p class="msg" id="rg-phone-msg" role="status" aria-live="polite"></p>
+              </div>
+              <div class="row2">
+                <div class="field" id="f-rg-pw">
+                  <label class="lab" for="rg-pw">密码</label>
+                  <div class="control has-peek">
+                    <input id="rg-pw" name="password" type="password" autocomplete="new-password"
+                           placeholder="至少 6 位" aria-describedby="rg-pw-msg" aria-invalid="false">
+                    <button class="peek" type="button" data-peek="rg-pw" aria-pressed="false" aria-label="显示密码">显示</button>
+                  </div>
+                  <p class="msg" id="rg-pw-msg" role="status" aria-live="polite"></p>
+                </div>
+                <div class="field" id="f-rg-pw2">
+                  <label class="lab" for="rg-pw2">确认密码</label>
+                  <div class="control has-peek">
+                    <input id="rg-pw2" name="password2" type="password" autocomplete="new-password"
+                           placeholder="再输一次" aria-describedby="rg-pw2-msg" aria-invalid="false">
+                    <button class="peek" type="button" data-peek="rg-pw2" aria-pressed="false" aria-label="显示密码">显示</button>
+                  </div>
+                  <p class="msg" id="rg-pw2-msg" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+              <div class="rolefield">
+                <span class="rlabel" id="rg-role-label">角色</span>
+                <span class="chip-ro" aria-labelledby="rg-role-label" title="注册仅开放教师身份">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                    <rect x="4.5" y="10.5" width="15" height="9.5" rx="2.4"/>
+                    <path d="M8.4 10.5V7.6a3.6 3.6 0 017.2 0v2.9"/>
+                  </svg>
+                  教师
+                </span>
+              </div>
             </div>
-            <p class="msg" id="rg-name-msg" role="status" aria-live="polite"></p>
-          </div>
 
-          <div class="field" id="f-rg-phone">
-            <label for="rg-phone">手机号 <span class="req" aria-hidden="true">必填</span></label>
-            <div class="control">
-              <input id="rg-phone" name="phone" type="tel" inputmode="numeric" maxlength="11"
-                     autocomplete="tel" placeholder="11 位手机号" aria-describedby="rg-phone-msg" aria-invalid="false">
-            </div>
-            <p class="msg" id="rg-phone-msg" role="status" aria-live="polite"></p>
-          </div>
+            <button class="btn-primary" type="submit">注册并登录</button>
+          </form>
 
-          <div class="field" id="f-rg-pw">
-            <label for="rg-pw">密码 <span class="req" aria-hidden="true">必填</span></label>
-            <div class="control has-peek">
-              <input id="rg-pw" name="password" type="password" autocomplete="new-password"
-                     placeholder="至少 6 位" aria-describedby="rg-pw-msg" aria-invalid="false">
-              <button class="peek" type="button" data-peek="rg-pw" aria-pressed="false" aria-label="显示密码">显示</button>
-            </div>
-            <p class="msg" id="rg-pw-msg" role="status" aria-live="polite"></p>
-          </div>
+          <!-- 选择入口 -->
+          <div class="panel done" id="panel-done" hidden>
+            <p class="eyebrow" id="done-who">演示身份已就绪</p>
+            <h2 class="gate-title">选择入口</h2>
+            <p class="gate-sub">同一份班级数据，两种进入方式。</p>
 
-          <div class="field" id="f-rg-pw2">
-            <label for="rg-pw2">确认密码 <span class="req" aria-hidden="true">必填</span></label>
-            <div class="control has-peek">
-              <input id="rg-pw2" name="password2" type="password" autocomplete="new-password"
-                     placeholder="再输一次" aria-describedby="rg-pw2-msg" aria-invalid="false">
-              <button class="peek" type="button" data-peek="rg-pw2" aria-pressed="false" aria-label="显示密码">显示</button>
-            </div>
-            <p class="msg" id="rg-pw2-msg" role="status" aria-live="polite"></p>
-          </div>
-
-          <div class="rolefield">
-            <span class="rlabel" id="rg-role-label">角色</span>
-            <span class="chip-ro" aria-labelledby="rg-role-label" title="注册仅开放教师身份">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-                <rect x="4.5" y="10.5" width="15" height="9.5" rx="2.4"/>
-                <path d="M8.4 10.5V7.6a3.6 3.6 0 017.2 0v2.9"/>
-              </svg>
-              教师
-            </span>
-          </div>
-
-          <button class="btn-primary" type="submit">注册并登录</button>
-        </form>
-
-        <!-- 选择入口 -->
-        <div class="panel done" id="panel-done" hidden>
-          <p class="eyebrow" id="done-who">演示身份已就绪</p>
-          <h2 class="gate-title">选择入口</h2>
-          <p class="gate-sub">同一份班级数据，两种进入方式。</p>
-
-          <div class="gates">
-            <a class="gate a" href="v3_looseleaf_paper.html">
-              <span class="gate-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2.6" y="4.2" width="18.8" height="12.6" rx="1.8" fill="#FFFDF8"/>
-                  <path d="M8 20h8M12 16.8V20"/>
-                  <path d="M6.4 10.6l1.5 1.6 2-3.1" />
-                  <path d="M12 9.4h4.4M12 12.4h4.4"/>
+            <div class="gates">
+              <a class="gate a" href="v3_looseleaf_paper.html">
+                <span class="gate-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2.6" y="4.2" width="18.8" height="12.6" rx="1.8" fill="#FFFDF8"/>
+                    <path d="M8 20h8M12 16.8V20"/>
+                    <path d="M6.4 10.6l1.5 1.6 2-3.1"/>
+                    <path d="M12 9.4h4.4M12 12.4h4.4"/>
+                  </svg>
+                </span>
+                <span class="gate-body">
+                  <strong>学生大屏</strong>
+                  <span>课堂投影用 · 3 米可读</span>
+                </span>
+                <svg class="gate-arrow" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 12h14M12.6 6.2L18.6 12l-6 5.8"/>
                 </svg>
-              </span>
-              <span class="gate-body">
-                <strong>学生大屏</strong>
-                <span>课堂投影用 · 3 米可读</span>
-              </span>
-              <svg class="gate-arrow" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 12h14M12.6 6.2L18.6 12l-6 5.8"/>
-              </svg>
-            </a>
+              </a>
 
-            <a class="gate b" href="v3_teacher_desk.html">
-              <span class="gate-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2.8" y="4" width="18.4" height="13.6" rx="1.8" fill="#FFFDF8"/>
-                  <path d="M2.8 8.2h18.4"/>
-                  <path d="M7.4 12.4h3.2M7.4 15h6"/>
-                  <path d="M15.6 11.2v5M14 14.2l1.6 2.2 1.7-2.2"/>
+              <a class="gate b" href="v3_teacher_desk.html">
+                <span class="gate-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2.8" y="4" width="18.4" height="13.6" rx="1.8" fill="#FFFDF8"/>
+                    <path d="M2.8 8.2h18.4"/>
+                    <path d="M7.4 12.4h3.2M7.4 15h6"/>
+                    <path d="M15.6 11.2v5M14 14.2l1.6 2.2 1.7-2.2"/>
+                  </svg>
+                </span>
+                <span class="gate-body">
+                  <strong>教师操作台</strong>
+                  <span>赋分、考勤、台账</span>
+                </span>
+                <svg class="gate-arrow" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 12h14M12.6 6.2L18.6 12l-6 5.8"/>
                 </svg>
-              </span>
-              <span class="gate-body">
-                <strong>教师操作台</strong>
-                <span>赋分、考勤、台账</span>
-              </span>
-              <svg class="gate-arrow" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 12h14M12.6 6.2L18.6 12l-6 5.8"/>
-              </svg>
-            </a>
-          </div>
+              </a>
+            </div>
 
-          <p class="fineprint">以演示身份进入 · 数据不会写入真实班级</p>
+            <p class="fineprint">以演示身份进入 · 数据不会写入真实班级</p>
+          </div>
         </div>
       </div>
     </div>
@@ -556,13 +680,46 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
+  var PROFILE_KEY = 'classpet.teacher.profile.v3';
+  var SESSION_KEY = 'classpet.teacher.session.v3';
+
+  /* ---------- 本地档案（演示原型：仅存本机，密码只存不可逆摘要） ---------- */
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} }
+  function lsDel(k) { try { window.localStorage.removeItem(k); } catch (e) {} }
+  function readProfile() {
+    var raw = lsGet(PROFILE_KEY);
+    if (!raw) { return null; }
+    try {
+      var p = JSON.parse(raw);
+      return (p && p.phone) ? p : null;
+    } catch (e) { return null; }
+  }
+  function saveProfile(p) { lsSet(PROFILE_KEY, JSON.stringify(p)); }
+  function hasSession() { return lsGet(SESSION_KEY) === '1'; }
+  function setSession(on) { if (on) { lsSet(SESSION_KEY, '1'); } else { lsDel(SESSION_KEY); } }
+  /* FNV-1a：只为不把明文密码留在 localStorage，非安全哈希，演示用 */
+  function pwHash(s) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = (h * 0x01000193) >>> 0;
+    }
+    return ('00000000' + h.toString(16)).slice(-8);
+  }
+
   var card = $('authCard');
+  var cardHead = $('cardHead');
+  var cardTitle = $('cardTitle');
+  var cardSub = $('cardSub');
+  var tabset = $('tabset');
   var tabLogin = $('tab-login');
   var tabRegister = $('tab-register');
   var panelLogin = $('panel-login');
   var panelRegister = $('panel-register');
   var panelDone = $('panel-done');
-  var tabs = [tabLogin, tabRegister];
+  var whoami = $('whoami');
+  var whoChip = $('who-chip');
 
   /* ---------- tab 切换 ---------- */
   function selectTab(which, focus) {
@@ -573,6 +730,8 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     tabRegister.tabIndex = isLogin ? -1 : 0;
     panelLogin.hidden = !isLogin;
     panelRegister.hidden = isLogin;
+    cardTitle.textContent = isLogin ? '教师登录' : '教师注册';
+    cardSub.textContent = isLogin ? '用手机号与密码进入班级' : '先建班级档案，之后自动登录';
     if (focus) { (isLogin ? tabLogin : tabRegister).focus(); }
   }
   tabLogin.addEventListener('click', function () { selectTab('login', false); });
@@ -587,15 +746,39 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     });
   });
 
+  /* ---------- 视图切换 ---------- */
+  function showAuth(which) {
+    whoami.hidden = true;
+    cardHead.hidden = false;
+    tabset.hidden = false;
+    panelDone.hidden = true;
+    selectTab(which || 'login', false);
+  }
+  function showEntry(profile) {
+    whoami.hidden = false;
+    whoChip.textContent = profile.schoolClass + ' · ' + profile.teacherName + ' · ' + profile.subject;
+    whoChip.title = profile.schoolClass + ' · ' + profile.teacherName + ' · ' + profile.subject;
+    cardHead.hidden = true;
+    tabset.hidden = true;
+    panelLogin.hidden = true;
+    panelRegister.hidden = true;
+    panelDone.hidden = false;
+    var first = panelDone.querySelector('.gate');
+    if (first) { first.focus(); }
+  }
+
   /* ---------- 校验 ---------- */
   var RULES = {
-    'lg-id': function (v) { return v.trim() ? '' : '请输入工号或手机号'; },
+    'lg-phone': function (v) {
+      if (!v.trim()) { return '请输入手机号'; }
+      return /^\d{11}$/.test(v.trim()) ? '' : '手机号应为 11 位数字';
+    },
     'lg-pw': function (v) { return !v ? '请输入密码' : (v.length < 6 ? '密码至少 6 位' : ''); },
-    'rg-name': function (v) { return v.trim() ? '' : '请输入姓名'; },
+    'rg-class': function (v) { return v.trim() ? '' : '请输入班级信息'; },
+    'rg-name': function (v) { return v.trim() ? '' : '请输入教师名字'; },
     'rg-phone': function (v) {
-      var s = v.trim();
-      if (!s) { return '请输入手机号'; }
-      return /^\d{11}$/.test(s) ? '' : '手机号应为 11 位数字';
+      if (!v.trim()) { return '请输入手机号'; }
+      return /^\d{11}$/.test(v.trim()) ? '' : '手机号应为 11 位数字';
     },
     'rg-pw': function (v) { return !v ? '请输入密码' : (v.length < 6 ? '密码至少 6 位' : ''); },
     'rg-pw2': function (v) {
@@ -609,27 +792,43 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     var input = $(id);
     var msg = $(id + '-msg');
     var field = $('f-' + id);
+    if (!msg) { return !text; }
     msg.textContent = text;
-    input.setAttribute('aria-invalid', text ? 'true' : 'false');
+    if (input && input.setAttribute) { input.setAttribute('aria-invalid', text ? 'true' : 'false'); }
     if (field) { field.classList.toggle('is-bad', !!text); }
     return !text;
   }
-  function check(id) { return paint(id, RULES[id]($(id).value)); }
+  function checkField(id) { return paint(id, RULES[id]($(id).value)); }
+  function subjectValue() {
+    var picked = document.querySelector('#rg-subject input:checked');
+    return picked ? picked.value : '';
+  }
+  function checkSubject() { return paint('rg-subject', subjectValue() ? '' : '请选择执教科目'); }
 
   var touched = {};
   Object.keys(RULES).forEach(function (id) {
     var input = $(id);
     input.addEventListener('input', function () {
       var msg = $(id + '-msg');
-      /* 错误随输入消失；已碰过的字段持续校验；确认密码一有值就实时比对 */
-      if (msg.textContent || touched[id] || (id === 'rg-pw2' && input.value)) { check(id); }
-      if (id === 'rg-pw' && ($('rg-pw2-msg').textContent || $('rg-pw2').value)) { check('rg-pw2'); }
+      if (msg.textContent || touched[id] || (id === 'rg-pw2' && input.value)) { checkField(id); }
+      if (id === 'rg-pw' && ($('rg-pw2-msg').textContent || $('rg-pw2').value)) { checkField('rg-pw2'); }
     });
     input.addEventListener('blur', function () {
       touched[id] = true;
-      if (input.value !== '') { check(id); }
+      if (input.value !== '') { checkField(id); }
     });
   });
+  Array.prototype.forEach.call(document.querySelectorAll('#rg-subject input'), function (radio) {
+    radio.addEventListener('change', function () {
+      touched['rg-subject'] = true;
+      checkSubject();
+    });
+  });
+
+  function focusFirstBad(form) {
+    var bad = form.querySelector('[aria-invalid="true"] input, input[aria-invalid="true"]');
+    if (bad) { bad.focus(); }
+  }
 
   /* ---------- 密码显示 / 隐藏 ---------- */
   Array.prototype.forEach.call(document.querySelectorAll('.peek'), function (btn) {
@@ -660,41 +859,101 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     }
   });
 
-  /* ---------- 提交 ---------- */
-  function enter(who) {
-    $('done-who').textContent = who ? who + ' · 演示身份已就绪' : '演示身份已就绪';
-    card.classList.add('is-done');
-    document.querySelector('.tabs').hidden = true;
-    panelLogin.hidden = true;
-    panelRegister.hidden = true;
-    panelDone.hidden = false;
-    var first = panelDone.querySelector('.gate');
-    if (first) { first.focus(); }
-  }
-
+  /* ---------- 提交：登录（本机档案手机号 + 密码校验） ---------- */
   panelLogin.addEventListener('submit', function (e) {
     e.preventDefault();
     var ok = true;
-    ['lg-id', 'lg-pw'].forEach(function (id) { touched[id] = true; if (!check(id)) { ok = false; } });
-    if (!ok) {
-      var bad = panelLogin.querySelector('[aria-invalid="true"]');
-      if (bad) { bad.focus(); }
+    ['lg-phone', 'lg-pw'].forEach(function (id) { touched[id] = true; if (!checkField(id)) { ok = false; } });
+    if (!ok) { focusFirstBad(panelLogin); return; }
+
+    var profile = readProfile();
+    var phone = $('lg-phone').value.trim();
+    var pw = $('lg-pw').value;
+    if (!profile) {
+      paint('lg-phone', '本机还没有教师档案，请先注册');
+      $('lg-phone').focus();
       return;
     }
-    enter($('lg-id').value.trim());
+    if (profile.phone !== phone || profile.pwHash !== pwHash(pw)) {
+      paint('lg-pw', '手机号或密码不正确');
+      $('lg-pw').focus();
+      return;
+    }
+    setSession(true);
+    showEntry(profile);
   });
 
+  /* ---------- 提交：注册（写档案到 localStorage 并自动登录） ---------- */
   panelRegister.addEventListener('submit', function (e) {
     e.preventDefault();
     var ok = true;
-    ['rg-name', 'rg-phone', 'rg-pw', 'rg-pw2'].forEach(function (id) { touched[id] = true; if (!check(id)) { ok = false; } });
-    if (!ok) {
-      var bad = panelRegister.querySelector('[aria-invalid="true"]');
-      if (bad) { bad.focus(); }
-      return;
-    }
-    enter($('rg-name').value.trim());
+    ['rg-class', 'rg-name', 'rg-phone', 'rg-pw', 'rg-pw2'].forEach(function (id) {
+      touched[id] = true;
+      if (!checkField(id)) { ok = false; }
+    });
+    touched['rg-subject'] = true;
+    if (!checkSubject()) { ok = false; }
+    if (!ok) { focusFirstBad(panelRegister); return; }
+
+    var profile = {
+      schoolClass: $('rg-class').value.trim(),
+      teacherName: $('rg-name').value.trim(),
+      subject: subjectValue(),
+      phone: $('rg-phone').value.trim(),
+      pwHash: pwHash($('rg-pw').value),
+      savedAt: Date.now()
+    };
+    saveProfile(profile);
+    setSession(true);
+    showEntry(profile);
   });
+
+  /* ---------- 退出 / 切换账号 ---------- */
+  $('logout').addEventListener('click', function () {
+    setSession(false);
+    var profile = readProfile();
+    if (profile) {
+      $('lg-phone').value = profile.phone;
+      $('rg-class').value = profile.schoolClass;
+      $('rg-name').value = profile.teacherName;
+      $('rg-phone').value = profile.phone;
+      Array.prototype.forEach.call(document.querySelectorAll('#rg-subject input'), function (r) {
+        r.checked = (r.value === profile.subject);
+      });
+    }
+    $('lg-pw').value = '';
+    Object.keys(RULES).forEach(function (id) {
+      var msg = $(id + '-msg');
+      if (msg) { msg.textContent = ''; }
+      var field = $('f-' + id);
+      if (field) { field.classList.remove('is-bad'); }
+      var input = $(id);
+      if (input && input.setAttribute) { input.setAttribute('aria-invalid', 'false'); }
+    });
+    paint('rg-subject', '');
+    touched = {};
+    showAuth('login');
+    $('lg-phone').focus();
+  });
+
+  /* ---------- 启动：有档案 + 有会话 → 直接进选择入口 ---------- */
+  (function boot() {
+    var profile = readProfile();
+    if (profile) {
+      $('lg-phone').value = profile.phone;
+      $('rg-class').value = profile.schoolClass;
+      $('rg-name').value = profile.teacherName;
+      $('rg-phone').value = profile.phone;
+      Array.prototype.forEach.call(document.querySelectorAll('#rg-subject input'), function (r) {
+        r.checked = (r.value === profile.subject);
+      });
+    }
+    if (profile && hasSession()) {
+      showEntry(profile);
+    } else {
+      showAuth('login');
+    }
+  })();
 })();
 </script>
 </body>
