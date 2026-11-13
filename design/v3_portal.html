@@ -206,20 +206,6 @@ h1,h2,p{margin:0}
 }
 .card > *{position:relative;z-index:1}
 .card > .tape{left:34px;top:-12px;transform:rotate(-3.6deg);width:82px}
-/* 右上角墨线贴纸角标 */
-.seal{
-  position:absolute;right:-13px;top:-15px;z-index:3;
-  width:62px;height:62px;display:grid;place-items:center;text-align:center;
-  background:var(--sun);border:var(--line) solid var(--ink);border-radius:50%;
-  box-shadow:0 3px 0 var(--ink);transform:rotate(9deg);
-  font-size:11px;font-weight:900;line-height:1.12;letter-spacing:.08em;color:var(--ink);
-}
-.seal::before{
-  content:'';position:absolute;inset:5px;border:1.4px dashed rgba(17,17,17,.55);
-  border-radius:50%;filter:url(#inkWobSm);
-}
-.seal span{position:relative;z-index:1}
-
 /* ---------- 卡片抬头：马克笔斜块高亮 ---------- */
 .card-head{flex:none;display:flex;flex-direction:column;gap:1px;margin-bottom:clamp(8px,1.4vh,14px)}
 .card-title{
@@ -475,7 +461,6 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     <div class="cardwrap">
       <div class="card" id="authCard">
         <span class="tape" aria-hidden="true"></span>
-        <span class="seal" aria-hidden="true"><span>教师<br>专用</span></span>
 
         <div class="card-head" id="cardHead">
           <h2 class="card-title"><span class="marker" id="cardTitle">教师登录</span></h2>

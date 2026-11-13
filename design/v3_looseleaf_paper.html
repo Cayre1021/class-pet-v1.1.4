@@ -1770,8 +1770,7 @@ function openDetail(){
   var cells = [
     ['学号', '#' + pad2(s.id)], ['姓名', s.name], ['小组', s.group + ' 组'],
     ['宠物', SPECIES[s.species].name], ['等级', 'LV.' + s.level + '（第 ' + stageOf(s.level) + ' 阶段）'],
-    ['经验', s.exp + ' / ' + s.maxExp], ['状态', s.isAbsent ? '请假缺勤' : (s.isEgg ? '蛋 · 待破壳' : (s.level >= MAX_LEVEL ? '满级' : '正常'))],
-    ['印章', s.stamps.length + ' 枚']
+    ['经验', s.exp + ' / ' + s.maxExp], ['状态', s.isAbsent ? '请假缺勤' : (s.isEgg ? '蛋 · 待破壳' : (s.level >= MAX_LEVEL ? '满级' : '正常'))]
   ];
   var html = '<div class="detail-grid">';
   cells.forEach(function(c){ html += '<div class="detail-cell"><b>' + c[0] + '</b>' + c[1] + '</div>'; });
