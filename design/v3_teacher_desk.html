@@ -759,8 +759,34 @@ body{ background:var(--paper) }
   .lanes{ grid-template-columns:repeat(3,minmax(0,1fr)) !important }
 }
 </style>
+<style>
+/* —— 对齐 Looseleaf 纸感语汇：纸纹 / 手绘抖动墨线 / 马克笔高亮 —— */
+:root{
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.085'/%3E%3C/svg%3E");
+}
+.topbar,.toolbar,#dock,.lanes .stu-row{ background-image:var(--grain) !important; background-size:140px 140px !important; }
+.lanes .stu-row::after{ content:''; position:absolute; inset:3px; pointer-events:none; z-index:0;
+  border:1px solid rgba(17,17,17,.24); border-radius:calc(var(--r-card) - 4px);
+  filter:url(#inkWobSm); opacity:.55; }
+.topbar h1{ display:inline-block; padding:0 3px; transform:rotate(-.5deg);
+  background:linear-gradient(transparent 62%, var(--sun) 62%, var(--sun) 92%, transparent 92%); }
+.dock-sec .sec-title{ display:inline-block; padding:0 2px;
+  background:linear-gradient(transparent 64%, var(--accent-soft) 64%, var(--accent-soft) 94%, transparent 94%); }
+</style>
 </head>
 <body>
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <filter id="inkWob" x="-12%" y="-12%" width="124%" height="124%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.013" numOctaves="2" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="inkWobSm" x="-14%" y="-14%" width="128%" height="128%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.021" numOctaves="2" seed="5" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="1.7" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
 <div class="app" id="app">
 
   <!-- ================= 顶栏 72px ================= -->
@@ -781,9 +807,8 @@ body{ background:var(--paper) }
       <h1>班级电子宠物 <span class="sep">/</span> 教师操作台</h1>
     </div>
     <span class="class-chip"><i class="dot" aria-hidden="true"></i>三年级二班 · 刘老师</span>
-    <span class="demo-badge">模拟数据 · 演示原型</span>
     <div class="topbar-right">
-      <a class="btn" id="btn-bigscreen" data-audit="btn-bigscreen" href="v3_student_stage.html" target="_blank" rel="noopener">
+      <a class="btn" id="btn-bigscreen" data-audit="btn-bigscreen" href="v3_looseleaf_paper.html" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
         学生大屏
       </a>
@@ -2244,7 +2269,7 @@ body{ background:var(--paper) }
     $$('#subject-seg button, #subject-seg-2 button').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.getAttribute('data-subject') === name));
     });
-    $('#dock-subject').textContent = name + '课';
+    var ds = $('#dock-subject'); if (ds) ds.textContent = name + '课';
     toast('已切换到「' + name + '」赋分（模拟）');
     playChime('select');
   }
@@ -2324,6 +2349,9 @@ body{ background:var(--paper) }
   searchInput.addEventListener('input', onSearchInput);
   searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') renderLanes(); });
   $('#btn-search-clear').addEventListener('click', clearSearch);
+  $$('#subject-seg-2 button').forEach(function (b) {
+    b.addEventListener('click', function () { setSubject(b.getAttribute('data-subject')); });
+  });
   $('#btn-add').addEventListener('click', openAddDialog);
   $('#btn-select-all').addEventListener('click', selectAllVisible);
   $('#btn-clear-sel').addEventListener('click', function () { clearSelection(); });

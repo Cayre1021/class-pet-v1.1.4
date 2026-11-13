@@ -397,8 +397,6 @@ ul{margin:0;padding:0;list-style:none}
 .fab-wrap{position:fixed;right:24px;bottom:24px;width:64px;height:64px;z-index:40;touch-action:none;
   transition:left .18s cubic-bezier(.2,.8,.2,1),top .18s cubic-bezier(.2,.8,.2,1)}
 .fab-wrap.is-drag{transition:none}
-.content.has-ins .inspector{margin-bottom:72px}
-main.content.has-ins ~ .fab-wrap{top:auto !important;left:auto !important;right:20px !important;bottom:20px !important}
 .fab{
   width:64px;height:64px;border-radius:50%;display:grid;place-items:center;position:relative;
   background:var(--surface);box-shadow:0 4px 0 rgba(17,17,17,.86),0 10px 20px rgba(17,17,17,.18);
@@ -574,7 +572,6 @@ body.is-shaking{animation:shakeIt .3s cubic-bezier(.36,.07,.19,.97)}
       <h1><span class="marker">班级电子宠物</span></h1>
       <p class="sub">
         <span>三年级二班 · 刘老师 · 语文</span>
-        <span class="simbadge">模拟数据 · 演示原型</span>
       </p>
     </div>
   </div>
@@ -597,6 +594,10 @@ body.is-shaking{animation:shakeIt .3s cubic-bezier(.36,.07,.19,.97)}
         <button class="menu-item" type="button" role="menuitem" id="btn-reset"><span>重置演示数据</span><span class="k">全部还原</span></button>
       </div>
     </div>
+    <a class="btn" id="btn-teacher" href="v3_teacher_desk.html" title="前往教师操作台" aria-label="前往教师操作台">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+      <span>教师台</span>
+    </a>
   </div>
 </header>
 
@@ -634,7 +635,7 @@ body.is-shaking{animation:shakeIt .3s cubic-bezier(.36,.07,.19,.97)}
     <button class="menu-item" type="button" role="menuitem" id="fab-rollcall"><span>随机抽点</span><span class="k">空格</span></button>
     <button class="menu-item" type="button" role="menuitem" id="fab-timer"><span>课堂计时器</span><span class="k">计时</span></button>
     <button class="menu-item" type="button" role="menuitem" id="fab-praise"><span>全班表扬 +10</span><span class="k">全体</span></button>
-    <button class="menu-item" type="button" role="menuitem" id="fab-theme"><span>换肤</span><span class="k" id="fab-theme-name">默认纸墨</span></button>
+    <button class="menu-item" type="button" role="menuitem" id="fab-theme"><span>换肤</span><span class="k" id="fab-theme-name">暖橙 · 牛皮纸</span></button>
   </div>
   <button class="fab" type="button" id="fab" aria-haspopup="menu" aria-expanded="false" aria-controls="fab-menu"
           aria-label="课堂工具：随机抽点 · 计时器 · 全班表扬 · 换肤">
@@ -1571,6 +1572,7 @@ function fabFreeSpot(){
 }
 function syncFab(){
   if (fabState.dragging || !$('fab-wrap')) return;
+  if (fabState.pinned) { var home = fabHomePos(); fabPaint(home.x, home.y, true); return; }
   var spot = fabFreeSpot();
   fabPaint(spot.x, spot.y, true);
 }
@@ -1582,7 +1584,7 @@ function initFab(){
   var wrap = $('fab-wrap'), ball = $('fab');
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(FAB_KEY) || 'null'); } catch(e){}
-  if (saved && typeof saved.x === 'number') fabState.pos = { x: saved.x, y: saved.y };
+  if (saved && typeof saved.x === 'number') { fabState.pos = { x: saved.x, y: saved.y }; fabState.pinned = true; }
   var home = fabHomePos();
   fabPaint(home.x, home.y, false);
   var sx = 0, sy = 0, ox = 0, oy = 0;
@@ -1608,6 +1610,7 @@ function initFab(){
     if (fabState.moved) {
       var r = wrap.getBoundingClientRect();
       fabState.pos = { x: Math.round(r.left), y: Math.round(r.top) };
+      fabState.pinned = true;
       try { localStorage.setItem(FAB_KEY, JSON.stringify(fabState.pos)); } catch(e){}
       setTimeout(function(){ fabState.moved = false; }, 90);
       syncFab();
