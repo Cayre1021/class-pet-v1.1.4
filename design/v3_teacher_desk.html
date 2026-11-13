@@ -774,6 +774,20 @@ body{ background:var(--paper) }
   background:linear-gradient(transparent 64%, var(--accent-soft) 64%, var(--accent-soft) 94%, transparent 94%); }
 </style>
 <style>
+/* —— 主题切换：整页同步淡入新配色（学生大屏同款观感） —— */
+html.theme-fade,
+html.theme-fade *,
+html.theme-fade *::before,
+html.theme-fade *::after{
+  transition: background-color .34s cubic-bezier(.4,0,.2,1),
+              border-color .34s cubic-bezier(.4,0,.2,1),
+              color .34s cubic-bezier(.4,0,.2,1),
+              box-shadow .34s cubic-bezier(.4,0,.2,1),
+              outline-color .34s linear,
+              fill .34s linear,
+              stroke .34s linear !important;
+}
+
 /* —— Looseleaf 纸感对齐（第二层）：卡片手绘感 / 赋分按钮墨线 / 赋分台纸边 —— */
 .lanes .stu-row{
   position:relative;
@@ -1329,10 +1343,15 @@ body{ background:var(--paper) }
   /* ============================================================
      6. 主题 / 音效 / 行高
      ============================================================ */
+  var themeFadeTimer = null;
   function setTheme(name, notify) {
     if (!THEME_NAMES[name]) name = 'orange';
     state.theme = name;
-    document.documentElement.setAttribute('data-theme', name);
+    var root = document.documentElement;
+    root.classList.add('theme-fade');
+    root.setAttribute('data-theme', name);
+    clearTimeout(themeFadeTimer);
+    themeFadeTimer = setTimeout(function(){ root.classList.remove('theme-fade'); }, 380);
     store('classpet_v3_theme', name);
     themeRipple();
     if (notify !== false) toast('已切换主题：' + THEME_NAMES[name]);
