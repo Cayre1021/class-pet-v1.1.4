@@ -1,0 +1,51 @@
+{
+  "open": true,
+  "probe": {
+    "menuRect": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "display": "none",
+    "opacity": "1",
+    "pe": "auto",
+    "z": "45",
+    "btns": [
+      {
+        "text": "学生日志",
+        "rect": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "hit": "topbar",
+        "pe": "auto"
+      },
+      {
+        "text": "编辑资料",
+        "rect": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "hit": "topbar",
+        "pe": "auto"
+      },
+      {
+        "text": "归档学生",
+        "rect": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "hit": "topbar",
+        "pe": "auto"
+      }
+    ]
+  },
+  "rowSelected": 0
+}

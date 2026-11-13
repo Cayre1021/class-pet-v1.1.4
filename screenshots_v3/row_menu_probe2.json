@@ -1,0 +1,71 @@
+{
+  "sample": 32,
+  "results": [
+    {
+      "idx": 0,
+      "st": {
+        "disp": "block",
+        "rect": [
+          60,
+          312,
+          172,
+          161
+        ],
+        "globalHidden": false,
+        "firstHit": "menu-item",
+        "selected": 0
+      }
+    },
+    {
+      "idx": 5,
+      "st": {
+        "disp": "block",
+        "rect": [
+          60,
+          468,
+          172,
+          161
+        ],
+        "globalHidden": false,
+        "firstHit": "menu-item",
+        "selected": 0
+      }
+    },
+    {
+      "idx": 15,
+      "st": {
+        "disp": "block",
+        "rect": [
+          315,
+          618,
+          172,
+          161
+        ],
+        "globalHidden": false,
+        "firstHit": "menu-item",
+        "selected": 0
+      }
+    },
+    {
+      "idx": 31,
+      "st": {
+        "disp": "block",
+        "rect": [
+          825,
+          618,
+          172,
+          161
+        ],
+        "globalHidden": false,
+        "firstHit": "menu-item",
+        "selected": 0
+      }
+    }
+  ],
+  "details": [
+    "topbar",
+    "app",
+    "",
+    ""
+  ]
+}

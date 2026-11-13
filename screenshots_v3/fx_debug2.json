@@ -1,0 +1,104 @@
+{
+  "samples": [
+    {
+      "t": 120,
+      "nz": 0,
+      "parts": 9,
+      "running": true
+    },
+    {
+      "t": 240,
+      "nz": 0,
+      "parts": 9,
+      "running": true
+    },
+    {
+      "t": 360,
+      "nz": 0,
+      "parts": 9,
+      "running": true
+    },
+    {
+      "t": 480,
+      "nz": 0,
+      "parts": 9,
+      "running": true
+    },
+    {
+      "t": 600,
+      "nz": 0,
+      "parts": 9,
+      "running": true
+    },
+    {
+      "t": 720,
+      "nz": 0,
+      "parts": 9,
+      "running": true
+    },
+    {
+      "t": 840,
+      "nz": 0,
+      "parts": 9,
+      "running": true
+    },
+    {
+      "t": 960,
+      "nz": 0,
+      "parts": 9,
+      "running": true
+    },
+    {
+      "t": 1080,
+      "nz": 0,
+      "parts": 109,
+      "running": true
+    },
+    {
+      "t": 1200,
+      "nz": 0,
+      "parts": 109,
+      "running": true
+    },
+    {
+      "t": 1320,
+      "nz": 0,
+      "parts": 109,
+      "running": true
+    },
+    {
+      "t": 1440,
+      "nz": 0,
+      "parts": 332,
+      "running": true
+    },
+    {
+      "t": 1560,
+      "nz": 0,
+      "parts": 332,
+      "running": true
+    },
+    {
+      "t": 1680,
+      "nz": 0,
+      "parts": 460,
+      "running": true
+    },
+    {
+      "t": 1800,
+      "nz": 0,
+      "parts": 643,
+      "running": true
+    },
+    {
+      "t": 1920,
+      "nz": 0,
+      "parts": 642,
+      "running": true
+    }
+  ],
+  "vis": {
+    "state": "visible",
+    "focus": true
+  }
+}

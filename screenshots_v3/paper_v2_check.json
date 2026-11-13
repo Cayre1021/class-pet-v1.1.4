@@ -1,0 +1,54 @@
+{
+  "rollcall": {
+    "rect": [
+      460,
+      390
+    ],
+    "scrollH": 391,
+    "clientH": 390,
+    "overflowY": "hidden",
+    "overflowX": "hidden",
+    "hasBar": false
+  },
+  "rollcallAfter": {
+    "rect": [
+      460,
+      390
+    ],
+    "scrollH": 391,
+    "clientH": 390,
+    "overflowY": "hidden",
+    "overflowX": "hidden",
+    "hasBar": false
+  },
+  "timer": {
+    "rect": [
+      420,
+      416
+    ],
+    "scrollH": 417,
+    "clientH": 416,
+    "overflowY": "hidden",
+    "overflowX": "hidden",
+    "hasBar": false
+  },
+  "timerAfter": {
+    "rect": [
+      420,
+      416
+    ],
+    "scrollH": 417,
+    "clientH": 416,
+    "overflowY": "hidden",
+    "overflowX": "hidden",
+    "hasBar": false
+  },
+  "scoreLabels": "[\"+1加分\",\"+2加分\",\"+3加分\",\"+4加分\",\"+5加分\",\"−\",\"5自定义\",\"+\"]",
+  "expBefore": "238/240",
+  "step": "4",
+  "apply": "clicked",
+  "expAfter": "2/280",
+  "peak": 0,
+  "hues": 0,
+  "errors": []
+}

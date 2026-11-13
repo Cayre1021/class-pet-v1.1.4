@@ -1,0 +1,62 @@
+{
+  "scale": {
+    "scale": "1.2",
+    "cardH": 247,
+    "cardW": 304
+  },
+  "toolbar": [
+    "search-input",
+    "btn-search-clear",
+    "btn-add",
+    "btn-clear-sel",
+    "btn-move-group"
+  ],
+  "railCustom": {
+    "customMinus": false,
+    "customApply": false,
+    "scrollBox": true,
+    "pillHidden": true
+  },
+  "scrollBox": {
+    "scrollH": 196,
+    "clientH": 196,
+    "ov": "auto"
+  },
+  "audit": {
+    "pass": true,
+    "occluded": 0,
+    "missing": 0,
+    "controls": 104,
+    "overflow": {
+      "scrollH": 956,
+      "innerH": 956,
+      "scrollW": 1692,
+      "innerW": 1692
+    }
+  },
+  "dlg": {
+    "open": true,
+    "val": "2",
+    "minus": true,
+    "plus": true
+  },
+  "afterPlus": "4",
+  "afterMinus": "3",
+  "rules": {
+    "count": 3,
+    "text": "朗读之星 +2 桌面凌乱 -1 朗读之星 +3"
+  },
+  "overflow": {
+    "scrollH": 604,
+    "clientH": 300,
+    "canScroll": true,
+    "pillHidden": false,
+    "pillText": "还有 7 项 ▼",
+    "hasMore": true
+  },
+  "overflowAfter": {
+    "pillHidden": false,
+    "hasMore": true
+  },
+  "errors": []
+}

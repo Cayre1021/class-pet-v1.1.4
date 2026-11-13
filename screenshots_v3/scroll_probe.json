@@ -1,0 +1,15 @@
+{
+  "before": {
+    "scrollH": 604,
+    "clientH": 300,
+    "top": 0,
+    "pill": false
+  },
+  "after": {
+    "scrollH": 604,
+    "clientH": 300,
+    "top": 304,
+    "pill": false,
+    "rest": 0
+  }
+}

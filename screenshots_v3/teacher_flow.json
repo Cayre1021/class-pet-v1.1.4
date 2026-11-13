@@ -1,0 +1,312 @@
+{
+  "initial": {
+    "batch": "none/visible",
+    "batchRect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "batchCount": "0",
+    "selCount": "0",
+    "rowMenu": {
+      "disp": "none",
+      "vis": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    "dataMenu": {
+      "disp": "none"
+    },
+    "bottomHit": "stu-more",
+    "lanes": 4,
+    "rows": 32,
+    "toast": "课堂音效已开启"
+  },
+  "checks": [
+    "clicked",
+    "clicked",
+    "clicked"
+  ],
+  "afterSelect3": {
+    "batch": "flex/visible",
+    "batchRect": {
+      "x": 0,
+      "y": 789,
+      "w": 1426,
+      "h": 48
+    },
+    "batchCount": "3",
+    "selCount": "3",
+    "rowMenu": {
+      "disp": "none",
+      "vis": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    "dataMenu": {
+      "disp": "none"
+    },
+    "bottomHit": "batchbar",
+    "lanes": 4,
+    "rows": 32,
+    "toast": "课堂音效已开启"
+  },
+  "batchAdd": "clicked",
+  "afterBatchAdd": {
+    "batch": "flex/visible",
+    "batchRect": {
+      "x": 0,
+      "y": 789,
+      "w": 1426,
+      "h": 48
+    },
+    "batchCount": "3",
+    "selCount": "3",
+    "rowMenu": {
+      "disp": "none",
+      "vis": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    "dataMenu": {
+      "disp": "none"
+    },
+    "bottomHit": "batchbar",
+    "lanes": 4,
+    "rows": 32,
+    "toast": "恭喜！陈雨桐 的宠物升到 LV6"
+  },
+  "batchClear": "clicked",
+  "afterClear": {
+    "batch": "none/visible",
+    "batchRect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "batchCount": "0",
+    "selCount": "0",
+    "rowMenu": {
+      "disp": "none",
+      "vis": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    "dataMenu": {
+      "disp": "none"
+    },
+    "bottomHit": "stu-more",
+    "lanes": 4,
+    "rows": 32,
+    "toast": "已清空选择"
+  },
+  "hitAfterClear": "stu-row",
+  "rowMenuOpen": "clicked",
+  "afterRowMenu": {
+    "batch": "none/visible",
+    "batchRect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "batchCount": "0",
+    "selCount": "0",
+    "rowMenu": {
+      "disp": "none",
+      "vis": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    "dataMenu": {
+      "disp": "none"
+    },
+    "bottomHit": "stu-more",
+    "lanes": 4,
+    "rows": 32,
+    "toast": "已清空选择"
+  },
+  "rowMenuInView": true,
+  "rowMenuItemsHit": "0/3",
+  "afterRowMenuClose": {
+    "batch": "none/visible",
+    "batchRect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "batchCount": "0",
+    "selCount": "0",
+    "rowMenu": {
+      "disp": "none",
+      "vis": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    "dataMenu": {
+      "disp": "none"
+    },
+    "bottomHit": "stu-more",
+    "lanes": 4,
+    "rows": 32,
+    "toast": "已清空选择"
+  },
+  "rowMenuResidual": "none/visible/auto",
+  "dataMenuOpen": "clicked",
+  "afterDataMenu": {
+    "batch": "none/visible",
+    "batchRect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "batchCount": "0",
+    "selCount": "0",
+    "rowMenu": {
+      "disp": "none",
+      "vis": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    "dataMenu": {
+      "disp": "block"
+    },
+    "bottomHit": "stu-more",
+    "lanes": 4,
+    "rows": 32,
+    "toast": "已清空选择"
+  },
+  "dataMenuInView": true,
+  "dataMenuItems": [
+    "赋分台账记录",
+    "Excel 导入导出CSV",
+    "经验阈值每级 EXP",
+    "备份与还原JSON",
+    "主题：经典奶绿",
+    "主题：活力暖橙",
+    "主题：护眼森林",
+    "主题：晴空蓝调",
+    "音效：开启",
+    "全屏显示",
+    "重置模拟数据"
+  ],
+  "afterDataMenuClose": {
+    "batch": "none/visible",
+    "batchRect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "batchCount": "0",
+    "selCount": "0",
+    "rowMenu": {
+      "disp": "none",
+      "vis": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    "dataMenu": {
+      "disp": "block"
+    },
+    "bottomHit": "stu-more",
+    "lanes": 4,
+    "rows": 32,
+    "toast": "已清空选择"
+  },
+  "filter2": "clicked",
+  "afterFilter2": {
+    "batch": "none/visible",
+    "batchRect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "batchCount": "0",
+    "selCount": "0",
+    "rowMenu": {
+      "disp": "none",
+      "vis": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    "dataMenu": {
+      "disp": "block"
+    },
+    "bottomHit": "stu-meta",
+    "lanes": 1,
+    "rows": 8,
+    "toast": "已筛选：2组"
+  },
+  "afterSearchEmpty": {
+    "batch": "none/visible",
+    "batchRect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "batchCount": "0",
+    "selCount": "0",
+    "rowMenu": {
+      "disp": "none",
+      "vis": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    "dataMenu": {
+      "disp": "block"
+    },
+    "bottomHit": "lane-body",
+    "lanes": 4,
+    "rows": 4,
+    "toast": "已筛选：全班四个小组"
+  },
+  "emptyText": "没有匹配「zzz」的学生试试清空搜索或切换小组",
+  "consoleErrors": []
+}

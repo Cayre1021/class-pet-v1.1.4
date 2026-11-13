@@ -1,0 +1,10 @@
+{
+  "counts": "{\"petCard\":0,\"stuRow\":32,\"dataStu\":96,\"grids\":[\"lanes:32\"]}",
+  "cardHtml": "<div class=\"stu-row\" data-stu=\"1\" data-group=\"1\" role=\"checkbox\" aria-checked=\"false\" tabindex=\"0\" data-audit-row=\"1\"><label class=\"chk\" title=\"选中 陈雨桐\"><input type=\"checkbox\" data-stu=\"1\" data-audit=\"chk-1\" aria-label=\"选中 陈雨桐\"><span class=\"chk-box\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"4\"><path d=\"M4 12l5 5L20 6\"></path></svg></span></label><button class=\"stu-more\" data-stu=\"1\" data-audit=\"more-1\" aria-label=\"更多操作：陈雨桐\" aria-haspopup=\"true\" aria-expanded=\"false\" title=\"更多操作（日志 / 编辑 / 归档）\">⋯</button><div class=\"stu-avatar\"><img src=\"../electr",
+  "gridCss": {
+    "cls": "lanes",
+    "cols": "306.833px 306.833px 306.833px 306.833px",
+    "display": "grid",
+    "children": 32
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "static": {
+    "viewSeg": false,
+    "seatmap": false,
+    "cardPlus": 0,
+    "help": false,
+    "themeItems": 3,
+    "themeIds": [
+      "orange",
+      "forest",
+      "ocean"
+    ],
+    "cards": 32
+  },
+  "inspector": {
+    "openW": 1,
+    "sections": [
+      "经验值 EXP",
+      "快捷赋分（键盘 1 / 2 / 3）"
+    ],
+    "subjCount": 0,
+    "stampCount": 0,
+    "buttons": [
+      "✕",
+      "+1加分",
+      "+2加分",
+      "+3加分",
+      "表扬+2 盖章",
+      "倾听+2 盖章",
+      "协作+2 盖章",
+      "更多详情",
+      "收起"
+    ]
+  },
+  "cardsOccluded": [],
+  "fab": {
+    "items": 4,
+    "label": "默认纸墨"
+  },
+  "themeCycle": [
+    "orange/暖橙 · 牛皮纸",
+    "forest/护眼森林",
+    "ocean/晴空蓝",
+    "classic/默认纸墨"
+  ],
+  "audit": {
+    "pass": true,
+    "occluded": 0,
+    "controls": 73,
+    "overflow": {
+      "scrollH": 1080,
+      "innerH": 1080,
+      "scrollW": 1920,
+      "innerW": 1920
+    }
+  },
+  "errors": []
+}

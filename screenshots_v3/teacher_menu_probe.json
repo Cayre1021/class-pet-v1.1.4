@@ -1,0 +1,12 @@
+{
+  "menuOpen": "block",
+  "overlap": {
+    "coveredRows": 0,
+    "hitOnCoveredRow": null
+  },
+  "outsidePointerDown": "stu-meta",
+  "menuAfterOutside": "none",
+  "selectedAfterOutside": 0,
+  "menuAfterEsc": "none",
+  "focusable": false
+}

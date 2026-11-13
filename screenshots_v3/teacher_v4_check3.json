@@ -1,0 +1,39 @@
+{
+  "dialogs": [
+    {
+      "a": "ledger",
+      "count": 0,
+      "bars": 0
+    },
+    {
+      "a": "excel",
+      "count": 0,
+      "bars": 0
+    },
+    {
+      "a": "threshold",
+      "count": 0,
+      "bars": 0
+    },
+    {
+      "a": "backup",
+      "count": 0,
+      "bars": 0
+    },
+    {
+      "a": "add",
+      "count": 0,
+      "bars": 0
+    }
+  ],
+  "customIds": {
+    "minus": true,
+    "plus": true,
+    "apply": true,
+    "val": "5"
+  },
+  "customVal": "7",
+  "selCount": 2,
+  "customToast": "恭喜！陈雨桐 的宠物升到 LV6",
+  "fails": []
+}

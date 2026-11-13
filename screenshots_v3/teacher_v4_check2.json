@@ -1,0 +1,81 @@
+{
+  "expBefore": [
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "select3": 3,
+  "selText": "已选\n3",
+  "scoreBtn": true,
+  "expAfter": [
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "toast": "恭喜！陈雨桐 的宠物升到 LV6",
+  "undo": "ok",
+  "expUndo": [
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "custom": "missing",
+  "customToast": "已撤销：3 人 · 团队协作 +3",
+  "more": {
+    "disp": "block",
+    "inView": true,
+    "items": 3,
+    "hit": 3
+  },
+  "moreResidual": "none/auto",
+  "audit": {
+    "pass": true,
+    "occluded": 0,
+    "controls": 117,
+    "overflow": {
+      "scrollH": 956,
+      "innerH": 956,
+      "scrollW": 1692,
+      "innerW": 1692
+    }
+  },
+  "dialogs": [
+    {
+      "label": "台账",
+      "opened": "notfound",
+      "count": 0,
+      "bars": 0
+    },
+    {
+      "label": "经验阈值",
+      "opened": "notfound",
+      "count": 0,
+      "bars": 0
+    },
+    {
+      "label": "Excel",
+      "opened": "notfound",
+      "count": 0,
+      "bars": 0
+    },
+    {
+      "label": "备份",
+      "opened": "notfound",
+      "count": 0,
+      "bars": 0
+    },
+    {
+      "label": "新增",
+      "opened": "notfound",
+      "count": 0,
+      "bars": 0
+    }
+  ],
+  "fails": []
+}

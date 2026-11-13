@@ -1,0 +1,16 @@
+{
+  "triggerTabIndex": {
+    "focused": true,
+    "tabIndex": 0
+  },
+  "menuDetails": {
+    "display": "block",
+    "visibility": "visible",
+    "firstBtnTabIndex": 0,
+    "menuTabIndex": -1,
+    "inert": false
+  },
+  "focusFirst": true,
+  "activeAfterTab": "Excel 导入导出CSV",
+  "rowClickSelects": 1
+}

@@ -1,0 +1,54 @@
+{
+  "init": {
+    "cards": 32,
+    "cols": 4,
+    "inspW": 0,
+    "exp": "32 位同学 · 2,820 EXP"
+  },
+  "click1": true,
+  "afterSel1": {
+    "name": "陈雨桐",
+    "cols": 3,
+    "inspW": 2,
+    "selected": 1
+  },
+  "click2": true,
+  "afterSel2": {
+    "name": "林子轩",
+    "cols": 3,
+    "selected": 1,
+    "inspW": 2
+  },
+  "cardsOccludedOpen": [],
+  "afterEsc": {
+    "cols": 4,
+    "inspW": 0,
+    "selected": 0
+  },
+  "expBefore": "32 位同学 · 2,820 EXP",
+  "plus": true,
+  "afterPlus": {
+    "exp": "32 位同学 · 2,821 EXP",
+    "inspW": 0,
+    "fx": "block",
+    "pe": "none"
+  },
+  "fab": true,
+  "fabMenu": {
+    "disp": "grid",
+    "rect": [
+      1156,
+      517,
+      246,
+      216
+    ],
+    "inView": true,
+    "items": 4
+  },
+  "groupFilter": true,
+  "afterFilter": {
+    "cards": 8,
+    "exp": "32 位同学 · 2,821 EXP",
+    "g3": null
+  }
+}

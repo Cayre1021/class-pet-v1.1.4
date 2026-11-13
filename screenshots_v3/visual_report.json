@@ -1,0 +1,24 @@
+[
+  {
+    "page": "teacher",
+    "steps": {
+      "normal": {
+        "vp": [
+          1920,
+          1080
+        ],
+        "inspW": null,
+        "cols": null,
+        "cards": 0,
+        "occluded": 0,
+        "docH": 1080,
+        "innerH": 1080
+      },
+      "batch": {
+        "batchbar": "absent",
+        "sel": "3"
+      }
+    },
+    "errors": []
+  }
+]

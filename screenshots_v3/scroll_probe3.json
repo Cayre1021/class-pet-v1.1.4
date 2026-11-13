@@ -1,0 +1,16 @@
+{
+  "top": {
+    "hidden": false,
+    "text": "还有 8 项 ▼",
+    "hasMore": true
+  },
+  "bottom": {
+    "top": 304,
+    "hidden": true,
+    "hasMore": false
+  },
+  "backTop": {
+    "hidden": false,
+    "text": "还有 8 项 ▼"
+  }
+}

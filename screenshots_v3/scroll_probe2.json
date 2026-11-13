@@ -1,0 +1,10 @@
+{
+  "mock": {
+    "hits": 0,
+    "top": 120,
+    "pill": false
+  },
+  "manual": {
+    "pill": false
+  }
+}

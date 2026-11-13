@@ -1,0 +1,25 @@
+{
+  "theme": {
+    "attr": "orange",
+    "accent": "#B84B1B",
+    "items": 3
+  },
+  "cardExp": "238/240",
+  "btnLabels": "[\"+1加分\",\"+2加分\",\"+3加分\"]",
+  "fireworks": "clicked3",
+  "pixels": {
+    "nonTransparent": 50,
+    "hueBuckets": [
+      4,
+      5,
+      9
+    ],
+    "hueCount": 3,
+    "canvas": [
+      2379,
+      1255
+    ]
+  },
+  "afterFade": 0,
+  "errors": []
+}

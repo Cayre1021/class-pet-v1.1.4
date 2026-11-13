@@ -1,0 +1,119 @@
+{
+  "cases": [
+    {
+      "a": "ledger",
+      "m1": {
+        "open": true,
+        "rect": [
+          760,
+          374
+        ],
+        "dlgBar": false,
+        "dlgScroll": [
+          370,
+          370
+        ],
+        "bodyBar": false,
+        "bodyScroll": [
+          233,
+          233
+        ],
+        "ovY": "hidden",
+        "ovX": "hidden"
+      },
+      "stable": true
+    },
+    {
+      "a": "excel",
+      "m1": {
+        "open": true,
+        "rect": [
+          680,
+          370
+        ],
+        "dlgBar": false,
+        "dlgScroll": [
+          366,
+          366
+        ],
+        "bodyBar": false,
+        "bodyScroll": [
+          229,
+          229
+        ],
+        "ovY": "hidden",
+        "ovX": "hidden"
+      },
+      "stable": true
+    },
+    {
+      "a": "threshold",
+      "m1": {
+        "open": true,
+        "rect": [
+          680,
+          402
+        ],
+        "dlgBar": false,
+        "dlgScroll": [
+          398,
+          398
+        ],
+        "bodyBar": false,
+        "bodyScroll": [
+          260,
+          260
+        ],
+        "ovY": "hidden",
+        "ovX": "hidden"
+      },
+      "stable": true
+    },
+    {
+      "a": "backup",
+      "m1": {
+        "open": true,
+        "rect": [
+          680,
+          330
+        ],
+        "dlgBar": false,
+        "dlgScroll": [
+          326,
+          326
+        ],
+        "bodyBar": false,
+        "bodyScroll": [
+          189,
+          189
+        ],
+        "ovY": "hidden",
+        "ovX": "hidden"
+      },
+      "stable": true
+    },
+    {
+      "a": "add",
+      "m1": {
+        "open": true,
+        "rect": [
+          680,
+          420
+        ],
+        "dlgBar": false,
+        "dlgScroll": [
+          416,
+          416
+        ],
+        "bodyBar": false,
+        "bodyScroll": [
+          278,
+          278
+        ],
+        "ovY": "hidden",
+        "ovX": "hidden"
+      },
+      "stable": true
+    }
+  ]
+}

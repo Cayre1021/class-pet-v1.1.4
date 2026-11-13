@@ -1,0 +1,16 @@
+{
+  "cardClick": "ok",
+  "expBefore": "238/240",
+  "btn3": "clicked",
+  "expAfter": "1/280",
+  "pageErr": "[]",
+  "fxDisplay": {
+    "display": "block",
+    "w": 2379,
+    "h": 1255
+  },
+  "pix": 0,
+  "msgs": [
+    "2 :: %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security\n  Policy set or a policy with \"unsafe-eval\" enabled. This exposes"
+  ]
+}

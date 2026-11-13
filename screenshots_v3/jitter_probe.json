@@ -1,0 +1,28 @@
+{
+  "rollDialog": {
+    "w": 460,
+    "h": 390,
+    "scroll": true,
+    "dialogScrollH": 391,
+    "dialogClientH": 390,
+    "actsH": 44,
+    "ticket": 180
+  },
+  "rollRuns": [
+    [
+      281,
+      "563|223.7|460|389.8"
+    ]
+  ],
+  "timerRuns": [
+    [
+      19,
+      "583|210.7|420|415.8"
+    ]
+  ],
+  "timerNum": {
+    "w": 99,
+    "h": 49,
+    "txt": "00:57"
+  }
+}

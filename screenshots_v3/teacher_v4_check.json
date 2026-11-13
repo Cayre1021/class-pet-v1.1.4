@@ -1,0 +1,44 @@
+{
+  "viewports": [
+    {
+      "vp": "1440x900",
+      "base": {
+        "docH": 900,
+        "innerH": 900,
+        "cards": 96,
+        "lanes": 0,
+        "hasFakeKeyboard": false,
+        "hook": true
+      },
+      "select": {
+        "after1": 1,
+        "after2": 0
+      },
+      "checkbox": {
+        "after1": 1,
+        "after2": 0
+      },
+      "fatal": "Script failed to execute, this normally means an error was thrown. Check the renderer console for the error."
+    },
+    {
+      "vp": "1920x1080",
+      "base": {
+        "docH": 1080,
+        "innerH": 1080,
+        "cards": 96,
+        "lanes": 0,
+        "hasFakeKeyboard": false,
+        "hook": true
+      },
+      "select": {
+        "after1": 1,
+        "after2": 0
+      },
+      "checkbox": {
+        "after1": 1,
+        "after2": 0
+      },
+      "fatal": "Script failed to execute, this normally means an error was thrown. Check the renderer console for the error."
+    }
+  ]
+}
