@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>班级电子宠物 · 方向 A：新粗野主义 2.0 (呼吸感轻质高保真演示)</title>
+  <style>
+    /* ==========================================================================
+       Design System Tokens: Neo-Brutalism Light 2.0 (呼吸感新粗野主义)
+       - Softer 1.8px borders (#1e293b dark slate ink)
+       - Warm diffused offset shadows (3px 3px hard + 6px 14px soft ambient)
+       - 18px-20px rounded tactile card corners
+       - Breathing room: 22px grid gap, 16px container padding-top
+       - Warm cream/mint background
+       ========================================================================== */
+    :root {
+      --bg-canvas: #f7faf7;
+      --bg-cream: #fdfbf7;
+      --surface-card: #ffffff;
+      --surface-sheet: #ffffff;
+      --border-ink: #1e293b;
+      --border-ink-soft: #475569;
+      --border-width: 1.8px;
+      --radius-card: 18px;
+      --radius-pill: 9999px;
+      --radius-sheet: 24px;
+      --radius-sm: 10px;
+
+      /* Neo-Brutalism Shadows */
+      --shadow-offset: 3px 3px 0px #1e293b;
+      --shadow-hover: 4px 6px 0px #1e293b;
+      --shadow-active: 1.5px 1.5px 0px #1e293b;
+      --shadow-ambient: 0 8px 20px -4px rgba(30, 41, 59, 0.07);
+      --shadow-sheet: 8px 0 28px rgba(15, 23, 42, 0.16);
+
+      /* Pastel Palette */
+      --color-mint: #bbf7d0;
+      --color-mint-light: #ecfdf5;
+      --color-mint-deep: #059669;
+      --color-yellow: #fef08a;
+      --color-yellow-light: #fefce8;
+      --color-amber-deep: #d97706;
+      --color-peach: #fed7aa;
+      --color-purple: #e9d5ff;
+      --color-purple-deep: #7c3aed;
+      --color-sky: #bae6fd;
+      --color-sky-deep: #0284c7;
+      --color-coral: #fecdd3;
+      --color-coral-deep: #e11d48;
+
+      /* Text Hierarchy */
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg-canvas);
+      background-image: 
+        radial-gradient(var(--bg-cream) 0%, transparent 80%),
+        radial-gradient(#d1d5db 1.2px, transparent 1.2px);
+      background-size: 100% 100%, 24px 24px;
+      background-position: center, 0 0;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* ==========================================================================
+       Top Navigation Bar
+       - Lightweight floating pill chips replacing heavy banners
+       - Preserved group filters & sorting requirements
+       ========================================================================== */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: var(--border-width) solid var(--border-ink);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 4px 16px -2px rgba(30, 41, 59, 0.05);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--color-yellow);
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      box-shadow: var(--shadow-offset);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .brand-icon:hover {
+      transform: rotate(-6deg) scale(1.05);
+    }
+
+    .brand-titles h1 {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-titles .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .demo-pill-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--color-yellow);
+      color: #854d0e;
+      border: 1.5px dashed var(--border-ink);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      letter-spacing: 0.2px;
+    }
+
+    /* Floating Pill Chips for Group Filter */
+    .group-nav-chips {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 4px 6px;
+      border-radius: var(--radius-pill);
+      border: var(--border-width) solid var(--border-ink);
+      box-shadow: 2px 2px 0px rgba(30, 41, 59, 0.6);
+    }
+
+    .chip-btn {
+      border: 1.5px solid transparent;
+      background: transparent;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chip-btn .count-dot {
+      font-size: 11px;
+      background: #e2e8f0;
+      color: var(--text-main);
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+    }
+
+    .chip-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .chip-btn.active {
+      background: var(--surface-card);
+      color: var(--text-main);
+      border-color: var(--border-ink);
+      box-shadow: 2px 2px 0px var(--border-ink);
+      transform: translateY(-1px);
+    }
+
+    .chip-btn.active .count-dot {
+      background: var(--color-mint);
+      border: 1px solid var(--border-ink);
+    }
+
+    /* Header Tools */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .sort-control-group {
+      display: flex;
+      align-items: center;
+      background: #f1f5f9;
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: var(--radius-pill);
+      padding: 2px;
+      box-shadow: 2px 2px 0px rgba(30, 41, 59, 0.6);
+    }
+
+    .sort-btn {
+      border: none;
+      background: transparent;
+      padding: 5px 12px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .sort-btn.active {
+      background: var(--surface-card);
+      color: var(--text-main);
+      box-shadow: 1.5px 1.5px 0px var(--border-ink);
+      border: 1.2px solid var(--border-ink);
+    }
+
+    .util-icon-btn {
+      width: 38px;
+      height: 38px;
+      background: var(--surface-card);
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 2px 2px 0px var(--border-ink);
+      transition: all 0.15s ease;
+      color: var(--text-main);
+    }
+
+    .util-icon-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 3px 3px 0px var(--border-ink);
+      background: var(--color-yellow-light);
+    }
+
+    .util-icon-btn:active {
+      transform: translateY(1px);
+      box-shadow: 1px 1px 0px var(--border-ink);
+    }
+
+    .util-icon-btn.active {
+      background: var(--color-mint);
+    }
+
+    /* ==========================================================================
+       Main Workspace & Pet Forest Grid
+       - 4 columns strictly, 22px gap
+       - container padding-top 16px to prevent hover translate clipping
+       ========================================================================== */
+    .workspace-container {
+      flex: 1;
+      width: 100%;
+      max-width: 1620px;
+      margin: 0 auto;
+      padding: 16px 28px 40px 28px; /* 16px top buffer guarantees zero clipping on translateY(-4px) */
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-summary-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px 14px 12px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+
+    .status-summary-bar .summary-title {
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-summary-bar .summary-title span.badge {
+      background: var(--color-sky);
+      border: 1.2px solid var(--border-ink);
+      padding: 1px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      color: var(--text-main);
+    }
+
+    .pet-grid-forest {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr); /* 4 columns max as mandated */
+      gap: 22px;
+      width: 100%;
+    }
+
+    @media (max-width: 1180px) {
+      .pet-grid-forest {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 840px) {
+      .pet-grid-forest {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* ==========================================================================
+       Card Component: Pure, Tactile Neo-Brutalism Light 2.0
+       - STRICT RULE: ONLY pet image (>=60% height) and student name (20px bold)
+       - ZERO tiny badges or text clutter on card face
+       ========================================================================== */
+    .pet-card {
+      position: relative;
+      background: var(--surface-card);
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-offset), var(--shadow-ambient);
+      height: 260px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 16px 16px 16px;
+      cursor: pointer;
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                  box-shadow 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  border-color 0.18s ease;
+      outline: none;
+      overflow: hidden;
+    }
+
+    /* Breathing room & hover dynamics */
+    .pet-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover), 0 16px 28px -4px rgba(30, 41, 59, 0.1);
+      border-color: #0f172a;
+    }
+
+    .pet-card:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: var(--shadow-active);
+    }
+
+    /* Selected state: distinct, high visibility from 3-10m */
+    .pet-card.selected {
+      border-color: var(--border-ink);
+      box-shadow: 0 0 0 3.5px #10b981, 4px 6px 0px var(--border-ink), 0 14px 28px rgba(16, 185, 129, 0.22);
+      background: #fafdfb;
+    }
+
+    /* Selection Indicator Checkmark (tactile seal badge) */
+    .card-check-seal {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #10b981;
+      border: 1.5px solid var(--border-ink);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 900;
+      display: grid;
+      place-items: center;
+      box-shadow: 1.5px 1.5px 0px var(--border-ink);
+      opacity: 0;
+      transform: scale(0.4) rotate(-20deg);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 5;
+    }
+
+    .pet-card.selected .card-check-seal {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+
+    /* Card Pet Stage Area (Takes >= 65% height) */
+    .card-stage-area {
+      width: 100%;
+      height: 68%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Warm diffused pedestal beneath pet */
+    .card-stage-pedestal {
+      position: absolute;
+      bottom: 6px;
+      width: 78%;
+      height: 24px;
+      background: radial-gradient(ellipse at center, rgba(226, 232, 240, 0.8) 0%, rgba(226, 232, 240, 0) 72%);
+      border-radius: 50%;
+      pointer-events: none;
+      transition: transform 0.25s ease;
+    }
+
+    .pet-card:hover .card-stage-pedestal {
+      transform: scale(1.1);
+      background: radial-gradient(ellipse at center, rgba(187, 247, 208, 0.7) 0%, rgba(187, 247, 208, 0) 72%);
+    }
+
+    .pet-card-image {
+      max-height: 100%;
+      max-width: 88%;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 10px rgba(30, 41, 59, 0.08));
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 2;
+    }
+
+    .pet-card:hover .pet-card-image {
+      transform: scale(1.08) translateY(-2px);
+    }
+
+    /* Student Name: 20px-22px Bold, Clear at 3m viewing distance */
+    .card-student-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: 0.3px;
+      text-align: center;
+      width: 100%;
+      padding-top: 4px;
+      margin-top: auto;
+      border-top: 1.5px dashed rgba(226, 232, 240, 0.8);
+    }
+
+    /* ==========================================================================
+       Looseleaf & BoardUI Inspired Off-Canvas Detail Sheet (Drawer)
+       - Left sliding drawer with smooth spring easing
+       - 3-second rapid grading workflow
+       - High touch targets (>= 52px)
+       ========================================================================== */
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.32);
+      backdrop-filter: blur(4px);
+      z-index: 80;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .sheet-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 440px;
+      max-width: 92vw;
+      background: var(--surface-sheet);
+      border-right: var(--border-width) solid var(--border-ink);
+      box-shadow: var(--shadow-sheet);
+      z-index: 90;
+      transform: translateX(-105%);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .sheet-panel.open {
+      transform: translateX(0);
+    }
+
+    /* Sheet Header */
+    .sheet-header {
+      padding: 16px 20px;
+      border-bottom: var(--border-width) solid var(--border-ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fafaf9;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .sheet-header-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sheet-id-badge {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text-main);
+      background: var(--color-yellow);
+      border: 1.5px solid var(--border-ink);
+      border-radius: var(--radius-pill);
+      padding: 2px 10px;
+      box-shadow: 1.5px 1.5px 0px var(--border-ink);
+    }
+
+    .sheet-group-badge {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+      background: var(--color-sky);
+      border: 1.5px solid var(--border-ink);
+      border-radius: var(--radius-pill);
+      padding: 2px 10px;
+      box-shadow: 1.5px 1.5px 0px var(--border-ink);
+    }
+
+    .sheet-close-btn {
+      border: var(--border-width) solid var(--border-ink);
+      background: var(--surface-card);
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      box-shadow: 2px 2px 0px var(--border-ink);
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sheet-close-btn:hover {
+      background: #fee2e2;
+      transform: translateY(-1px);
+      box-shadow: 2.5px 2.5px 0px var(--border-ink);
+    }
+
+    .sheet-close-btn:active {
+      transform: translateY(1px);
+      box-shadow: 1px 1px 0px var(--border-ink);
+    }
+
+    /* Sheet Content Body */
+    .sheet-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      flex: 1;
+    }
+
+    /* Pet Portrait Stage Inside Sheet */
+    .sheet-pet-stage {
+      background: #fdfbf7;
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: 18px;
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      box-shadow: 3px 3px 0px var(--border-ink);
+      overflow: hidden;
+    }
+
+    .sheet-pet-stage::before {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(254, 240, 138, 0.45) 0%, transparent 70%);
+      border-radius: 50%;
+      top: 15px;
+      z-index: 1;
+    }
+
+    .sheet-pet-img {
+      width: 140px;
+      height: 140px;
+      object-fit: contain;
+      z-index: 2;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.1));
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .sheet-pet-img:hover {
+      transform: scale(1.08) rotate(3deg);
+    }
+
+    .sheet-student-identity {
+      margin-top: 12px;
+      text-align: center;
+      z-index: 2;
+    }
+
+    .sheet-student-name {
+      font-size: 23px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .sheet-pet-species {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Growth & EXP Box */
+    .sheet-growth-box {
+      background: var(--surface-card);
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 3px 3px 0px var(--border-ink);
+    }
+
+    .growth-header-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .growth-level-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--color-mint-deep);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .growth-exp-numbers {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .growth-exp-numbers strong {
+      color: var(--text-main);
+      font-size: 15px;
+    }
+
+    .neo-progress-track {
+      width: 100%;
+      height: 14px;
+      background: #f1f5f9;
+      border: 1.6px solid var(--border-ink);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .neo-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+      border-radius: var(--radius-pill);
+      width: 50%;
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .growth-delta-hint {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    /* Academic Mastery (三科学阶) */
+    .sheet-subjects-box {
+      background: var(--surface-card);
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 3px 3px 0px var(--border-ink);
+    }
+
+    .subjects-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .subject-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .subject-item-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .subject-name-tag {
+      width: 48px;
+      padding: 2px 6px;
+      text-align: center;
+      border: 1.2px solid var(--border-ink);
+      border-radius: 6px;
+      font-size: 11.5px;
+    }
+
+    .tag-yuwen { background: var(--color-mint); }
+    .tag-shuxue { background: var(--color-sky); }
+    .tag-yingyu { background: var(--color-purple); }
+
+    .subject-mini-track {
+      flex: 1;
+      height: 9px;
+      background: #f1f5f9;
+      border: 1.2px solid var(--border-ink);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+    }
+
+    .subject-mini-fill {
+      height: 100%;
+      background: var(--border-ink-soft);
+      border-radius: var(--radius-pill);
+    }
+
+    .subject-level-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      width: 42px;
+      text-align: right;
+    }
+
+    /* ==========================================================================
+       Looseleaf-Inspired Stamp Scoring Section (印章式点赞动效)
+       - Rubber stamp tactile design with double borders and tilt
+       - Instant rewarding particles & feedback
+       - Touch targets >= 54px for teacher 3-second workflow
+       ========================================================================== */
+    .sheet-stamping-section {
+      background: #fffbeb;
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 3px 3px 0px var(--border-ink);
+      position: relative;
+    }
+
+    .stamping-heading {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #92400e;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stamping-heading span.tip {
+      font-size: 11px;
+      font-weight: 600;
+      background: #fef08a;
+      border: 1px solid var(--border-ink);
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+    }
+
+    .stamp-buttons-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .stamp-action-btn {
+      position: relative;
+      height: 56px;
+      border: 2px solid var(--border-ink);
+      border-radius: 14px;
+      background: var(--surface-card);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 3px 3px 0px var(--border-ink);
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+      outline: none;
+    }
+
+    .stamp-action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 4px 5px 0px var(--border-ink);
+    }
+
+    .stamp-action-btn:active {
+      transform: translateY(2px) scale(0.98);
+      box-shadow: 1px 1px 0px var(--border-ink);
+    }
+
+    .stamp-action-btn .btn-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stamp-action-btn .btn-icon {
+      font-size: 22px;
+    }
+
+    .stamp-action-btn .btn-tag {
+      font-size: 13px;
+      font-weight: 900;
+      padding: 3px 10px;
+      border: 1.5px solid var(--border-ink);
+      border-radius: var(--radius-pill);
+      box-shadow: 1.5px 1.5px 0px var(--border-ink);
+    }
+
+    /* Custom Stamp Inks */
+    .stamp-btn-listen {
+      border-color: #047857;
+      color: #065f46;
+      background: #ecfdf5;
+    }
+    .stamp-btn-listen .btn-tag {
+      background: #a7f3d0;
+      color: #064e3b;
+    }
+
+    .stamp-btn-speak {
+      border-color: #b45309;
+      color: #92400e;
+      background: #fffbeb;
+    }
+    .stamp-btn-speak .btn-tag {
+      background: #fde68a;
+      color: #78350f;
+    }
+
+    .stamp-btn-team {
+      border-color: #6d28d9;
+      color: #5b21b6;
+      background: #f5f3ff;
+    }
+    .stamp-btn-team .btn-tag {
+      background: #ddd6fe;
+      color: #4c1d95;
+    }
+
+    /* Stamp Wall (Looseleaf Stamp Surface) */
+    .today-stamp-wall {
+      margin-top: 14px;
+      border-top: 1.5px dashed #cbd5e1;
+      padding-top: 10px;
+      min-height: 48px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stamp-wall-empty {
+      font-size: 12px;
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .stamp-seal-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border: 1.5px dashed;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      animation: stamp-pop-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes stamp-pop-in {
+      0% { transform: scale(1.8) rotate(-15deg); opacity: 0; }
+      100% { transform: scale(1) rotate(var(--rot, 0deg)); opacity: 1; }
+    }
+
+    /* Floating Reward Particles */
+    .floating-exp-text {
+      position: fixed;
+      pointer-events: none;
+      font-size: 22px;
+      font-weight: 900;
+      color: #10b981;
+      text-shadow: 2px 2px 0px #1e293b;
+      z-index: 999;
+      animation: float-and-fade 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes float-and-fade {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(0.8);
+      }
+      50% {
+        transform: translateY(-35px) scale(1.25);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-70px) scale(1);
+      }
+    }
+
+    /* Preserved Hub Action Buttons */
+    .sheet-bottom-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 10px;
+    }
+
+    .sheet-sub-action-btn {
+      flex: 1;
+      height: 44px;
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: 12px;
+      background: var(--surface-card);
+      color: var(--text-main);
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 2.5px 2.5px 0px var(--border-ink);
+      transition: all 0.15s ease;
+    }
+
+    .sheet-sub-action-btn:hover {
+      background: #f8fafc;
+      transform: translateY(-1.5px);
+      box-shadow: 3.5px 3.5px 0px var(--border-ink);
+    }
+
+    .sheet-sub-action-btn:active {
+      transform: translateY(1px);
+      box-shadow: 1px 1px 0px var(--border-ink);
+    }
+
+    /* ==========================================================================
+       Preserved Interactive Modal (详情与互动)
+       ========================================================================== */
+    .preview-modal-dialog {
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: 20px;
+      padding: 0;
+      box-shadow: 8px 8px 0px var(--border-ink);
+      max-width: 480px;
+      width: 90vw;
+      margin: auto;
+      background: var(--surface-card);
+      outline: none;
+    }
+
+    .preview-modal-dialog::backdrop {
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-head {
+      padding: 16px 20px;
+      border-bottom: var(--border-width) solid var(--border-ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fafaf9;
+    }
+
+    .modal-head h3 {
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .modal-close-icon {
+      border: 1.5px solid var(--border-ink);
+      background: var(--surface-card);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 14px;
+      box-shadow: 1.5px 1.5px 0px var(--border-ink);
+    }
+
+    .modal-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-actions-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .modal-sub-btn {
+      padding: 10px 14px;
+      border: 1.5px solid var(--border-ink);
+      border-radius: 10px;
+      background: #f8fafc;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 2px 2px 0px var(--border-ink);
+    }
+
+    .modal-sub-btn:hover {
+      background: var(--color-yellow-light);
+      transform: translateY(-1px);
+    }
+
+    /* Footer Notification Toast */
+    .toast-pill {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1e293b;
+      color: #ffffff;
+      border: var(--border-width) solid #0f172a;
+      border-radius: var(--radius-pill);
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+      z-index: 200;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast-pill.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-icon" title="电子宠物吉祥物">🐱</div>
+      <div class="brand-titles">
+        <h1>班级电子宠物 <span class="demo-pill-badge">模拟数据 · 演示原型</span></h1>
+        <div class="subtitle">三年级二班 · 刘老师 · 语文 · 4列呼吸感布局</div>
+      </div>
+    </div>
+
+    <!-- Floating Pill Chips for Group Selection -->
+    <nav class="group-nav-chips" aria-label="小组切换">
+      <button class="chip-btn active" data-group="all">
+        全部 <span class="count-dot" id="count-all">32</span>
+      </button>
+      <button class="chip-btn" data-group="1">
+        第 1 组 <span class="count-dot" id="count-1">8</span>
+      </button>
+      <button class="chip-btn" data-group="2">
+        第 2 组 <span class="count-dot" id="count-2">8</span>
+      </button>
+      <button class="chip-btn" data-group="3">
+        第 3 组 <span class="count-dot" id="count-3">8</span>
+      </button>
+      <button class="chip-btn" data-group="4">
+        第 4 组 <span class="count-dot" id="count-4">8</span>
+      </button>
+    </nav>
+
+    <!-- Header Actions & Controls -->
+    <div class="header-actions">
+      <!-- Sorting Controls (Rule strictly preserved: Ascending ID vs Descending Level & EXP) -->
+      <div class="sort-control-group" aria-label="排序方式">
+        <button class="sort-btn active" data-sort="no" title="学号升序">学号 ↑</button>
+        <button class="sort-btn" data-sort="level" title="等级与经验降序">等级 / 经验 ↓</button>
+      </div>
+
+      <!-- Quick Utilities -->
+      <button id="btn-sound" class="util-icon-btn active" title="点击切换音效反馈" aria-label="音效">♪</button>
+      <button id="btn-fullscreen" class="util-icon-btn" title="按 F11 或点击全屏沉浸演示" aria-label="全屏">⛶</button>
+      <button id="btn-reset" class="util-icon-btn" title="重置演示经验值" aria-label="重置">🔄</button>
+    </div>
+  </header>
+
+  <!-- Main Pet Forest Grid Section -->
+  <main class="workspace-container">
+    <div class="status-summary-bar">
+      <div class="summary-title" id="grid-status-text">
+        全班宠物森林 <span class="badge">共 32 位同学</span>
+      </div>
+      <div class="tips">
+        💡 3米远距大字大图 · 点击任意卡片展开 3 秒即时赋分抽屉 (Esc 秒关)
+      </div>
+    </div>
+
+    <!-- 4-Column Pet Forest Grid -->
+    <div class="pet-grid-forest" id="pet-grid">
+      <!-- Dynamic Student Cards will be rendered here -->
+    </div>
+  </main>
+
+  <!-- Detail Sheet (Off-Canvas Drawer) -->
+  <div class="sheet-backdrop" id="sheet-backdrop"></div>
+  <aside class="sheet-panel" id="sheet-panel" aria-label="学生宠物成长档案" aria-hidden="true">
+    <div class="sheet-header">
+      <div class="sheet-header-badges">
+        <span class="sheet-id-badge" id="sheet-no">#01</span>
+        <span class="sheet-group-badge" id="sheet-group">第 1 小组</span>
+      </div>
+      <button class="sheet-close-btn" id="sheet-close-btn" title="关闭档案抽屉 (Esc)">✕ 收起</button>
+    </div>
+
+    <div class="sheet-body">
+      <!-- Pet Stage View -->
+      <div class="sheet-pet-stage">
+        <img id="sheet-pet-image" class="sheet-pet-img" src="" alt="宠物形象">
+        <div class="sheet-student-identity">
+          <h2 class="sheet-student-name" id="sheet-name">张三</h2>
+          <div class="sheet-pet-species" id="sheet-species">狸花猫 · 语文守护伴侣</div>
+        </div>
+      </div>
+
+      <!-- Growth & EXP Progress -->
+      <div class="sheet-growth-box">
+        <div class="growth-header-row">
+          <div class="growth-level-title" id="sheet-level">Lv.8 成长体</div>
+          <div class="growth-exp-numbers">
+            <strong id="sheet-current-exp">280</strong> / <span id="sheet-max-exp">315</span> EXP
+          </div>
+        </div>
+        <div class="neo-progress-track">
+          <div class="neo-progress-fill" id="sheet-progress-fill" style="width: 88%;"></div>
+        </div>
+        <div class="growth-delta-hint" id="sheet-delta-hint">距离下一级还需 35 EXP</div>
+      </div>
+
+      <!-- Academic Mastery (三科学阶) -->
+      <div class="sheet-subjects-box">
+        <div class="subjects-title">
+          <span>三科学阶成长</span>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">语文主修加成中</span>
+        </div>
+        <div class="subject-rows">
+          <div class="subject-item-row">
+            <span class="subject-name-tag tag-yuwen">语文</span>
+            <div class="subject-mini-track">
+              <div class="subject-mini-fill" id="subj-fill-yuwen" style="width: 88%; background: #10b981;"></div>
+            </div>
+            <span class="subject-level-text" id="subj-lvl-yuwen">Lv.8</span>
+          </div>
+          <div class="subject-item-row">
+            <span class="subject-name-tag tag-shuxue">数学</span>
+            <div class="subject-mini-track">
+              <div class="subject-mini-fill" style="width: 45%; background: #0284c7;"></div>
+            </div>
+            <span class="subject-level-text">Lv.3</span>
+          </div>
+          <div class="subject-item-row">
+            <span class="subject-name-tag tag-yingyu">英语</span>
+            <div class="subject-mini-track">
+              <div class="subject-mini-fill" style="width: 30%; background: #7c3aed;"></div>
+            </div>
+            <span class="subject-level-text">Lv.2</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Looseleaf-Inspired Stamp Scoring Area (教师即时授课赋分) -->
+      <div class="sheet-stamping-section">
+        <div class="stamping-heading">
+          <span>课堂即时授课赋分 (点击盖章)</span>
+          <span class="tip">3秒顺手交互</span>
+        </div>
+
+        <div class="stamp-buttons-grid">
+          <button class="stamp-action-btn stamp-btn-listen" id="btn-stamp-listen">
+            <div class="btn-left">
+              <span class="btn-icon">👍</span>
+              <span>认真倾听 · 专注投入</span>
+            </div>
+            <span class="btn-tag">+10 EXP</span>
+          </button>
+
+          <button class="stamp-action-btn stamp-btn-speak" id="btn-stamp-speak">
+            <div class="btn-left">
+              <span class="btn-icon">💡</span>
+              <span>积极发言 · 勇于探索</span>
+            </div>
+            <span class="btn-tag">+10 EXP</span>
+          </button>
+
+          <button class="stamp-action-btn stamp-btn-team" id="btn-stamp-team">
+            <div class="btn-left">
+              <span class="btn-icon">🌟</span>
+              <span>团结互助 · 善于协作</span>
+            </div>
+            <span class="btn-tag">+20 EXP</span>
+          </button>
+        </div>
+
+        <!-- Today's Stamped Honors -->
+        <div class="today-stamp-wall" id="today-stamp-wall">
+          <span class="stamp-wall-empty" id="stamp-wall-empty">本堂课暂未盖章表彰</span>
+        </div>
+      </div>
+
+      <!-- Preserved Action Hub -->
+      <div class="sheet-bottom-actions">
+        <button class="sheet-sub-action-btn" id="btn-more-details">✨ 详情与互动</button>
+        <button class="sheet-sub-action-btn" id="btn-set-featured">🐾 设为伴读宠物</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Interactive Detail Dialog (保留完整业务入口预览) -->
+  <dialog class="preview-modal-dialog" id="preview-dialog">
+    <div class="modal-head">
+      <h3 id="modal-title">宠物互动与业务操作</h3>
+      <button class="modal-close-icon" id="modal-close-btn" title="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.5;">
+        根据《协议约束》，本演示原型完整保留正式大屏的所有功能入口。点击下方按钮即可预览对应模块行为：
+      </p>
+      <div class="modal-actions-list">
+        <button class="modal-sub-btn" onclick="showToast('正在打开【孵化 / 认领】向导...')">🥚 孵化 / 认领</button>
+        <button class="modal-sub-btn" onclick="showToast('正在打开【宠物形态进化】预览...')">✨ 形态进化</button>
+        <button class="modal-sub-btn" onclick="showToast('正在切换主修学科（语文 / 数学 / 英语）...')">📚 切换学科</button>
+        <button class="modal-sub-btn" onclick="showToast('已设为全屏伴读守护宠物！')">🌟 设为展示宠</button>
+        <button class="modal-sub-btn" onclick="showToast('投喂了一枚能量小鱼干，宠物很开心！')">🐟 互动喂食</button>
+        <button class="modal-sub-btn" onclick="showToast('正在同步课堂成长数据到教师终端...')">📊 课堂数据</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Notification Toast -->
+  <div class="toast-pill" id="toast-pill">
+    <span id="toast-icon">✨</span>
+    <span id="toast-msg">提示信息</span>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. Standard 32 Students Mock Dataset
+       - 4 Groups, 8 Students per group
+       - 8 Distinct species with realistic evolution stages
+       ========================================================================== */
+    const SPECIES_CONFIG = {
+      cat: { name: "狸花猫", emoji: "🐱", color: "#fef08a" },
+      dog: { name: "金毛犬", emoji: "🐶", color: "#fed7aa" },
+      fox: { name: "小狐狸", emoji: "🦊", color: "#fecdd3" },
+      bunny: { name: "白兔", emoji: "🐰", color: "#e9d5ff" },
+      hamster: { name: "仓鼠", emoji: "🐹", color: "#fef08a" },
+      deer: { name: "小鹿", emoji: "🦌", color: "#bbf7d0" },
+      bird: { name: "青鸟", emoji: "🐦", color: "#bae6fd" },
+      fish: { name: "金鱼", emoji: "🐠", color: "#fed7aa" }
+    };
+
+    const INITIAL_STUDENTS = [
+      // 第 1 小组 (Group 1)
+      { id: 1, name: "张三", group: 1, species: "cat", level: 8, exp: 280, maxExp: 315 },
+      { id: 2, name: "李四", group: 1, species: "dog", level: 13, exp: 620, maxExp: 665 },
+      { id: 3, name: "陈晨", group: 1, species: "fox", level: 2, exp: 50, maxExp: 60 },
+      { id: 4, name: "林夕", group: 1, species: "bunny", level: 20, exp: 1200, maxExp: 1200 },
+      { id: 5, name: "周雨", group: 1, species: "hamster", level: 8, exp: 290, maxExp: 315 },
+      { id: 6, name: "姜楠", group: 1, species: "deer", level: 13, exp: 610, maxExp: 665 },
+      { id: 7, name: "白羽", group: 1, species: "bird", level: 8, exp: 275, maxExp: 315 },
+      { id: 8, name: "陆飞", group: 1, species: "fish", level: 2, exp: 40, maxExp: 60 },
+
+      // 第 2 小组 (Group 2)
+      { id: 9, name: "王五", group: 2, species: "fox", level: 5, exp: 150, maxExp: 180 },
+      { id: 10, name: "赵六", group: 2, species: "bunny", level: 16, exp: 880, maxExp: 920 },
+      { id: 11, name: "许嘉", group: 2, species: "cat", level: 10, exp: 430, maxExp: 480 },
+      { id: 12, name: "孙诺", group: 2, species: "dog", level: 8, exp: 300, maxExp: 315 },
+      { id: 13, name: "方婷", group: 2, species: "hamster", level: 2, exp: 45, maxExp: 60 },
+      { id: 14, name: "钱程", group: 2, species: "deer", level: 20, exp: 1200, maxExp: 1200 },
+      { id: 15, name: "韩雪", group: 2, species: "bird", level: 13, exp: 640, maxExp: 665 },
+      { id: 16, name: "沈默", group: 2, species: "fish", level: 8, exp: 295, maxExp: 315 },
+
+      // 第 3 小组 (Group 3)
+      { id: 17, name: "孙七", group: 3, species: "hamster", level: 8, exp: 285, maxExp: 315 },
+      { id: 18, name: "周八", group: 3, species: "deer", level: 13, exp: 615, maxExp: 665 },
+      { id: 19, name: "顾海", group: 3, species: "cat", level: 2, exp: 55, maxExp: 60 },
+      { id: 20, name: "孟星", group: 3, species: "dog", level: 20, exp: 1200, maxExp: 1200 },
+      { id: 21, name: "陶然", group: 3, species: "fox", level: 10, exp: 440, maxExp: 480 },
+      { id: 22, name: "冯悦", group: 3, species: "bunny", level: 8, exp: 270, maxExp: 315 },
+      { id: 23, name: "袁野", group: 3, species: "bird", level: 5, exp: 160, maxExp: 180 },
+      { id: 24, name: "钟灵", group: 3, species: "fish", level: 16, exp: 890, maxExp: 920 },
+
+      // 第 4 小组 (Group 4)
+      { id: 25, name: "吴九", group: 4, species: "bird", level: 8, exp: 310, maxExp: 315 },
+      { id: 26, name: "郑十", group: 4, species: "fish", level: 2, exp: 35, maxExp: 60 },
+      { id: 27, name: "肖楚", group: 4, species: "cat", level: 16, exp: 870, maxExp: 920 },
+      { id: 28, name: "薛彤", group: 4, species: "dog", level: 5, exp: 145, maxExp: 180 },
+      { id: 29, name: "汪洋", group: 4, species: "fox", level: 13, exp: 630, maxExp: 665 },
+      { id: 30, name: "董凡", group: 4, species: "bunny", level: 2, exp: 50, maxExp: 60 },
+      { id: 31, name: "彭博", group: 4, species: "hamster", level: 20, exp: 1200, maxExp: 1200 },
+      { id: 32, name: "梁辰", group: 4, species: "deer", level: 8, exp: 290, maxExp: 315 }
+    ];
+
+    // Deep clone student list for runtime mutation
+    let students = JSON.parse(JSON.stringify(INITIAL_STUDENTS));
+    let selectedStudentId = 1;
+    let isSheetOpen = false;
+    let currentGroupFilter = "all";
+    let currentSortMode = "no"; // "no" or "level"
+    let soundEnabled = true;
+
+    // Student honors/stamps recorded per student in session
+    const studentStamps = {};
+
+    /* ==========================================================================
+       2. Asset Path & SVG Vector Fallback Generator
+       ========================================================================== */
+    function getPetImagePath(species, level) {
+      const stage = level >= 20 ? 5 : level >= 13 ? 3 : level >= 8 ? 2 : 1;
+      return `../electron-app/src/assets/pets/${species}/${species}-stage${stage}.png`;
+    }
+
+    // High quality inline SVG fallback data URIs
+    function getPetSvgFallback(species) {
+      const emojis = {
+        cat: "🐱", dog: "🐶", fox: "🦊", bunny: "🐰",
+        hamster: "🐹", deer: "🦌", bird: "🐦", fish: "🐠"
+      };
+      const colors = {
+        cat: "#fef08a", dog: "#fed7aa", fox: "#fecdd3", bunny: "#e9d5ff",
+        hamster: "#fde68a", deer: "#bbf7d0", bird: "#bae6fd", fish: "#fed7aa"
+      };
+      const emoji = emojis[species] || "🐾";
+      const bg = colors[species] || "#f1f5f9";
+      
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+        <circle cx="80" cy="80" r="74" fill="${bg}" stroke="#1e293b" stroke-width="4"/>
+        <text x="80" y="98" font-size="70" text-anchor="middle" font-family="Apple Color Emoji, Segoe UI Emoji, sans-serif">${emoji}</text>
+      </svg>`;
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+
+    /* ==========================================================================
+       3. Sound Synthesizer via Web Audio API
+       ========================================================================== */
+    let audioCtx = null;
+    function playChime(type) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'select') {
+          // Warm wooden pop
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(420, now);
+          osc.frequency.exponentialRampToValueAtTime(780, now + 0.08);
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        } else if (type === 'stamp') {
+          // Cheerful reward chime (two-tone arpeggio)
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(659.25, now + 0.07); // E5
+          osc.frequency.setValueAtTime(783.99, now + 0.14); // G5
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        } else if (type === 'levelup') {
+          // Major fan-fare chord
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.type = 'sine';
+            o.frequency.setValueAtTime(freq, now + i * 0.06);
+            g.gain.setValueAtTime(0.07, now + i * 0.06);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            o.start(now + i * 0.06);
+            o.stop(now + 0.55);
+          });
+        }
+      } catch (err) {
+        // Silent catch if audio not allowed
+      }
+    }
+
+    /* ==========================================================================
+       4. Render & Core Logic
+       ========================================================================== */
+    const petGrid = document.getElementById('pet-grid');
+    const sheetBackdrop = document.getElementById('sheet-backdrop');
+    const sheetPanel = document.getElementById('sheet-panel');
+
+    function getFilteredAndSortedStudents() {
+      let list = students.filter(s => currentGroupFilter === "all" || String(s.group) === currentGroupFilter);
+      if (currentSortMode === "no") {
+        // Ascending ID strictly
+        list.sort((a, b) => a.id - b.id);
+      } else {
+        // Level desc -> EXP desc -> ID asc strictly
+        list.sort((a, b) => b.level - a.level || b.exp - a.exp || a.id - b.id);
+      }
+      return list;
+    }
+
+    function renderGrid() {
+      const list = getFilteredAndSortedStudents();
+      const statusText = document.getElementById('grid-status-text');
+      const groupLabel = currentGroupFilter === "all" ? "全部小组" : `第 ${currentGroupFilter} 小组`;
+      statusText.innerHTML = `${groupLabel} · 班级宠物森林 <span class="badge">当前显示 ${list.length} / 32 位同学</span>`;
+
+      // Render cards: ONLY pet image and student name
+      petGrid.innerHTML = list.map(student => {
+        const isSelected = student.id === selectedStudentId && isSheetOpen;
+        const imgPath = getPetImagePath(student.species, student.level);
+        const fallbackSvg = getPetSvgFallback(student.species);
+
+        return `
+          <div class="pet-card ${isSelected ? 'selected' : ''}" 
+               data-id="${student.id}" 
+               tabindex="0" 
+               role="button" 
+               aria-label="查看 ${student.name} 的宠物" 
+               aria-pressed="${isSelected}">
+            
+            <!-- Selection Checkmark Seal -->
+            <div class="card-check-seal" aria-hidden="true">✓</div>
+
+            <!-- Card Pet Stage (>= 60% height) -->
+            <div class="card-stage-area">
+              <div class="card-stage-pedestal"></div>
+              <img class="pet-card-image" 
+                   src="${imgPath}" 
+                   alt="${student.name}的宠物" 
+                   loading="lazy"
+                   onerror="this.onerror=null; this.src='${fallbackSvg}';">
+            </div>
+
+            <!-- Student Name: 20px bold centered -->
+            <div class="card-student-name">${student.name}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectStudent(id, openDrawer = true) {
+      selectedStudentId = Number(id);
+      const student = students.find(s => s.id === selectedStudentId);
+      if (!student) return;
+
+      if (openDrawer) {
+        openSheet();
+      }
+      updateSheetContent(student);
+      renderGrid();
+      playChime('select');
+    }
+
+    function openSheet() {
+      isSheetOpen = true;
+      sheetBackdrop.classList.add('open');
+      sheetPanel.classList.add('open');
+      sheetPanel.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeSheet() {
+      isSheetOpen = false;
+      sheetBackdrop.classList.remove('open');
+      sheetPanel.classList.remove('open');
+      sheetPanel.setAttribute('aria-hidden', 'true');
+      renderGrid();
+    }
+
+    function updateSheetContent(student) {
+      const config = SPECIES_CONFIG[student.species] || { name: "萌宠", emoji: "🐾" };
+      const stageName = student.level >= 20 ? "阶段 V · 极态神宠" : student.level >= 13 ? "阶段 III · 敏锐成年期" : student.level >= 8 ? "阶段 II · 活泼成长体" : "阶段 I · 软萌幼年期";
+
+      document.getElementById('sheet-no').textContent = `#${String(student.id).padStart(2, '0')}`;
+      document.getElementById('sheet-group').textContent = `第 ${student.group} 小组`;
+      document.getElementById('sheet-name').textContent = student.name;
+      document.getElementById('sheet-species').textContent = `${config.name} · 语文守护宠 (${stageName})`;
+
+      const imgPath = getPetImagePath(student.species, student.level);
+      const fallbackSvg = getPetSvgFallback(student.species);
+      const sheetImg = document.getElementById('sheet-pet-image');
+      sheetImg.src = imgPath;
+      sheetImg.onerror = function() { this.onerror = null; this.src = fallbackSvg; };
+
+      // Growth and EXP
+      document.getElementById('sheet-level').textContent = `Lv.${student.level} ${stageName.split('·')[1] || ''}`;
+      document.getElementById('sheet-current-exp').textContent = student.exp;
+      document.getElementById('sheet-max-exp').textContent = student.maxExp;
+
+      const pct = Math.min(100, Math.round((student.exp / student.maxExp) * 100));
+      document.getElementById('sheet-progress-fill').style.width = `${pct}%`;
+      document.getElementById('subj-fill-yuwen').style.width = `${pct}%`;
+      document.getElementById('subj-lvl-yuwen').textContent = `Lv.${student.level}`;
+
+      const delta = Math.max(0, student.maxExp - student.exp);
+      document.getElementById('sheet-delta-hint').textContent = student.level >= 20 ? "已达大屏最高满阶！" : `距离下一级还需 ${delta} EXP`;
+
+      // Render today's stamps
+      renderStudentStamps(student.id);
+    }
+
+    function renderStudentStamps(studentId) {
+      const wall = document.getElementById('today-stamp-wall');
+      const stamps = studentStamps[studentId] || [];
+      if (stamps.length === 0) {
+        wall.innerHTML = '<span class="stamp-wall-empty">本堂课暂未盖章表彰</span>';
+        return;
+      }
+      wall.innerHTML = stamps.map(st => {
+        return `<span class="stamp-seal-badge" style="color: ${st.color}; border-color: ${st.color}; --rot: ${st.rot}deg;">
+          ${st.icon} ${st.title} (+${st.exp})
+        </span>`;
+      }).join('');
+    }
+
+    /* ==========================================================================
+       5. Interactive Stamping & Rewarding Micro-Animations
+       ========================================================================== */
+    function applyStampReward(expBonus, title, icon, color, event) {
+      const student = students.find(s => s.id === selectedStudentId);
+      if (!student) return;
+
+      student.exp += expBonus;
+      let leveledUp = false;
+
+      // Handle level progression
+      if (student.exp >= student.maxExp && student.level < 20) {
+        student.level += 1;
+        student.exp = student.exp - student.maxExp;
+        student.maxExp = Math.round(student.maxExp * 1.3);
+        leveledUp = true;
+      } else if (student.level >= 20) {
+        student.exp = student.maxExp;
+      }
+
+      // Record stamp
+      if (!studentStamps[student.id]) studentStamps[student.id] = [];
+      studentStamps[student.id].push({
+        title,
+        icon,
+        exp: expBonus,
+        color,
+        rot: (Math.random() * 8 - 4).toFixed(1)
+      });
+
+      // Sound feedback
+      if (leveledUp) {
+        playChime('levelup');
+        showToast(`🎉 恭喜！${student.name} 的宠物升到了 Lv.${student.level}！`);
+      } else {
+        playChime('stamp');
+      }
+
+      // Visual floating EXP feedback
+      spawnFloatingExp(event ? event.clientX : window.innerWidth / 2, event ? event.clientY : window.innerHeight / 2, `+${expBonus} ${icon}`);
+
+      // Refresh UI
+      updateSheetContent(student);
+      renderGrid();
+    }
+
+    function spawnFloatingExp(x, y, text) {
+      const el = document.createElement('div');
+      el.className = 'floating-exp-text';
+      el.textContent = text;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 900);
+    }
+
+    /* ==========================================================================
+       6. Toast System
+       ========================================================================== */
+    let toastTimer = null;
+    function showToast(msg, icon = '✨') {
+      const toast = document.getElementById('toast-pill');
+      document.getElementById('toast-msg').textContent = msg;
+      document.getElementById('toast-icon').textContent = icon;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    /* ==========================================================================
+       7. Event Listeners & Wiring
+       ========================================================================== */
+    // Card click & keyboard selection
+    petGrid.addEventListener('click', e => {
+      const card = e.target.closest('.pet-card');
+      if (card) {
+        selectStudent(card.dataset.id, true);
+      }
+    });
+
+    petGrid.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const card = e.target.closest('.pet-card');
+        if (card) {
+          e.preventDefault();
+          selectStudent(card.dataset.id, true);
+        }
+      }
+    });
+
+    // Close Sheet triggers: Button, Outside Click, Esc Key
+    document.getElementById('sheet-close-btn').addEventListener('click', closeSheet);
+    sheetBackdrop.addEventListener('click', closeSheet);
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        if (isSheetOpen) closeSheet();
+        const dialog = document.getElementById('preview-dialog');
+        if (dialog.open) dialog.close();
+      }
+    });
+
+    // Group Navigation Chips
+    document.querySelectorAll('.chip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentGroupFilter = btn.dataset.group;
+        renderGrid();
+        playChime('select');
+      });
+    });
+
+    // Sorting Controls
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentSortMode = btn.dataset.sort;
+        renderGrid();
+        playChime('select');
+        showToast(currentSortMode === 'no' ? '已按【学号升序】排列' : '已按【等级 / 经验降序】排列');
+      });
+    });
+
+    // Stamp Buttons Click
+    document.getElementById('btn-stamp-listen').addEventListener('click', (e) => {
+      applyStampReward(10, '认真倾听', '👍', '#059669', e);
+    });
+
+    document.getElementById('btn-stamp-speak').addEventListener('click', (e) => {
+      applyStampReward(10, '积极发言', '💡', '#d97706', e);
+    });
+
+    document.getElementById('btn-stamp-team').addEventListener('click', (e) => {
+      applyStampReward(20, '团队协作', '🌟', '#7c3aed', e);
+    });
+
+    // Sound toggle
+    const soundBtn = document.getElementById('btn-sound');
+    soundBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      soundBtn.classList.toggle('active', soundEnabled);
+      soundBtn.title = `音效反馈：${soundEnabled ? '已开启' : '已静音'}`;
+      showToast(soundEnabled ? '音效反馈已开启' : '音效反馈已静音', '♪');
+    });
+
+    // Fullscreen API
+    document.getElementById('btn-fullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {
+          showToast('浏览器限制全屏，可按键盘 F11 全屏体验');
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    // Reset Data
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      students = JSON.parse(JSON.stringify(INITIAL_STUDENTS));
+      for (const k in studentStamps) delete studentStamps[k];
+      const current = students.find(s => s.id === selectedStudentId);
+      if (current) updateSheetContent(current);
+      renderGrid();
+      showToast('演示经验数据已重置为初始状态', '🔄');
+    });
+
+    // Sub Actions Modal Dialog
+    const previewDialog = document.getElementById('preview-dialog');
+    document.getElementById('btn-more-details').addEventListener('click', () => {
+      previewDialog.showModal();
+    });
+    document.getElementById('btn-set-featured').addEventListener('click', () => {
+      const s = students.find(s => s.id === selectedStudentId);
+      showToast(`已将 ${s.name} 的宠物设为今日全班伴读吉祥物！`, '🐾');
+    });
+    document.getElementById('modal-close-btn').addEventListener('click', () => {
+      previewDialog.close();
+    });
+
+    // Initialize
+    renderGrid();
+  </script>
+</body>
+</html>

@@ -22,6 +22,11 @@
 - [x] 通过真实 Electron 环境完成全尺寸渲染与特写抓取验证（生成 `06_first_row_cards_unclipped.png` 与 `07_crop_first_row.png`）。
 - [x] 新增大屏直达一键启动脚本 `Open-Student-Bigscreen.cmd` 与环境变量支持 `CLASSPET_START_PAGE`，方便用户双击直接进入学生大厅手测验证。
 - [x] 深度解析两套组件库（Looseleaf 与 BoardUI），完成针对外部网页版 AI（ChatGPT / Gemini / AI Studio）的高保真重构任务总纲与一键投喂 Prompt 规格文档：`design/AI_COLLABORATION_PROMPT_SPEC.md`。
+- [x] Swarm 多智能体完成纯前端高保真演示页面 A/B 两案开发与真实渲染验证：
+  - 方案 A（呼吸感新粗野 2.0）：`design/demo_a_neo_brutalism.html`（1757 行，融入 Looseleaf 纸质质感、印章点赞与圆润卡片）；
+  - 方案 B（现代温润 Bento 苹果教育风）：`design/demo_b_modern_bento.html`（1785 行，融入 BoardUI 触控选框、毛玻璃微质感、超大圆角与柔和微光）；
+  - 均支持 4 列大呼吸感自适应网格、3米远距纯净大图大字卡片、3秒顺手点赞抽屉与 Esc 秒收纳；
+  - 完成全景与抽屉展开截图捕获（`demo_a_normal.png`、`demo_a_drawer_open.png`、`demo_b_normal.png`、`demo_b_drawer_open.png`）。
 
 ## 2026-11-12 源码同步
 
