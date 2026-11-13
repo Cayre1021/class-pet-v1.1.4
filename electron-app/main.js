@@ -237,7 +237,9 @@ app.whenReady().then(async () => {
         console.error('[Main] SQLite 初始化发生异常:', e);
     }
 
-    createMainWindow();
+    const startPage = process.env.CLASSPET_START_PAGE || 'portal_auth.html';
+    const startTitle = startPage.includes('display') ? 'Class Pet - 班级电子宠物管理系统 (学生大屏)' : 'Class Pet - 班级电子宠物管理系统 (主控制台)';
+    createMainWindow(startPage, startTitle);
 
     // 注册全局 F11 全屏切换快捷键 (支持教室一体机全屏使用)
     globalShortcut.register('F11', () => {

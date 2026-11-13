@@ -20,6 +20,7 @@
     5. 同步调整 `design/revision-preview.css` 中 `.grid-scroll` 与 `.pet-card` 对应属性。
 - [x] 静态回归与手势测试通过（`test_display_layout_a.cjs`、`test_floating_ball_gestures.cjs`）；git diff 空白与语法检查无误。
 - [x] 通过真实 Electron 环境完成全尺寸渲染与特写抓取验证（生成 `06_first_row_cards_unclipped.png` 与 `07_crop_first_row.png`）。
+- [x] 新增大屏直达一键启动脚本 `Open-Student-Bigscreen.cmd` 与环境变量支持 `CLASSPET_START_PAGE`，方便用户双击直接进入学生大厅手测验证。
 
 ## 2026-11-12 源码同步
 
