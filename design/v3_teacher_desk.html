@@ -1420,7 +1420,7 @@ body{ background:var(--paper) }
     if (!cards.length) {
       wrap.innerHTML = '<div class="grid-empty">' + (state.query
         ? '没有匹配「' + esc(state.query) + '」的学生<br>试试清空搜索或切换分组'
-        : (state.filter === 'archive' ? '暂无归档学生<br>可在「⋯ → 编辑资料」里勾选「移入归档」' : '该分组暂无学生')) + '</div>';
+        : (state.filter === 'archive' ? '暂无归档学生' : '该分组暂无学生')) + '</div>';
       return;
     }
     wrap.innerHTML = cards.map(rowHTML).join('');
@@ -2043,8 +2043,6 @@ body{ background:var(--paper) }
         '</div>' +
         '<div class="form-row"><div class="field"><label>状态</label>' +
           '<label class="switch" style="min-height:38px"><input type="checkbox" id="edit-absent"' + (s.isAbsent ? ' checked' : '') + '><span class="track" aria-hidden="true"></span>缺勤</label>' +
-        '</div><div class="field"><label>归档</label>' +
-          '<label class="switch" style="min-height:38px"><input type="checkbox" id="edit-archived"' + (s.archived ? ' checked' : '') + '><span class="track" aria-hidden="true"></span>移入归档</label>' +
         '</div></div>' +
         (s.isEgg ? '<p class="note">该学生处于蛋形态（' + s.exp + ' / ' + s.maxExp + ' EXP）。经验满后可在下方直接破壳。</p>' : '') +
         '<p class="note">宠物：' + speciesName(s) + ' · 阶段 ' + (s.isEgg ? '蛋' : petStage(s.level)) + ' / 5 · 学号 #' + pad2(s.id) + '</p>',
@@ -2058,11 +2056,8 @@ body{ background:var(--paper) }
             s.maxExp = s.level * state.expPerLevel;
             s.exp = clamp(Number($('#edit-exp').value) || 0, 0, s.maxExp);
             s.isAbsent = $('#edit-absent').checked;
-            var wasArchived = s.archived;
-            s.archived = $('#edit-archived').checked;
             s.isMax = s.level >= 9;
-            if (s.archived) state.selected.delete(s.id);
-            s.log.push({ time: nowTime(), tag: '编辑', text: '资料已更新' + (wasArchived !== s.archived ? (s.archived ? '（移入归档）' : '（从归档恢复）') : '') });
+            s.log.push({ time: nowTime(), tag: '编辑', text: '资料已更新' });
             closeDialog(); renderLanes(); renderDock(); renderBatch();
             toast('已保存 ' + s.name + ' 的资料');
           } }
