@@ -1,0 +1,24 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..');
+app.setPath('userData', path.join(process.env.TEMP || '.', 'cp-det-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1920, height: 1080, show: true, webPreferences: { contextIsolation: true, backgroundThrottling: false } });
+  win.setContentSize(1920,1080); win.setAlwaysOnTop(true); win.focus();
+  const js = c => win.webContents.executeJavaScript(c, true);
+  const errs = [];
+  win.webContents.on('console-message', function(){ var a=[].slice.call(arguments); var d=a[1]; var lvl=(typeof d==='object'&&d)?d.level:a[1]; var m=(typeof d==='object'&&d)?d.message:a[2]; if(lvl==='error'||lvl===3) errs.push(String(m).slice(0,120)); });
+  await win.loadURL('file://' + path.join(ROOT, 'design', 'v3_looseleaf_paper.html').replace(/\\/g, '/'));
+  await sleep(1500);
+  await js(`document.querySelector('.pet-card').click()`);
+  await sleep(800);
+  await js(`document.getElementById('btn-detail').click()`);
+  await sleep(600);
+  const out = await js(`(function(){var b=document.getElementById('detail-body');var t=b?b.innerText:'';var d=document.querySelector('#mask-detail .dialog');return {hasStamp:/印章记录/.test(t),hasEmptyStamp:/今日还没有盖章记录/.test(t),hasDisclaimer:/数据为模拟演示样本/.test(t),text:t.replace(/\\s+/g,' ').slice(0,160),bar:d?(d.scrollHeight>d.clientHeight+1||d.scrollWidth>d.clientWidth+1):null,inView:d?(d.getBoundingClientRect().top>=0&&d.getBoundingClientRect().bottom<=innerHeight):null};})()`);
+  const audit = await js(`(function(){var a=window.__v3audit?window.__v3audit():null;return a?{pass:a.pass,occluded:(a.occluded||[]).length}:null;})()`);
+  const im = await win.webContents.capturePage(); fs.writeFileSync(path.join(ROOT,'screenshots_v3','paper_visual_05_detail.png'), im.toPNG());
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','detail_check.json'), JSON.stringify({out,audit,errors:errs.slice(0,4)},null,2));
+  console.log('done'); app.quit();
+});

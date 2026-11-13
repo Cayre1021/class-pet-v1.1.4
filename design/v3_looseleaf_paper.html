@@ -1776,17 +1776,6 @@ function openDetail(){
   var html = '<div class="detail-grid">';
   cells.forEach(function(c){ html += '<div class="detail-cell"><b>' + c[0] + '</b>' + c[1] + '</div>'; });
   html += '</div>';
-  html += '<div class="ins-sec"><div class="ins-sec-t">印章记录</div>';
-  if (!s.stamps.length) html += '<p style="font-size:13px;color:var(--ink-3);font-weight:700">今日还没有盖章记录。</p>';
-  else {
-    html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
-    s.stamps.slice().reverse().forEach(function(st, i){
-      html += '<span class="chip">' + st.title + ' +' + st.exp + '</span>';
-    });
-    html += '</div>';
-  }
-  html += '</div>';
-  html += '<p style="margin-top:10px;font-size:11.5px;color:var(--ink-3);font-weight:700">数据为模拟演示样本，不代表真实班级记录。</p>';
   $('detail-body').innerHTML = html;
   $('mask-detail').hidden = false;
   setTimeout(function(){ $('detail-ok').focus(); }, 30);
