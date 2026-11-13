@@ -14,26 +14,26 @@
       --bg-ambient-1: rgba(167, 243, 208, 0.35); /* Mint whisper */
       --bg-ambient-2: rgba(199, 210, 254, 0.35); /* Soft periwinkle */
       --bg-ambient-3: rgba(254, 215, 170, 0.28); /* Warm peach */
-      
+
       /* Bento Frosted Glass surfaces */
       --glass-card-bg: rgba(255, 255, 255, 0.72);
       --glass-card-border: rgba(255, 255, 255, 0.85);
-      --glass-card-shadow: 0 8px 28px -4px rgba(71, 85, 105, 0.08), 
+      --glass-card-shadow: 0 8px 28px -4px rgba(71, 85, 105, 0.08),
                            inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
       --glass-card-hover-shadow: 0 16px 36px -4px rgba(16, 185, 129, 0.16),
                                  0 4px 16px 0 rgba(0, 0, 0, 0.04),
                                  inset 0 1px 1.5px 0 #FFFFFF;
-      
+
       /* Slide Drawer Glass Surface */
       --drawer-bg: rgba(255, 255, 255, 0.88);
       --drawer-border: rgba(255, 255, 255, 0.85);
-      
+
       /* Brand Accent Colors */
       --color-primary: #10B981;
       --color-primary-dark: #059669;
       --color-primary-light: #D1FAE5;
       --color-primary-glow: rgba(16, 185, 129, 0.28);
-      
+
       /* Subjects */
       --color-chinese: #F59E0B;
       --color-chinese-bg: #FEF3C7;
@@ -41,18 +41,18 @@
       --color-math-bg: #DBEAFE;
       --color-english: #8B5CF6;
       --color-english-bg: #EDE9FE;
-      
+
       /* Typography Colors */
       --text-main: #0F172A;
       --text-secondary: #475569;
       --text-tertiary: #94A3B8;
-      
+
       /* Radii */
       --radius-card: 24px;
       --radius-pill: 9999px;
       --radius-drawer: 28px;
       --radius-btn: 16px;
-      
+
       /* Transitions */
       --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
       --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -68,7 +68,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
       background-color: var(--bg-base);
-      background-image: 
+      background-image:
         radial-gradient(at 12% 14%, var(--bg-ambient-1) 0px, transparent 48%),
         radial-gradient(at 88% 12%, var(--bg-ambient-2) 0px, transparent 48%),
         radial-gradient(at 50% 92%, var(--bg-ambient-3) 0px, transparent 55%);
@@ -1062,6 +1062,531 @@
         overflow-x: auto;
       }
     }
+
+    /* ==========================================================================
+       Theme System Tokens (classic 经典奶绿, orange 暖橙, green 森林, blue 海洋)
+       ========================================================================== */
+    :root, :root[data-theme="classic"] {
+      --bg-base: #F6F8FA;
+      --bg-ambient-1: rgba(167, 243, 208, 0.35); /* Mint whisper */
+      --bg-ambient-2: rgba(199, 210, 254, 0.35); /* Soft periwinkle */
+      --bg-ambient-3: rgba(254, 215, 170, 0.28); /* Warm peach */
+      --color-primary: #10B981;
+      --color-primary-dark: #059669;
+      --color-primary-light: #D1FAE5;
+      --color-primary-glow: rgba(16, 185, 129, 0.28);
+    }
+
+    :root[data-theme="orange"] {
+      --bg-base: #FAF5EF;
+      --bg-ambient-1: rgba(254, 215, 170, 0.42); /* Peach whisper */
+      --bg-ambient-2: rgba(254, 240, 138, 0.35); /* Sunlight warm */
+      --bg-ambient-3: rgba(253, 186, 116, 0.30);
+      --color-primary: #F97316;
+      --color-primary-dark: #EA580C;
+      --color-primary-light: #FFEDD5;
+      --color-primary-glow: rgba(249, 115, 22, 0.28);
+    }
+
+    :root[data-theme="green"] {
+      --bg-base: #F2F8F4;
+      --bg-ambient-1: rgba(187, 247, 208, 0.45); /* Fresh leaf */
+      --bg-ambient-2: rgba(167, 243, 208, 0.35); /* Jade mist */
+      --bg-ambient-3: rgba(220, 252, 231, 0.30);
+      --color-primary: #059669;
+      --color-primary-dark: #047857;
+      --color-primary-light: #ECFDF5;
+      --color-primary-glow: rgba(5, 150, 105, 0.28);
+    }
+
+    :root[data-theme="blue"] {
+      --bg-base: #F1F6FB;
+      --bg-ambient-1: rgba(186, 230, 253, 0.45); /* Sky blue */
+      --bg-ambient-2: rgba(199, 210, 254, 0.35); /* Periwinkle mist */
+      --bg-ambient-3: rgba(224, 242, 254, 0.30);
+      --color-primary: #2563EB;
+      --color-primary-dark: #1D4ED8;
+      --color-primary-light: #EFF6FF;
+      --color-primary-glow: rgba(37, 99, 235, 0.28);
+    }
+
+    /* Absent Student Styling (85% grayscale, dashed border) */
+    .pet-card.is-absent {
+      filter: grayscale(0.85);
+      opacity: 0.72;
+      border: 1.5px dashed rgba(148, 163, 184, 0.7);
+      background: rgba(248, 250, 252, 0.7);
+    }
+
+    .absent-pill {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748B;
+      background: rgba(226, 232, 240, 0.88);
+      backdrop-filter: blur(8px);
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      border: 0.5px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      z-index: 3;
+    }
+
+    /* Egg State Badge & Pulse */
+    .bento-egg-badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #B45309;
+      background: rgba(254, 240, 138, 0.88);
+      backdrop-filter: blur(8px);
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      border: 0.5px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 2px 8px rgba(234, 179, 8, 0.25);
+      z-index: 3;
+      animation: bentoPulse 2.4s infinite ease-in-out;
+    }
+
+    @keyframes bentoPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+
+    .bento-egg-anim {
+      animation: bentoEggWobble 3.6s infinite ease-in-out;
+    }
+
+    @keyframes bentoEggWobble {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(-4deg); }
+      40% { transform: rotate(4deg); }
+      60% { transform: rotate(-2deg); }
+      80% { transform: rotate(2deg); }
+    }
+
+    /* Drawer Absent Warning */
+    .drawer-absent-warning {
+      background: rgba(241, 245, 249, 0.85);
+      border: 1px dashed #94A3B8;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .reward-btn:disabled, .reward-btn.is-disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+      filter: grayscale(0.7);
+    }
+
+    /* Bento Egg Hatch Card */
+    .bento-hatch-card {
+      background: linear-gradient(135deg, rgba(254, 243, 199, 0.85) 0%, rgba(253, 230, 138, 0.65) 100%);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 16px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
+    }
+
+    .btn-bento-hatch {
+      width: 100%;
+      height: 48px;
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      border: none;
+      border-radius: var(--radius-btn);
+      color: #FFFFFF;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+      transition: all 0.2s var(--ease-spring);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-bento-hatch:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(217, 119, 6, 0.45);
+    }
+
+    .btn-bento-hatch:active {
+      transform: scale(0.98);
+    }
+
+    /* Bento Group Totals Strip */
+    .bento-group-totals-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+      width: 100%;
+    }
+
+    .bento-group-card {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      border-radius: 18px;
+      padding: 10px 14px;
+      box-shadow: var(--glass-card-shadow);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+
+    .bento-group-card:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: var(--glass-card-hover-shadow);
+    }
+
+    .bento-group-card.is-active {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 1.5px var(--color-primary), var(--glass-card-hover-shadow);
+    }
+
+    .bento-group-name {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bento-group-exp {
+      font-size: 12px;
+      font-family: monospace;
+      font-weight: 800;
+      color: var(--color-primary-dark);
+      background: var(--color-primary-light);
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+    }
+
+    /* Bento View Switcher */
+    .bento-view-switcher {
+      display: flex;
+      background: rgba(241, 245, 249, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: var(--radius-pill);
+      padding: 3px;
+      backdrop-filter: blur(10px);
+    }
+
+    .bento-view-btn {
+      padding: 5px 14px;
+      border-radius: var(--radius-pill);
+      border: none;
+      background: transparent;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+
+    .bento-view-btn.is-active {
+      background: #FFFFFF;
+      color: var(--text-main);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Theme Pill Button */
+    .theme-pill-btn {
+      height: 36px;
+      padding: 0 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(10px);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease;
+    }
+
+    .theme-pill-btn:hover {
+      background: #FFFFFF;
+      transform: translateY(-1px);
+    }
+
+    /* Seatmap View */
+    .seatmap-container {
+      display: none;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      width: 100%;
+    }
+
+    .seatmap-group-column {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      border-radius: var(--radius-card);
+      padding: 16px;
+      box-shadow: var(--glass-card-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .seatmap-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .seatmap-desk-card {
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      transition: all 0.2s var(--ease-spring);
+    }
+
+    .seatmap-desk-card:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 8px 18px rgba(16, 185, 129, 0.12);
+    }
+
+    .seatmap-desk-card.is-absent {
+      filter: grayscale(0.85);
+      opacity: 0.72;
+      border: 1px dashed rgba(148, 163, 184, 0.8);
+    }
+
+    .seatmap-desk-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(241, 245, 249, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .seatmap-desk-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .seatmap-desk-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .seatmap-desk-name {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .seatmap-desk-exp {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-family: monospace;
+      font-weight: 600;
+    }
+
+    /* Floating Ball (classpet-floating-ball) & Tools Menu */
+    .floating-ball-container {
+      position: fixed;
+      right: 36px;
+      bottom: 36px;
+      z-index: 150;
+      touch-action: none;
+    }
+
+    .classpet-floating-ball {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 10px 32px rgba(15, 23, 42, 0.12), inset 0 1px 2px #FFFFFF;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      transition: transform 0.2s var(--ease-spring), box-shadow 0.2s ease;
+      outline: none;
+      user-select: none;
+    }
+
+    .classpet-floating-ball:active {
+      cursor: grabbing;
+      transform: scale(0.92);
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .floating-tools-menu {
+      position: absolute;
+      bottom: 74px;
+      right: 0;
+      width: 230px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      border-radius: 24px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14), inset 0 1px 1px #FFFFFF;
+      padding: 10px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 151;
+      animation: bentoMenuPop 0.24s var(--ease-spring);
+    }
+
+    @keyframes bentoMenuPop {
+      from { opacity: 0; transform: translateY(16px) scale(0.94); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .floating-tools-menu.open {
+      display: flex;
+    }
+
+    .tool-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-radius: 16px;
+      background: rgba(241, 245, 249, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .tool-menu-item:hover {
+      background: rgba(255, 255, 255, 0.95);
+      transform: translateY(-1.5px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      color: var(--color-primary);
+    }
+
+    /* Bento Tool Modals */
+    .bento-tool-dialog {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 220;
+    }
+
+    .bento-tool-dialog.open {
+      display: flex;
+    }
+
+    .bento-dialog-card {
+      width: 420px;
+      max-width: 90vw;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16), inset 0 1px 1px #fff;
+      overflow: hidden;
+      animation: bentoMenuPop 0.28s var(--ease-spring);
+    }
+
+    .bento-dialog-header {
+      padding: 16px 20px;
+      background: rgba(248, 250, 252, 0.7);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .bento-dialog-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      background: #FFFFFF;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .bento-dialog-close:hover {
+      background: #F1F5F9;
+      color: var(--text-main);
+    }
+
+    .bento-dialog-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
   </style>
 </head>
 <body>
@@ -1085,24 +1610,36 @@
         <!-- Center Group Filter Chips -->
         <div class="filter-chips-container" role="tablist" aria-label="小组筛选">
           <button class="group-chip is-active" role="tab" data-group="all" aria-selected="true">
-            全部 <span class="chip-badge" id="badge-all">32</span>
+            全部 <span class="chip-badge" id="badge-all">32人 · 0 EXP</span>
           </button>
           <button class="group-chip" role="tab" data-group="1" aria-selected="false">
-            第 1 组 <span class="chip-badge" id="badge-g1">8</span>
+            第 1 组 <span class="chip-badge" id="badge-g1">8人 · 0 EXP</span>
           </button>
           <button class="group-chip" role="tab" data-group="2" aria-selected="false">
-            第 2 组 <span class="chip-badge" id="badge-g2">8</span>
+            第 2 组 <span class="chip-badge" id="badge-g2">8人 · 0 EXP</span>
           </button>
           <button class="group-chip" role="tab" data-group="3" aria-selected="false">
-            第 3 组 <span class="chip-badge" id="badge-g3">8</span>
+            第 3 组 <span class="chip-badge" id="badge-g3">8人 · 0 EXP</span>
           </button>
           <button class="group-chip" role="tab" data-group="4" aria-selected="false">
-            第 4 组 <span class="chip-badge" id="badge-g4">8</span>
+            第 4 组 <span class="chip-badge" id="badge-g4">8人 · 0 EXP</span>
           </button>
         </div>
 
         <!-- Right Side Subject & Sorting Controls -->
         <div class="nav-actions">
+          <!-- 大屏视图切换：网格 / 座位表 -->
+          <div class="bento-view-switcher" role="tablist" aria-label="大屏视图切换">
+            <button class="bento-view-btn is-active" id="btn-view-grid" role="tab" aria-selected="true" data-view="grid">🌲 宠物森林</button>
+            <button class="bento-view-btn" id="btn-view-seat" role="tab" aria-selected="false" data-view="seat">🪑 4大组座位表</button>
+          </div>
+
+          <!-- 4套主题切换：经典 / 暖橙 / 森林 / 海洋 -->
+          <button class="theme-pill-btn" id="btn-theme-cycle" title="点击切换护眼主题风格 (经典奶绿 / 活力暖橙 / 护眼森林 / 晴空蓝调)">
+            <span>🎨</span>
+            <span id="bento-theme-label">经典奶绿</span>
+          </button>
+
           <!-- Subject Selector -->
           <div class="subject-pill-group" role="tablist" aria-label="学科切换">
             <button class="subject-btn is-active" role="tab" data-subject="语文" aria-selected="true">语文</button>
@@ -1111,7 +1648,7 @@
           </div>
 
           <!-- Sort Selector -->
-          <div class="sort-wrapper">
+          <div class="sort-wrapper" id="sort-wrapper">
             <label for="sort-select" class="sort-label">
               <span>⇅</span> 排序
             </label>
@@ -1132,8 +1669,16 @@
     <!-- Main Card Grid Area -->
     <main class="main-workspace">
       <div class="grid-container">
-        <!-- 4-Column Minimal Bento Card Grid -->
+        <!-- Bento Group Totals Strip (4 大组累计总经验卡牌) -->
+        <div class="bento-group-totals-strip" id="bento-group-totals-strip"></div>
+
+        <!-- 4-Column Minimal Bento Card Grid (模式 1：宠物森林网格) -->
         <section id="pet-grid" class="pet-grid" aria-label="学生宠物列表">
+          <!-- Dynamically populated via JS -->
+        </section>
+
+        <!-- Seatmap View Container (模式 2：4 大组座位表) -->
+        <section id="seatmap-grid" class="seatmap-container" aria-label="4大组座位表">
           <!-- Dynamically populated via JS -->
         </section>
       </div>
@@ -1158,6 +1703,19 @@
 
     <!-- Drawer Body -->
     <div class="drawer-content">
+      <!-- Absent Warning Banner -->
+      <div id="drawer-absent-warning" class="drawer-absent-warning" style="display: none;">
+        <span>⚠️</span>
+        <span>该同学今日请假缺勤，课堂赋分与互动已暂时锁定。</span>
+      </div>
+
+      <!-- Bento Egg Hatching Action Card -->
+      <div id="drawer-hatch-card" class="bento-hatch-card" style="display: none;">
+        <h4 style="font-size:15px;font-weight:700;color:#92400E;margin-bottom:6px;">🐣 宠物蛋破壳孵化中心</h4>
+        <p style="font-size:12.5px;color:#B45309;margin-bottom:12px;line-height:1.4;">恭喜积攒满 15 EXP，可破壳诞生！点击唤醒你的专属守护萌宠：</p>
+        <button id="btn-bento-hatch" class="btn-bento-hatch">🐣 立即破壳诞生 · 唤醒萌宠</button>
+      </div>
+
       <!-- Section 1: Hero Bento Card -->
       <section class="bento-hero-card">
         <div class="hero-glow-pedestal"></div>
@@ -1213,7 +1771,7 @@
       <section class="reward-section">
         <h4 class="reward-header">课堂即时激励</h4>
         <p class="reward-sub">触控一键赋分，即时激励反馈并同步成长</p>
-        
+
         <div class="reward-buttons-grid">
           <button class="reward-btn" data-exp="10" data-label="积极发言">
             <span>👍</span> 积极发言 (+10)
@@ -1247,6 +1805,89 @@
     </div>
   </aside>
 
+
+  <!-- 🐾 讲台一体机触控工具：悬浮可拖拽小球与快捷教学工具 (classpet-floating-ball) -->
+  <div id="floatingBallContainer" class="floating-ball-container">
+    <button id="classpetFloatingBall" class="classpet-floating-ball" title="拖动可移动位置，点击展开大屏教学工具箱">
+      <span id="floatingBallIcon">🐾</span>
+    </button>
+
+    <div id="floatingToolsMenu" class="floating-tools-menu">
+      <button class="tool-menu-item" id="tool-random-picker">
+        <span style="font-size:20px;">🎲</span>
+        <div>
+          <div style="font-weight:700;">随机抽点</div>
+          <small style="font-size:11px;color:var(--text-tertiary);">全班互动点名</small>
+        </div>
+      </button>
+      <button class="tool-menu-item" id="tool-class-timer">
+        <span style="font-size:20px;">⏱️</span>
+        <div>
+          <div style="font-weight:700;">课堂计时器</div>
+          <small style="font-size:11px;color:var(--text-tertiary);">答题与讨论倒计时</small>
+        </div>
+      </button>
+      <button class="tool-menu-item" id="tool-all-praise">
+        <span style="font-size:20px;">🌟</span>
+        <div>
+          <div style="font-weight:700;">全班表扬</div>
+          <small style="font-size:11px;color:var(--text-tertiary);">全体到校同学 +10 EXP</small>
+        </div>
+      </button>
+      <button class="tool-menu-item" id="tool-quick-theme">
+        <span style="font-size:20px;">🎨</span>
+        <div>
+          <div style="font-weight:700;">切换主题风格</div>
+          <small style="font-size:11px;color:var(--text-tertiary);" id="tool-theme-label">当前：经典奶绿</small>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- 🎲 随机抽点 Modal -->
+  <div class="bento-tool-dialog" id="modal-rollcall">
+    <div class="bento-dialog-card">
+      <div class="bento-dialog-header">
+        <span>🎲 课堂随机抽点</span>
+        <button class="bento-dialog-close" id="rollcall-close-btn" title="关闭">✕</button>
+      </div>
+      <div class="bento-dialog-body">
+        <div id="rollcall-avatar-box" style="width: 120px; height: 120px; border-radius: 24px; background: rgba(241, 245, 249, 0.8); border: 1px solid rgba(255, 255, 255, 0.9); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
+          <img id="rollcall-avatar-img" src="../electron-app/src/assets/pets/cat/cat-stage2.png" style="width: 100px; height: 100px; object-fit: contain;" />
+        </div>
+        <div id="rollcall-name" style="font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: 0.5px;">准备抽点...</div>
+        <div id="rollcall-group-tag" style="font-size: 13px; font-weight: 600; color: var(--color-primary-dark); background: var(--color-primary-light); padding: 4px 14px; border-radius: var(--radius-pill);">点击下方按钮开始</div>
+        <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
+          <button id="btn-rollcall-start" class="btn-bento-hatch" style="flex: 1; height: 46px; background: var(--color-primary);">🎲 开始抽点</button>
+          <button id="btn-rollcall-award" class="btn-bento-hatch" style="flex: 1; height: 46px; display: none; background: #F59E0B;">🌟 赋分 +10 EXP</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⏱️ 课堂计时器 Modal -->
+  <div class="bento-tool-dialog" id="modal-timer">
+    <div class="bento-dialog-card">
+      <div class="bento-dialog-header">
+        <span>⏱️ 课堂答题计时器</span>
+        <button class="bento-dialog-close" id="timer-close-btn" title="关闭">✕</button>
+      </div>
+      <div class="bento-dialog-body">
+        <div id="timer-display" style="font-size: 56px; font-weight: 700; font-family: monospace; color: var(--text-main); background: rgba(241, 245, 249, 0.7); padding: 10px 32px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">01:00</div>
+        <div style="display: flex; gap: 8px; width: 100%; justify-content: center;">
+          <button class="bento-view-btn timer-preset-btn is-active" data-sec="60">1 分钟</button>
+          <button class="bento-view-btn timer-preset-btn" data-sec="120">2 分钟</button>
+          <button class="bento-view-btn timer-preset-btn" data-sec="300">5 分钟</button>
+          <button class="bento-view-btn" id="btn-timer-add30">+30 秒</button>
+        </div>
+        <div style="display: flex; gap: 10px; width: 100%; margin-top: 6px;">
+          <button id="btn-timer-toggle" class="btn-bento-hatch" style="flex: 1; height: 46px; background: var(--color-primary);">▶ 开始倒计时</button>
+          <button id="btn-timer-reset" class="btn-bento-hatch" style="flex: 1; height: 46px; background: #94A3B8;">↺ 重置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Celebration Toast Container -->
   <div id="toast-container" class="toast-container"></div>
 
@@ -1256,45 +1897,47 @@
   <script>
     /* --------------------------------------------------------------------------
        1. Standard 32 Students Mock Data Structure
+       - 4 Groups, 8 Students per group
+       - State completeness: Absent students (isAbsent: true), Egg students (isEgg: true)
        -------------------------------------------------------------------------- */
     const MOCK_STUDENTS = [
       // 第 1 组 (8 位同学)
       { id: 1, name: "张三", group: 1, species: "cat", kindName: "狸花猫", level: 8, exp: 280, maxExp: 315, attendance: "present", chinese: { tier: "二阶·灵动", exp: 95 }, math: { tier: "二阶·求知", exp: 90 }, english: { tier: "二阶·畅语", exp: 95 } },
       { id: 2, name: "李四", group: 1, species: "dog", kindName: "金毛犬", level: 13, exp: 620, maxExp: 665, attendance: "present", chinese: { tier: "三阶·深思", exp: 210 }, math: { tier: "三阶·笃行", exp: 200 }, english: { tier: "三阶·博闻", exp: 210 } },
-      { id: 3, name: "王俊杰", group: 1, species: "fox", kindName: "赤狐", level: 5, exp: 120, maxExp: 150, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 40 }, math: { tier: "一阶·初探", exp: 40 }, english: { tier: "一阶·发芽", exp: 40 } },
+      { id: 3, name: "王俊杰", group: 1, species: "fox", kindName: "赤狐", level: 5, exp: 120, maxExp: 150, isAbsent: true, attendance: "absent", chinese: { tier: "一阶·启蒙", exp: 40 }, math: { tier: "一阶·初探", exp: 40 }, english: { tier: "一阶·发芽", exp: 40 } },
       { id: 4, name: "赵若涵", group: 1, species: "bunny", kindName: "垂耳兔", level: 15, exp: 710, maxExp: 780, attendance: "present", chinese: { tier: "三阶·深思", exp: 240 }, math: { tier: "三阶·笃行", exp: 235 }, english: { tier: "三阶·博闻", exp: 235 } },
       { id: 5, name: "孙浩宇", group: 1, species: "hamster", kindName: "金丝熊", level: 9, exp: 320, maxExp: 360, attendance: "present", chinese: { tier: "二阶·灵动", exp: 110 }, math: { tier: "二阶·求知", exp: 105 }, english: { tier: "二阶·畅语", exp: 105 } },
       { id: 6, name: "周欣怡", group: 1, species: "deer", kindName: "梅花鹿", level: 12, exp: 540, maxExp: 600, attendance: "present", chinese: { tier: "二阶·灵动", exp: 180 }, math: { tier: "二阶·求知", exp: 180 }, english: { tier: "二阶·畅语", exp: 180 } },
       { id: 7, name: "吴梓涵", group: 1, species: "bird", kindName: "青鸟", level: 7, exp: 210, maxExp: 260, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 70 }, math: { tier: "一阶·初探", exp: 70 }, english: { tier: "一阶·发芽", exp: 70 } },
-      { id: 8, name: "郑一诺", group: 1, species: "fish", kindName: "锦鲤", level: 3, exp: 65, maxExp: 90, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 25 }, math: { tier: "一阶·初探", exp: 20 }, english: { tier: "一阶·发芽", exp: 20 } },
+      { id: 8, name: "郑一诺", group: 1, species: "fish", kindName: "锦鲤", level: 1, exp: 15, maxExp: 15, isEgg: true, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 15 }, math: { tier: "一阶·初探", exp: 0 }, english: { tier: "一阶·发芽", exp: 0 } },
 
       // 第 2 组 (8 位同学)
       { id: 9, name: "陈天佑", group: 2, species: "cat", kindName: "橘猫", level: 14, exp: 670, maxExp: 720, attendance: "present", chinese: { tier: "三阶·深思", exp: 230 }, math: { tier: "三阶·笃行", exp: 220 }, english: { tier: "三阶·博闻", exp: 220 } },
       { id: 10, name: "刘雨桐", group: 2, species: "dog", kindName: "柴犬", level: 10, exp: 410, maxExp: 450, attendance: "present", chinese: { tier: "二阶·灵动", exp: 140 }, math: { tier: "二阶·求知", exp: 135 }, english: { tier: "二阶·畅语", exp: 135 } },
       { id: 11, name: "杨子睿", group: 2, species: "fox", kindName: "小狐狸", level: 2, exp: 45, maxExp: 60, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 15 }, math: { tier: "一阶·初探", exp: 15 }, english: { tier: "一阶·发芽", exp: 15 } },
       { id: 12, name: "黄诗涵", group: 2, species: "bunny", kindName: "白兔", level: 20, exp: 1200, maxExp: 1200, attendance: "present", chinese: { tier: "五阶·觉醒", exp: 400 }, math: { tier: "五阶·精通", exp: 400 }, english: { tier: "五阶·巅峰", exp: 400 } },
-      { id: 13, name: "郭沐阳", group: 2, species: "hamster", kindName: "仓鼠", level: 6, exp: 180, maxExp: 210, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 60 }, math: { tier: "一阶·初探", exp: 60 }, english: { tier: "一阶·发芽", exp: 60 } },
+      { id: 13, name: "郭沐阳", group: 2, species: "hamster", kindName: "仓鼠", level: 1, exp: 20, maxExp: 20, isEgg: true, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 20 }, math: { tier: "一阶·初探", exp: 0 }, english: { tier: "一阶·发芽", exp: 0 } },
       { id: 14, name: "孙语彤", group: 2, species: "deer", kindName: "小鹿", level: 11, exp: 490, maxExp: 530, attendance: "present", chinese: { tier: "二阶·灵动", exp: 165 }, math: { tier: "二阶·求知", exp: 165 }, english: { tier: "二阶·畅语", exp: 160 } },
       { id: 15, name: "朱博文", group: 2, species: "bird", kindName: "黄鹂", level: 8, exp: 290, maxExp: 315, attendance: "present", chinese: { tier: "二阶·灵动", exp: 100 }, math: { tier: "二阶·求知", exp: 95 }, english: { tier: "二阶·畅语", exp: 95 } },
-      { id: 16, name: "胡佳琪", group: 2, species: "fish", kindName: "金鱼", level: 4, exp: 90, maxExp: 120, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 30 }, math: { tier: "一阶·初探", exp: 30 }, english: { tier: "一阶·发芽", exp: 30 } },
+      { id: 16, name: "胡景程", group: 2, species: "fish", kindName: "热带鱼", level: 6, exp: 190, maxExp: 220, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 65 }, math: { tier: "一阶·初探", exp: 65 }, english: { tier: "一阶·发芽", exp: 60 } },
 
       // 第 3 组 (8 位同学)
-      { id: 17, name: "高宇辰", group: 3, species: "cat", kindName: "美短", level: 16, exp: 780, maxExp: 850, attendance: "present", chinese: { tier: "三阶·深思", exp: 260 }, math: { tier: "三阶·笃行", exp: 260 }, english: { tier: "三阶·博闻", exp: 260 } },
-      { id: 18, name: "林依晨", group: 3, species: "dog", kindName: "柯基", level: 8, exp: 285, maxExp: 315, attendance: "present", chinese: { tier: "二阶·灵动", exp: 95 }, math: { tier: "二阶·求知", exp: 95 }, english: { tier: "二阶·畅语", exp: 95 } },
-      { id: 19, name: "罗思齐", group: 3, species: "fox", kindName: "雪狐", level: 13, exp: 630, maxExp: 665, attendance: "present", chinese: { tier: "三阶·深思", exp: 210 }, math: { tier: "三阶·笃行", exp: 210 }, english: { tier: "三阶·博闻", exp: 210 } },
-      { id: 20, name: "何瑞安", group: 3, species: "bunny", kindName: "绒兔", level: 7, exp: 220, maxExp: 260, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 75 }, math: { tier: "一阶·初探", exp: 75 }, english: { tier: "一阶·发芽", exp: 70 } },
-      { id: 21, name: "梁梓萱", group: 3, species: "hamster", kindName: "花枝鼠", level: 8, exp: 290, maxExp: 315, attendance: "present", chinese: { tier: "二阶·灵动", exp: 100 }, math: { tier: "二阶·求知", exp: 95 }, english: { tier: "二阶·畅语", exp: 95 } },
-      { id: 22, name: "宋承宪", group: 3, species: "deer", kindName: "灵鹿", level: 13, exp: 610, maxExp: 665, attendance: "present", chinese: { tier: "三阶·深思", exp: 205 }, math: { tier: "三阶·笃行", exp: 205 }, english: { tier: "三阶·博闻", exp: 200 } },
-      { id: 23, name: "许墨涵", group: 3, species: "bird", kindName: "画眉", level: 5, exp: 140, maxExp: 180, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 50 }, math: { tier: "一阶·初探", exp: 45 }, english: { tier: "一阶·发芽", exp: 45 } },
-      { id: 24, name: "邓思远", group: 3, species: "fish", kindName: "蓝雀鱼", level: 9, exp: 350, maxExp: 400, attendance: "present", chinese: { tier: "二阶·灵动", exp: 120 }, math: { tier: "二阶·求知", exp: 115 }, english: { tier: "二阶·畅语", exp: 115 } },
+      { id: 17, name: "林子轩", group: 3, species: "cat", kindName: "三花猫", level: 7, exp: 230, maxExp: 270, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 80 }, math: { tier: "一阶·初探", exp: 75 }, english: { tier: "一阶·发芽", exp: 75 } },
+      { id: 18, name: "徐艺菲", group: 3, species: "dog", kindName: "柯基", level: 12, exp: 560, maxExp: 610, attendance: "present", chinese: { tier: "二阶·灵动", exp: 190 }, math: { tier: "二阶·求知", exp: 185 }, english: { tier: "二阶·畅语", exp: 185 } },
+      { id: 19, name: "崔宇航", group: 3, species: "fox", kindName: "银狐", level: 4, exp: 95, maxExp: 130, isAbsent: true, attendance: "absent", chinese: { tier: "一阶·启蒙", exp: 35 }, math: { tier: "一阶·初探", exp: 30 }, english: { tier: "一阶·发芽", exp: 30 } },
+      { id: 20, name: "马浩然", group: 3, species: "bunny", kindName: "雪兔", level: 18, exp: 980, maxExp: 1050, attendance: "present", chinese: { tier: "四阶·升华", exp: 330 }, math: { tier: "四阶·贯通", exp: 325 }, english: { tier: "四阶·自如", exp: 325 } },
+      { id: 21, name: "沈嘉琪", group: 3, species: "hamster", kindName: "布丁鼠", level: 8, exp: 270, maxExp: 315, attendance: "present", chinese: { tier: "二阶·灵动", exp: 90 }, math: { tier: "二阶·求知", exp: 90 }, english: { tier: "二阶·畅语", exp: 90 } },
+      { id: 22, name: "韩雨霏", group: 3, species: "deer", kindName: "白尾鹿", level: 13, exp: 630, maxExp: 680, attendance: "present", chinese: { tier: "三阶·深思", exp: 215 }, math: { tier: "三阶·笃行", exp: 210 }, english: { tier: "三阶·博闻", exp: 205 } },
+      { id: 23, name: "陆俊熙", group: 3, species: "bird", kindName: "蓝雀", level: 5, exp: 140, maxExp: 170, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 50 }, math: { tier: "一阶·初探", exp: 45 }, english: { tier: "一阶·发芽", exp: 45 } },
+      { id: 24, name: "戴子墨", group: 3, species: "fish", kindName: "神仙鱼", level: 9, exp: 330, maxExp: 370, attendance: "present", chinese: { tier: "二阶·灵动", exp: 110 }, math: { tier: "二阶·求知", exp: 110 }, english: { tier: "二阶·畅语", exp: 110 } },
 
       // 第 4 组 (8 位同学)
-      { id: 25, name: "冯楚然", group: 4, species: "cat", kindName: "布偶猫", level: 18, exp: 950, maxExp: 1050, attendance: "present", chinese: { tier: "四阶·升华", exp: 320 }, math: { tier: "四阶·贯通", exp: 315 }, english: { tier: "四阶·自如", exp: 315 } },
-      { id: 26, name: "曾嘉航", group: 4, species: "dog", kindName: "萨摩耶", level: 11, exp: 480, maxExp: 530, attendance: "present", chinese: { tier: "二阶·灵动", exp: 160 }, math: { tier: "二阶·求知", exp: 160 }, english: { tier: "二阶·畅语", exp: 160 } },
-      { id: 27, name: "彭紫薇", group: 4, species: "fox", kindName: "火狐", level: 6, exp: 175, maxExp: 210, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 60 }, math: { tier: "一阶·初探", exp: 60 }, english: { tier: "一阶·发芽", exp: 55 } },
-      { id: 28, name: "萧景天", group: 4, species: "bunny", kindName: "巧兔", level: 12, exp: 560, maxExp: 620, attendance: "present", chinese: { tier: "二阶·灵动", exp: 190 }, math: { tier: "二阶·求知", exp: 185 }, english: { tier: "二阶·畅语", exp: 185 } },
-      { id: 29, name: "董晓薇", group: 4, species: "hamster", kindName: "奶茶仓鼠", level: 4, exp: 95, maxExp: 120, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 35 }, math: { tier: "一阶·初探", exp: 30 }, english: { tier: "一阶·发芽", exp: 30 } },
-      { id: 30, name: "袁昊天", group: 4, species: "deer", kindName: "白鹿", level: 17, exp: 890, maxExp: 980, attendance: "present", chinese: { tier: "四阶·升华", exp: 300 }, math: { tier: "四阶·贯通", exp: 295 }, english: { tier: "四阶·自如", exp: 295 } },
+      { id: 25, name: "谢予辰", group: 4, species: "cat", kindName: "布偶猫", level: 11, exp: 480, maxExp: 520, attendance: "present", chinese: { tier: "二阶·灵动", exp: 160 }, math: { tier: "二阶·求知", exp: 160 }, english: { tier: "二阶·畅语", exp: 160 } },
+      { id: 26, name: "谭皓轩", group: 4, species: "fish", kindName: "金鱼", level: 1, exp: 18, maxExp: 20, isEgg: true, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 18 }, math: { tier: "一阶·初探", exp: 0 }, english: { tier: "一阶·发芽", exp: 0 } },
+      { id: 27, name: "任诗韵", group: 4, species: "fox", kindName: "红狐", level: 3, exp: 70, maxExp: 100, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 25 }, math: { tier: "一阶·初探", exp: 25 }, english: { tier: "一阶·发芽", exp: 20 } },
+      { id: 28, name: "宋承泽", group: 4, species: "bunny", kindName: "长耳兔", level: 13, exp: 610, maxExp: 660, attendance: "present", chinese: { tier: "三阶·深思", exp: 205 }, math: { tier: "三阶·笃行", exp: 205 }, english: { tier: "三阶·博闻", exp: 200 } },
+      { id: 29, name: "方嘉豪", group: 4, species: "hamster", kindName: "银狐鼠", level: 6, exp: 175, maxExp: 210, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 60 }, math: { tier: "一阶·初探", exp: 60 }, english: { tier: "一阶·发芽", exp: 55 } },
+      { id: 30, name: "汪知微", group: 4, species: "deer", kindName: "驯鹿", level: 16, exp: 890, maxExp: 980, attendance: "present", chinese: { tier: "四阶·升华", exp: 300 }, math: { tier: "四阶·贯通", exp: 295 }, english: { tier: "四阶·自如", exp: 295 } },
       { id: 31, name: "潘芷萱", group: 4, species: "bird", kindName: "云雀", level: 8, exp: 275, maxExp: 315, attendance: "present", chinese: { tier: "二阶·灵动", exp: 95 }, math: { tier: "二阶·求知", exp: 90 }, english: { tier: "二阶·畅语", exp: 90 } },
       { id: 32, name: "蔡逸飞", group: 4, species: "fish", kindName: "斗鱼", level: 2, exp: 40, maxExp: 60, attendance: "present", chinese: { tier: "一阶·启蒙", exp: 15 }, math: { tier: "一阶·初探", exp: 15 }, english: { tier: "一阶·发芽", exp: 10 } }
     ];
@@ -1308,11 +1951,13 @@
       hamster: `<svg class="fallback-svg-icon" viewBox="0 0 100 100"><circle cx="50" cy="54" r="34" fill="#FDE047"/><circle cx="24" cy="28" r="10" fill="#CA8A04"/><circle cx="76" cy="28" r="10" fill="#CA8A04"/><ellipse cx="28" cy="56" rx="8" ry="6" fill="#FCA5A5"/><ellipse cx="72" cy="56" rx="8" ry="6" fill="#FCA5A5"/><circle cx="39" cy="48" r="3.5" fill="#1E293B"/><circle cx="61" cy="48" r="3.5" fill="#1E293B"/><circle cx="50" cy="55" r="2.5" fill="#1E293B"/></svg>`,
       deer: `<svg class="fallback-svg-icon" viewBox="0 0 100 100"><circle cx="50" cy="56" r="32" fill="#D7C4B7"/><path d="M28,32 L20,14 M28,24 L36,16" stroke="#8D6E63" stroke-width="4" stroke-linecap="round"/><path d="M72,32 L80,14 M72,24 L64,16" stroke="#8D6E63" stroke-width="4" stroke-linecap="round"/><circle cx="38" cy="52" r="4" fill="#1E293B"/><circle cx="62" cy="52" r="4" fill="#1E293B"/><ellipse cx="50" cy="62" rx="5" ry="3.5" fill="#1E293B"/></svg>`,
       bird: `<svg class="fallback-svg-icon" viewBox="0 0 100 100"><circle cx="50" cy="54" r="34" fill="#BAE6FD"/><polygon points="46,54 54,54 50,64" fill="#F97316"/><circle cx="36" cy="46" r="4" fill="#1E293B"/><circle cx="64" cy="46" r="4" fill="#1E293B"/><ellipse cx="18" cy="56" rx="6" ry="12" fill="#38BDF8"/><ellipse cx="82" cy="56" rx="6" ry="12" fill="#38BDF8"/></svg>`,
-      fish: `<svg class="fallback-svg-icon" viewBox="0 0 100 100"><ellipse cx="48" cy="50" rx="30" ry="20" fill="#A7F3D0"/><polygon points="76,50 92,34 92,66" fill="#34D399"/><circle cx="32" cy="46" r="3.5" fill="#1E293B"/><path d="M42,50 Q48,46 48,54" stroke="#059669" stroke-width="2" fill="none"/></svg>`
+      fish: `<svg class="fallback-svg-icon" viewBox="0 0 100 100"><ellipse cx="48" cy="50" rx="30" ry="20" fill="#A7F3D0"/><polygon points="76,50 92,34 92,66" fill="#34D399"/><circle cx="32" cy="46" r="3.5" fill="#1E293B"/><path d="M42,50 Q48,46 48,54" stroke="#059669" stroke-width="2" fill="none"/></svg>`,
+      egg: `<svg class="fallback-svg-icon" viewBox="0 0 100 100"><defs><radialGradient id="eggGradB" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#FFFBEB"/><stop offset="60%" stop-color="#FDE68A"/><stop offset="100%" stop-color="#F59E0B"/></radialGradient></defs><ellipse cx="50" cy="54" rx="30" ry="38" fill="url(#eggGradB)" stroke="#D97706" stroke-width="2"/><path d="M35,50 Q42,44 50,50 T65,50" stroke="#F59E0B" stroke-width="2" fill="none"/><circle cx="43" cy="56" r="2.5" fill="#B45309"/><circle cx="58" cy="62" r="3" fill="#B45309"/><text x="50" y="32" font-size="14" text-anchor="middle">✨</text></svg>`
     };
 
     /* Stage Titles */
-    function getStageInfo(level) {
+    function getStageInfo(level, isEgg = false) {
+      if (isEgg) return { stage: 0, label: "蛋形态 · 待破壳唤醒" };
       if (level >= 20) return { stage: 5, label: "阶段 5 · 终极形态" };
       if (level >= 13) return { stage: 3, label: "阶段 3 · 敏捷进阶" };
       if (level >= 8)  return { stage: 2, label: "阶段 2 · 灵动成长" };
@@ -1320,30 +1965,36 @@
     }
 
     /* Relative Pet Image Path */
-    function getPetImagePath(species, level) {
+    function getPetImagePath(species, level, isEgg = false) {
+      if (isEgg) {
+        return '../electron-app/src/assets/pets/shared/egg.png';
+      }
       const { stage } = getStageInfo(level);
       return `../electron-app/src/assets/pets/${species}/${species}-stage${stage}.png`;
     }
 
     /* --------------------------------------------------------------------------
-       2. Application State Management
+       2. Application State
        -------------------------------------------------------------------------- */
     let currentGroupFilter = "all";
-    let currentSortMode = "no";
     let currentSubject = "语文";
-    let selectedStudentId = null;
+    let currentSortMode = "no";
+    let currentView = "grid"; // "grid" or "seat"
+    let currentTheme = localStorage.getItem('classpet_theme') || 'classic';
+    let selectedStudentId = 1;
 
     /* --------------------------------------------------------------------------
        3. DOM Elements
        -------------------------------------------------------------------------- */
     const petGridEl = document.getElementById("pet-grid");
+    const seatmapGridEl = document.getElementById("seatmap-grid");
     const displayCountEl = document.getElementById("display-count");
     const sortSelectEl = document.getElementById("sort-select");
     const fullscreenToggleBtn = document.getElementById("fullscreen-toggle");
 
     // Drawer Elements
-    const drawerBackdrop = document.getElementById("drawer-backdrop");
     const detailDrawer = document.getElementById("detail-drawer");
+    const drawerBackdrop = document.getElementById("drawer-backdrop");
     const drawerCloseBtn = document.getElementById("drawer-close-btn");
     const drawerStudentNo = document.getElementById("drawer-student-no");
     const drawerStudentName = document.getElementById("drawer-student-name");
@@ -1360,19 +2011,79 @@
     const academicCurrentSubject = document.getElementById("academic-current-subject");
 
     /* --------------------------------------------------------------------------
-       4. Render Bento Grid Cards
+       4. Group Stats & EXP Calculations
+       -------------------------------------------------------------------------- */
+    function calculateGroupStats() {
+      const stats = {
+        total: { count: MOCK_STUDENTS.length, exp: MOCK_STUDENTS.reduce((sum, s) => sum + s.exp, 0) },
+        groups: {}
+      };
+      for (let g = 1; g <= 4; g++) {
+        const gList = MOCK_STUDENTS.filter(s => s.group === g);
+        stats.groups[g] = {
+          count: gList.length,
+          exp: gList.reduce((sum, s) => sum + s.exp, 0)
+        };
+      }
+      return stats;
+    }
+
+    function updateGroupBadgesAndStrip() {
+      const stats = calculateGroupStats();
+
+      // Update Nav Filter Badges
+      const badgeAll = document.getElementById("badge-all");
+      if (badgeAll) badgeAll.textContent = `${stats.total.count}人 · ${stats.total.exp} EXP`;
+
+      for (let g = 1; g <= 4; g++) {
+        const badge = document.getElementById(`badge-g${g}`);
+        if (badge) badge.textContent = `${stats.groups[g].count}人 · ${stats.groups[g].exp} EXP`;
+      }
+
+      // Update Bento Group Totals Strip
+      const strip = document.getElementById("bento-group-totals-strip");
+      if (strip) {
+        strip.innerHTML = [1, 2, 3, 4].map(g => {
+          const info = stats.groups[g];
+          const isActive = currentGroupFilter === String(g);
+          return `
+            <div class="bento-group-card ${isActive ? 'is-active' : ''}" data-group="${g}" role="button" title="点击切换第 ${g} 小组">
+              <div class="bento-group-name">
+                <span>🚩 第 ${g} 大组</span>
+                <span style="font-size:11.5px;color:var(--text-tertiary);">(${info.count}人)</span>
+              </div>
+              <div class="bento-group-exp">${info.exp} EXP</div>
+            </div>
+          `;
+        }).join('');
+
+        strip.querySelectorAll('.bento-group-card').forEach(card => {
+          card.addEventListener('click', () => {
+            const targetGroup = card.dataset.group;
+            currentGroupFilter = currentGroupFilter === targetGroup ? "all" : targetGroup;
+            document.querySelectorAll('.group-chip').forEach(c => {
+              const active = c.dataset.group === currentGroupFilter;
+              c.classList.toggle('is-active', active);
+              c.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            renderAllViews();
+            playFeedbackChime();
+          });
+        });
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       5. Render Grid & Seatmap
        -------------------------------------------------------------------------- */
     function getFilteredAndSortedStudents() {
       let list = [...MOCK_STUDENTS];
 
-      // Filter by group
       if (currentGroupFilter !== "all") {
         const groupNum = parseInt(currentGroupFilter, 10);
         list = list.filter(s => s.group === groupNum);
       }
 
-      // Sort according strictly to Rule 50:
-      // 学号升序、等级降序且同等级经验降序的原有规则不得悄悄改变
       if (currentSortMode === "no") {
         list.sort((a, b) => a.id - b.id);
       } else if (currentSortMode === "level") {
@@ -1386,16 +2097,6 @@
       return list;
     }
 
-    function updateGroupBadges() {
-      document.getElementById("badge-all").textContent = MOCK_STUDENTS.length;
-      for (let g = 1; g <= 4; g++) {
-        const badge = document.getElementById(`badge-g${g}`);
-        if (badge) {
-          badge.textContent = MOCK_STUDENTS.filter(s => s.group === g).length;
-        }
-      }
-    }
-
     function renderPetGrid() {
       const students = getFilteredAndSortedStudents();
       displayCountEl.textContent = `${students.length} 位同学`;
@@ -1404,37 +2105,41 @@
 
       students.forEach(student => {
         const card = document.createElement("article");
-        card.className = `pet-card ${student.id === selectedStudentId ? "is-selected" : ""}`;
+        const isAbsent = student.isAbsent || student.attendance === "absent";
+        card.className = `pet-card ${student.id === selectedStudentId ? "is-selected" : ""} ${isAbsent ? "is-absent" : ""}`;
         card.setAttribute("role", "button");
         card.setAttribute("tabindex", "0");
         card.setAttribute("aria-label", `学生 ${student.name}，学号 ${student.id}，等级 ${student.level}`);
         card.dataset.id = student.id;
 
-        const imgPath = getPetImagePath(student.species, student.level);
-        const svgFallback = SPECIES_SVGS[student.species] || SPECIES_SVGS.cat;
+        const imgPath = getPetImagePath(student.species, student.level, student.isEgg);
+        const svgFallback = student.isEgg ? SPECIES_SVGS.egg : (SPECIES_SVGS[student.species] || SPECIES_SVGS.cat);
+
+        let badgeHtml = '';
+        if (isAbsent) {
+          badgeHtml = '<div class="absent-pill">请假</div>';
+        } else if (student.isEgg) {
+          badgeHtml = '<div class="bento-egg-badge">🐣 待破壳</div>';
+        }
 
         card.innerHTML = `
-          <!-- BoardUI Selected Checkbox Indicator -->
-          <div class="card-check-badge" aria-hidden="true">✓</div>
+          <div class="card-check-badge" aria-hidden="true">✔</div>
+          ${badgeHtml}
 
-          <!-- Pet Visual Center with Pedestal -->
           <div class="card-visual-wrapper">
             <div class="pet-pedestal"></div>
-            <img class="pet-image" src="${imgPath}" alt="${student.name}的宠物" 
+            <img class="pet-image ${student.isEgg ? 'bento-egg-anim' : ''}" src="${imgPath}" alt="${student.name}的宠物"
                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="pet-fallback-icon" aria-hidden="true">${svgFallback}</div>
           </div>
 
-          <!-- Student Name: 22px Bold, Strict Minimalist Centerpiece -->
           <div class="student-name">${student.name}</div>
         `;
 
-        // Card Click Handler
         card.addEventListener("click", () => {
           selectStudent(student.id);
         });
 
-        // Keyboard navigation (Enter / Space)
         card.addEventListener("keydown", (e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -1446,43 +2151,193 @@
       });
     }
 
+    function renderSeatmap() {
+      const stats = calculateGroupStats();
+      seatmapGridEl.innerHTML = [1, 2, 3, 4].map(g => {
+        const gList = MOCK_STUDENTS.filter(s => s.group === g).sort((a, b) => a.id - b.id);
+        const gExp = stats.groups[g].exp;
+
+        const cardsHtml = gList.map(s => {
+          const isAbsent = s.isAbsent || s.attendance === "absent";
+          const imgPath = getPetImagePath(s.species, s.level, s.isEgg);
+          const svgFallback = s.isEgg ? SPECIES_SVGS.egg : (SPECIES_SVGS[s.species] || SPECIES_SVGS.cat);
+          const isSelected = s.id === selectedStudentId;
+
+          let statusText = s.isEgg ? '🐣 待破壳' : `Lv.${s.level}`;
+          if (isAbsent) statusText = '⚠️ 请假缺勤';
+
+          return `
+            <div class="seatmap-desk-card ${isAbsent ? 'is-absent' : ''} ${isSelected ? 'is-selected' : ''}"
+                 data-id="${s.id}"
+                 role="button"
+                 tabindex="0">
+              <div class="seatmap-desk-avatar">
+                <img src="${imgPath}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" alt="${s.name}" />
+                <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;">${svgFallback}</div>
+              </div>
+              <div class="seatmap-desk-info">
+                <div class="seatmap-desk-name">
+                  <span>${s.name}</span>
+                  <span style="font-size:11px;color:var(--text-tertiary);">#${String(s.id).padStart(2, '0')}</span>
+                </div>
+                <div class="seatmap-desk-exp">
+                  <span>${statusText}</span> · <span>${s.exp} EXP</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="seatmap-group-column">
+            <div class="seatmap-group-header">
+              <span>第 ${g} 大组 (${gList.length}人)</span>
+              <span style="font-family:monospace;color:var(--color-primary-dark);font-weight:700;">${gExp} EXP</span>
+            </div>
+            ${cardsHtml}
+          </div>
+        `;
+      }).join('');
+
+      seatmapGridEl.querySelectorAll('.seatmap-desk-card').forEach(card => {
+        card.addEventListener('click', () => {
+          selectStudent(parseInt(card.dataset.id, 10));
+        });
+      });
+    }
+
+    function renderAllViews() {
+      updateGroupBadgesAndStrip();
+      if (currentView === 'grid') {
+        renderPetGrid();
+      } else {
+        renderSeatmap();
+      }
+    }
+
+    function switchView(view) {
+      currentView = view;
+      document.querySelectorAll('.bento-view-btn').forEach(btn => {
+        const isActive = btn.dataset.view === view;
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+
+      const sortWrapper = document.getElementById('sort-wrapper');
+      if (view === 'grid') {
+        petGridEl.style.display = 'grid';
+        seatmapGridEl.style.display = 'none';
+        if (sortWrapper) sortWrapper.style.display = 'flex';
+      } else {
+        petGridEl.style.display = 'none';
+        seatmapGridEl.style.display = 'grid';
+        if (sortWrapper) sortWrapper.style.display = 'none';
+      }
+
+      renderAllViews();
+      playFeedbackChime();
+      showBentoToast(view === 'grid' ? '已切入【🌲 宠物森林网格】' : '已切入【🪑 4大组座位表模式】');
+    }
+
+    const THEME_NAMES = {
+      classic: '经典奶绿',
+      orange: '活力暖橙',
+      green: '护眼森林',
+      blue: '晴空蓝调'
+    };
+
+    function setTheme(themeName, showTip = true) {
+      currentTheme = themeName;
+      document.documentElement.setAttribute('data-theme', themeName);
+      try {
+        localStorage.setItem('classpet_theme', themeName);
+      } catch (e) {}
+
+      const label = document.getElementById('bento-theme-label');
+      if (label) label.textContent = THEME_NAMES[themeName] || themeName;
+
+      const toolLabel = document.getElementById('tool-theme-label');
+      if (toolLabel) toolLabel.textContent = `当前：${THEME_NAMES[themeName] || themeName}`;
+
+      if (showTip) {
+        showBentoToast(`已切换主题至【${THEME_NAMES[themeName] || themeName}】`, '🎨');
+      }
+    }
+
+    function cycleTheme() {
+      const themes = ['classic', 'orange', 'green', 'blue'];
+      const nextIdx = (themes.indexOf(currentTheme) + 1) % themes.length;
+      setTheme(themes[nextIdx], true);
+      playFeedbackChime();
+    }
+
     /* --------------------------------------------------------------------------
-       5. Select Student & Slide Out Sheet Drawer
+       6. Select Student & Slide Out Sheet Drawer
        -------------------------------------------------------------------------- */
     function selectStudent(studentId) {
       selectedStudentId = studentId;
       const student = MOCK_STUDENTS.find(s => s.id === studentId);
       if (!student) return;
 
-      // Update card visual selection
-      document.querySelectorAll(".pet-card").forEach(card => {
-        if (parseInt(card.dataset.id, 10) === studentId) {
-          card.classList.add("is-selected");
-        } else {
-          card.classList.remove("is-selected");
-        }
-      });
+      const isAbsent = student.isAbsent || student.attendance === "absent";
+      if (isAbsent) {
+        showBentoToast(`⚠️ ${student.name} 同学今日请假缺勤，无法参与课堂互动与赋分`, '📋');
+      }
 
       // Populate Drawer Details
       drawerStudentNo.textContent = `#${String(student.id).padStart(2, "0")}`;
       drawerStudentName.textContent = student.name;
       drawerGroupTag.textContent = `第 ${student.group} 组`;
 
-      const imgPath = getPetImagePath(student.species, student.level);
-      const stageInfo = getStageInfo(student.level);
-      const svgFallback = SPECIES_SVGS[student.species] || SPECIES_SVGS.cat;
+      const absentWarning = document.getElementById("drawer-absent-warning");
+      const rewardBtns = document.querySelectorAll(".reward-btn");
 
-      drawerPetImage.style.display = "block";
-      drawerHeroFallback.style.display = "none";
-      drawerPetImage.src = imgPath;
-      drawerPetImage.onerror = function() {
-        this.style.display = "none";
-        drawerHeroFallback.style.display = "flex";
-        drawerHeroFallback.innerHTML = svgFallback;
-      };
+      if (isAbsent) {
+        absentWarning.style.display = "flex";
+        rewardBtns.forEach(btn => {
+          btn.disabled = true;
+          btn.classList.add("is-disabled");
+        });
+      } else {
+        absentWarning.style.display = "none";
+        rewardBtns.forEach(btn => {
+          btn.disabled = false;
+          btn.classList.remove("is-disabled");
+        });
+      }
 
-      drawerSpeciesName.textContent = student.kindName;
-      drawerStageBadge.textContent = stageInfo.label;
+      const hatchCard = document.getElementById("drawer-hatch-card");
+      const imgPath = getPetImagePath(student.species, student.level, student.isEgg);
+      const stageInfo = getStageInfo(student.level, student.isEgg);
+      const svgFallback = student.isEgg ? SPECIES_SVGS.egg : (SPECIES_SVGS[student.species] || SPECIES_SVGS.cat);
+
+      if (student.isEgg) {
+        hatchCard.style.display = "block";
+        drawerSpeciesName.textContent = "神秘宠物蛋";
+        drawerStageBadge.textContent = "🐣 达标待破壳唤醒";
+        drawerPetImage.style.display = "block";
+        drawerPetImage.className = "hero-pet-image bento-egg-anim";
+        drawerHeroFallback.style.display = "none";
+        drawerPetImage.src = imgPath;
+        drawerPetImage.onerror = function() {
+          this.style.display = "none";
+          drawerHeroFallback.style.display = "flex";
+          drawerHeroFallback.innerHTML = svgFallback;
+        };
+      } else {
+        hatchCard.style.display = "none";
+        drawerPetImage.className = "hero-pet-image";
+        drawerPetImage.style.display = "block";
+        drawerHeroFallback.style.display = "none";
+        drawerPetImage.src = imgPath;
+        drawerPetImage.onerror = function() {
+          this.style.display = "none";
+          drawerHeroFallback.style.display = "flex";
+          drawerHeroFallback.innerHTML = svgFallback;
+        };
+        drawerSpeciesName.textContent = student.kindName;
+        drawerStageBadge.textContent = stageInfo.label;
+      }
 
       updateDrawerExpUI(student);
       updateAcademicDetails(student);
@@ -1492,6 +2347,8 @@
       drawerBackdrop.classList.add("is-open");
       detailDrawer.setAttribute("aria-hidden", "false");
       drawerBackdrop.setAttribute("aria-hidden", "false");
+
+      renderAllViews();
     }
 
     function closeDrawer() {
@@ -1499,23 +2356,23 @@
       drawerBackdrop.classList.remove("is-open");
       detailDrawer.setAttribute("aria-hidden", "true");
       drawerBackdrop.setAttribute("aria-hidden", "true");
+      renderAllViews();
     }
 
     function updateDrawerExpUI(student) {
-      drawerLevelTag.textContent = `LV. ${student.level}`;
+      drawerLevelTag.textContent = student.isEgg ? "蛋形态" : `LV. ${student.level}`;
       drawerExpNums.textContent = `${student.exp} / ${student.maxExp} EXP`;
-      
+
       const pct = Math.min(100, Math.round((student.exp / student.maxExp) * 100));
       drawerExpFill.style.width = `${pct}%`;
-      
+
       const diff = Math.max(0, student.maxExp - student.exp);
-      drawerExpHint.textContent = diff === 0 ? "已达到本阶段最高等级！" : `还差 ${diff} EXP 升至 LV.${student.level + 1}`;
+      drawerExpHint.textContent = student.isEgg ? "已积攒满 15 EXP，可立即破壳诞生！" : (diff === 0 ? "已达到本阶段最高等级！" : `还差 ${diff} EXP 升至 LV.${student.level + 1}`);
     }
 
     function updateAcademicDetails(student) {
       academicCurrentSubject.textContent = currentSubject;
-      
-      // Update Academic sub-cards
+
       const zh = student.chinese || { tier: "二阶·灵动", exp: 95 };
       const ma = student.math || { tier: "二阶·求知", exp: 90 };
       const en = student.english || { tier: "二阶·畅语", exp: 95 };
@@ -1529,14 +2386,32 @@
       document.getElementById("academic-tier-english").textContent = en.tier;
       document.getElementById("academic-exp-english").textContent = `${en.exp} EXP`;
 
-      // Highlight current subject
       document.getElementById("academic-card-chinese").classList.toggle("is-current-subject", currentSubject === "语文");
       document.getElementById("academic-card-math").classList.toggle("is-current-subject", currentSubject === "数学");
       document.getElementById("academic-card-english").classList.toggle("is-current-subject", currentSubject === "英语");
     }
 
+    function hatchEgg(studentId) {
+      const student = MOCK_STUDENTS.find(s => s.id === studentId);
+      if (!student || !student.isEgg) return;
+
+      student.isEgg = false;
+      student.level = 2;
+      student.exp = 20;
+      student.maxExp = 60;
+
+      playFeedbackChime();
+      showBentoToast(`🎉 破壳诞生！恭喜 ${student.name} 唤醒了专属守护萌宠【${student.kindName}】！`, '🐣');
+
+      const heroBox = document.querySelector('.bento-hero-card');
+      const rect = heroBox ? heroBox.getBoundingClientRect() : { left: window.innerWidth / 2, top: window.innerHeight / 2 };
+      spawnFloatingExp(rect.left + 120, rect.top + 80, '🐣 破壳成功！');
+
+      selectStudent(studentId);
+    }
+
     /* --------------------------------------------------------------------------
-       6. High-Frequency Reward Evaluation (3-Second Workflow & Feedback)
+       7. High-Frequency Reward Evaluation & Micro-Animations
        -------------------------------------------------------------------------- */
     function attachRewardEvents() {
       const rewardBtns = document.querySelectorAll(".reward-btn");
@@ -1546,24 +2421,20 @@
           if (!selectedStudentId) return;
           const student = MOCK_STUDENTS.find(s => s.id === selectedStudentId);
           if (!student) return;
+          if (student.isAbsent || student.attendance === "absent") {
+            showBentoToast(`⚠️ ${student.name} 同学请假中，无法赋分`, '📋');
+            return;
+          }
 
           const addExp = parseInt(btn.dataset.exp, 10);
           const label = btn.dataset.label;
 
-          // 1. Create Ripple Effect
           createRipple(btn, e);
-
-          // 2. Play subtle pleasant chime
           playFeedbackChime();
-
-          // 3. Spawn Floating EXP text near the click
           spawnFloatingExp(e.clientX, e.clientY, `+${addExp} 🌟`);
 
-          // 4. Update Student State
-          const oldStage = getStageInfo(student.level).stage;
           student.exp += addExp;
 
-          // Also increment current subject exp
           if (currentSubject === "语文" && student.chinese) student.chinese.exp += addExp;
           else if (currentSubject === "数学" && student.math) student.math.exp += addExp;
           else if (currentSubject === "英语" && student.english) student.english.exp += addExp;
@@ -1576,22 +2447,13 @@
             levelUp = true;
           }
 
-          const newStageInfo = getStageInfo(student.level);
-          if (newStageInfo.stage !== oldStage) {
-            // Stage evolution occurred! Update images & badge
-            drawerStageBadge.textContent = newStageInfo.label;
-            drawerPetImage.src = getPetImagePath(student.species, student.level);
-          }
-
-          // 5. Update UI
           updateDrawerExpUI(student);
           updateAcademicDetails(student);
-          renderPetGrid(); // Sync grid card state
+          renderAllViews();
 
-          // 6. Append Log entry in drawer
           addLogEntry(label, addExp);
+          showBentoToast(`已为 ${student.name} 赋分【${label}】+${addExp} EXP`, '🌟');
 
-          // 7. Level Up Celebration Toast if triggered
           if (levelUp) {
             showLevelUpCelebration(student);
           }
@@ -1645,24 +2507,24 @@
     }
 
     function showLevelUpCelebration(student) {
-      const toastContainer = document.getElementById("toast-container");
-      const toast = document.createElement("div");
-      toast.className = "celebration-toast";
-      toast.innerHTML = `
-        <span>🎉</span>
-        <span>太棒了！<strong>${student.name}</strong> 的宠物进阶至 <strong>LV.${student.level}</strong>！</span>
-      `;
-      toastContainer.appendChild(toast);
-
-      setTimeout(() => {
-        toast.style.transition = "all 0.3s ease";
-        toast.style.opacity = "0";
-        toast.style.transform = "translateY(-20px)";
-        setTimeout(() => toast.remove(), 300);
-      }, 2500);
+      showBentoToast(`🎉 太棒了！${student.name} 的宠物进阶至 LV.${student.level}！`, '🎉');
     }
 
-    // Audio chime feedback using Web Audio API (gentle & zero external dependencies)
+    let bentoToastTimer = null;
+    function showBentoToast(msg, icon = '✔') {
+      const container = document.getElementById("toast-container");
+      container.innerHTML = `
+        <div class="celebration-toast" style="animation: bentoMenuPop 0.25s var(--ease-spring);">
+          <span style="font-size:18px;">${icon}</span>
+          <span>${msg}</span>
+        </div>
+      `;
+      clearTimeout(bentoToastTimer);
+      bentoToastTimer = setTimeout(() => {
+        container.innerHTML = '';
+      }, 2600);
+    }
+
     function playFeedbackChime() {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -1672,8 +2534,8 @@
         const gain = ctx.createGain();
 
         osc.type = "sine";
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.exponentialRampToValueAtTime(880.00, ctx.currentTime + 0.12); // A5
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880.00, ctx.currentTime + 0.12);
 
         gain.gain.setValueAtTime(0.12, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
@@ -1683,13 +2545,222 @@
 
         osc.start();
         osc.stop(ctx.currentTime + 0.3);
-      } catch (err) {
-        // Silent catch if audio policy blocks autoplay
-      }
+      } catch (err) {}
     }
 
     /* --------------------------------------------------------------------------
-       7. Event Handlers & Interactivity
+       8. Floating Ball & Classroom Teaching Tools
+       -------------------------------------------------------------------------- */
+    function initFloatingBall() {
+      const ballContainer = document.getElementById('floatingBallContainer');
+      const ball = document.getElementById('classpetFloatingBall');
+      const toolsMenu = document.getElementById('floatingToolsMenu');
+      if (!ball || !ballContainer) return;
+
+      try {
+        const saved = JSON.parse(localStorage.getItem('classpet_floating_ball_pos'));
+        if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
+          const maxL = window.innerWidth - 75;
+          const maxT = window.innerHeight - 75;
+          ballContainer.style.left = Math.min(maxL, Math.max(16, saved.left)) + 'px';
+          ballContainer.style.top = Math.min(maxT, Math.max(16, saved.top)) + 'px';
+          ballContainer.style.bottom = 'auto';
+          ballContainer.style.right = 'auto';
+        }
+      } catch (e) {}
+
+      let isDragging = false;
+      let startX = 0, startY = 0;
+      let initL = 0, initT = 0;
+      let hasMoved = false;
+
+      ball.addEventListener('pointerdown', (e) => {
+        if (e.button > 0) return;
+        isDragging = true;
+        hasMoved = false;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        const rect = ballContainer.getBoundingClientRect();
+        initL = rect.left;
+        initT = rect.top;
+
+        ball.setPointerCapture(e.pointerId);
+        e.stopPropagation();
+      });
+
+      ball.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (Math.hypot(dx, dy) > 6) {
+          hasMoved = true;
+        }
+        if (hasMoved) {
+          let newL = initL + dx;
+          let newT = initT + dy;
+          newL = Math.max(16, Math.min(window.innerWidth - 75, newL));
+          newT = Math.max(16, Math.min(window.innerHeight - 75, newT));
+
+          ballContainer.style.left = newL + 'px';
+          ballContainer.style.top = newT + 'px';
+          ballContainer.style.bottom = 'auto';
+          ballContainer.style.right = 'auto';
+        }
+      });
+
+      const onPointerUp = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        try { ball.releasePointerCapture(e.pointerId); } catch (err) {}
+
+        if (hasMoved) {
+          const rect = ballContainer.getBoundingClientRect();
+          try {
+            localStorage.setItem('classpet_floating_ball_pos', JSON.stringify({ left: rect.left, top: rect.top }));
+          } catch (err) {}
+        } else {
+          toolsMenu.classList.toggle('open');
+          playFeedbackChime();
+        }
+      };
+
+      ball.addEventListener('pointerup', onPointerUp);
+      ball.addEventListener('pointercancel', onPointerUp);
+
+      document.addEventListener('click', (e) => {
+        if (!ballContainer.contains(e.target)) {
+          toolsMenu.classList.remove('open');
+        }
+      });
+    }
+
+    // Tool 1: 🎲 随机抽点
+    let selectedRollcallStudent = null;
+    function openRollcallModal() {
+      const modal = document.getElementById('modal-rollcall');
+      modal.classList.add('open');
+      document.getElementById('floatingToolsMenu').classList.remove('open');
+      document.getElementById('btn-rollcall-award').style.display = 'none';
+      document.getElementById('btn-rollcall-start').style.display = 'block';
+      document.getElementById('rollcall-name').textContent = '准备抽点...';
+      document.getElementById('rollcall-group-tag').textContent = '点击下方按钮开始';
+    }
+
+    function startRollcallAnimation() {
+      const candidates = MOCK_STUDENTS.filter(s => !s.isAbsent && s.attendance !== 'absent');
+      if (candidates.length === 0) return;
+
+      const btnStart = document.getElementById('btn-rollcall-start');
+      const btnAward = document.getElementById('btn-rollcall-award');
+      btnStart.disabled = true;
+      btnAward.style.display = 'none';
+
+      let count = 0;
+      let delay = 50;
+      const totalSteps = 24;
+
+      function step() {
+        count++;
+        const randomIndex = Math.floor(Math.random() * candidates.length);
+        selectedRollcallStudent = candidates[randomIndex];
+
+        document.getElementById('rollcall-name').textContent = selectedRollcallStudent.name;
+        document.getElementById('rollcall-group-tag').textContent = `第 ${selectedRollcallStudent.group} 小组 · ${selectedRollcallStudent.isEgg ? '蛋形态' : 'Lv.' + selectedRollcallStudent.level}`;
+
+        const img = document.getElementById('rollcall-avatar-img');
+        img.src = getPetImagePath(selectedRollcallStudent.species, selectedRollcallStudent.level, selectedRollcallStudent.isEgg);
+
+        playFeedbackChime();
+
+        if (count < totalSteps) {
+          if (count > totalSteps - 6) delay += 40;
+          setTimeout(step, delay);
+        } else {
+          btnStart.disabled = false;
+          btnStart.textContent = '🎲 重新抽点';
+          btnAward.style.display = 'block';
+          showBentoToast(`🎉 抽中了：${selectedRollcallStudent.name} 同学！`, '🎲');
+        }
+      }
+      step();
+    }
+
+    // Tool 2: ⏱️ 课堂计时器
+    let timerDuration = 60;
+    let timerRemaining = 60;
+    let timerInterval = null;
+    let isTimerRunning = false;
+
+    function openTimerModal() {
+      const modal = document.getElementById('modal-timer');
+      modal.classList.add('open');
+      document.getElementById('floatingToolsMenu').classList.remove('open');
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(timerRemaining / 60);
+      const s = timerRemaining % 60;
+      document.getElementById('timer-display').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function toggleTimer() {
+      const toggleBtn = document.getElementById('btn-timer-toggle');
+      if (isTimerRunning) {
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        toggleBtn.textContent = '▶ 继续倒计时';
+        toggleBtn.style.background = 'var(--color-primary)';
+      } else {
+        if (timerRemaining <= 0) timerRemaining = timerDuration;
+        isTimerRunning = true;
+        toggleBtn.textContent = '⏸ 暂停';
+        toggleBtn.style.background = '#F59E0B';
+        timerInterval = setInterval(() => {
+          timerRemaining--;
+          updateTimerDisplay();
+          if (timerRemaining <= 0) {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            toggleBtn.textContent = '▶ 开始倒计时';
+            toggleBtn.style.background = 'var(--color-primary)';
+            playFeedbackChime();
+            showBentoToast('🔔 课堂倒计时结束！请同学们停笔坐好。', '⏱️');
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isTimerRunning = false;
+      timerRemaining = timerDuration;
+      updateTimerDisplay();
+      const toggleBtn = document.getElementById('btn-timer-toggle');
+      toggleBtn.textContent = '▶ 开始倒计时';
+      toggleBtn.style.background = 'var(--color-primary)';
+    }
+
+    // Tool 3: 🌟 全班表扬
+    function praiseAllStudents() {
+      const presentStudents = MOCK_STUDENTS.filter(s => !s.isAbsent && s.attendance !== 'absent');
+      presentStudents.forEach(s => {
+        s.exp += 10;
+        if (s.exp >= s.maxExp) {
+          s.level += 1;
+          s.exp = s.exp - s.maxExp;
+          s.maxExp = Math.round(s.maxExp * 1.25);
+        }
+      });
+      playFeedbackChime();
+      showBentoToast(`🌟 全班 ${presentStudents.length} 位到校同学各获得 +10 EXP 课堂表扬！`, '🌟');
+      document.getElementById('floatingToolsMenu').classList.remove('open');
+      renderAllViews();
+    }
+
+    /* --------------------------------------------------------------------------
+       9. Event Handlers & Interactivity Wiring
        -------------------------------------------------------------------------- */
     function setupInteractions() {
       // Group Filter Chips
@@ -1704,9 +2775,17 @@
           chip.setAttribute("aria-selected", "true");
 
           currentGroupFilter = chip.dataset.group;
-          renderPetGrid();
+          renderAllViews();
+          playFeedbackChime();
         });
       });
+
+      // View Switcher (Grid / Seatmap)
+      document.getElementById('btn-view-grid').addEventListener('click', () => switchView('grid'));
+      document.getElementById('btn-view-seat').addEventListener('click', () => switchView('seat'));
+
+      // Theme Button Click
+      document.getElementById('btn-theme-cycle').addEventListener('click', cycleTheme);
 
       // Subject Switcher
       const subjectBtns = document.querySelectorAll(".subject-btn");
@@ -1730,7 +2809,7 @@
       // Sort Select
       sortSelectEl.addEventListener("change", (e) => {
         currentSortMode = e.target.value;
-        renderPetGrid();
+        renderAllViews();
       });
 
       // Drawer Close Events (✕ button, backdrop click, Esc key)
@@ -1738,17 +2817,22 @@
       drawerBackdrop.addEventListener("click", closeDrawer);
 
       window.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && detailDrawer.classList.contains("is-open")) {
-          closeDrawer();
+        if (e.key === "Escape") {
+          if (detailDrawer.classList.contains("is-open")) closeDrawer();
+          document.querySelectorAll('.bento-tool-dialog').forEach(d => d.classList.remove('open'));
+          document.getElementById('floatingToolsMenu').classList.remove('open');
         }
+      });
+
+      // Hatch button
+      document.getElementById('btn-bento-hatch').addEventListener('click', () => {
+        hatchEgg(selectedStudentId);
       });
 
       // Fullscreen Toggle
       fullscreenToggleBtn.addEventListener("click", () => {
         if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(err => {
-            console.log(`Error attempting to enable fullscreen: ${err.message}`);
-          });
+          document.documentElement.requestFullscreen().catch(() => {});
           fullscreenToggleBtn.textContent = "✕";
           fullscreenToggleBtn.title = "退出全屏";
         } else {
@@ -1758,14 +2842,45 @@
         }
       });
 
-      document.addEventListener("fullscreenchange", () => {
-        if (!document.fullscreenElement) {
-          fullscreenToggleBtn.textContent = "⛶";
-          fullscreenToggleBtn.title = "全屏模式 (F11)";
-        } else {
-          fullscreenToggleBtn.textContent = "✕";
-          fullscreenToggleBtn.title = "退出全屏";
+      // Tools Menu Wiring
+      document.getElementById('tool-random-picker').addEventListener('click', openRollcallModal);
+      document.getElementById('tool-class-timer').addEventListener('click', openTimerModal);
+      document.getElementById('tool-all-praise').addEventListener('click', praiseAllStudents);
+      document.getElementById('tool-quick-theme').addEventListener('click', cycleTheme);
+
+      // Rollcall Dialog Wiring
+      document.getElementById('rollcall-close-btn').addEventListener('click', () => {
+        document.getElementById('modal-rollcall').classList.remove('open');
+      });
+      document.getElementById('btn-rollcall-start').addEventListener('click', startRollcallAnimation);
+      document.getElementById('btn-rollcall-award').addEventListener('click', () => {
+        if (selectedRollcallStudent) {
+          selectedRollcallStudent.exp += 10;
+          playFeedbackChime();
+          showBentoToast(`已为 ${selectedRollcallStudent.name} 同学赋分 +10 EXP！`, '🌟');
+          document.getElementById('modal-rollcall').classList.remove('open');
+          renderAllViews();
         }
+      });
+
+      // Timer Dialog Wiring
+      document.getElementById('timer-close-btn').addEventListener('click', () => {
+        document.getElementById('modal-timer').classList.remove('open');
+      });
+      document.getElementById('btn-timer-toggle').addEventListener('click', toggleTimer);
+      document.getElementById('btn-timer-reset').addEventListener('click', resetTimer);
+      document.getElementById('btn-timer-add30').addEventListener('click', () => {
+        timerRemaining += 30;
+        updateTimerDisplay();
+        showBentoToast('已增加 30 秒倒计时', '⏱️');
+      });
+      document.querySelectorAll('.timer-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.timer-preset-btn').forEach(b => b.classList.remove('is-active'));
+          btn.classList.add('is-active');
+          timerDuration = parseInt(btn.dataset.sec, 10);
+          resetTimer();
+        });
       });
 
       // Attach reward buttons
@@ -1773,11 +2888,12 @@
     }
 
     /* --------------------------------------------------------------------------
-       8. Initialize
+       10. Initialize
        -------------------------------------------------------------------------- */
     window.addEventListener("DOMContentLoaded", () => {
-      updateGroupBadges();
-      renderPetGrid();
+      setTheme(currentTheme, false);
+      initFloatingBall();
+      renderAllViews();
       setupInteractions();
     });
   </script>

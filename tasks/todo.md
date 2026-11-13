@@ -23,10 +23,24 @@
 - [x] 新增大屏直达一键启动脚本 `Open-Student-Bigscreen.cmd` 与环境变量支持 `CLASSPET_START_PAGE`，方便用户双击直接进入学生大厅手测验证。
 - [x] 深度解析两套组件库（Looseleaf 与 BoardUI），完成针对外部网页版 AI（ChatGPT / Gemini / AI Studio）的高保真重构任务总纲与一键投喂 Prompt 规格文档：`design/AI_COLLABORATION_PROMPT_SPEC.md`。
 - [x] Swarm 多智能体完成纯前端高保真演示页面 A/B 两案开发与真实渲染验证：
-  - 方案 A（呼吸感新粗野 2.0）：`design/demo_a_neo_brutalism.html`（1757 行，融入 Looseleaf 纸质质感、印章点赞与圆润卡片）；
-  - 方案 B（现代温润 Bento 苹果教育风）：`design/demo_b_modern_bento.html`（1785 行，融入 BoardUI 触控选框、毛玻璃微质感、超大圆角与柔和微光）；
+  - 方案 A（呼吸感新粗野 2.0）：`design/demo_a_neo_brutalism.html`（融入 Looseleaf 纸质质感、印章点赞与圆润卡片）；
+  - 方案 B（现代温润 Bento 苹果教育风）：`design/demo_b_modern_bento.html`（融入 BoardUI 触控选框、毛玻璃微质感、超大圆角与柔和微光）；
   - 均支持 4 列大呼吸感自适应网格、3米远距纯净大图大字卡片、3秒顺手点赞抽屉与 Esc 秒收纳；
   - 完成全景与抽屉展开截图捕获（`demo_a_normal.png`、`demo_a_drawer_open.png`、`demo_b_normal.png`、`demo_b_drawer_open.png`）。
+- [x] 【大屏网页审校与对齐】完成状态完备性对齐：
+  - 缺勤学生表现：isAbsent: true 卡片呈现 85% 灰度、半透明虚线框，点击提示缺勤，抽屉锁定赋分；
+  - 蛋与孵化状态：isEgg: true 展示初始蛋图与微动效，抽屉内置一键破壳/孵化引导与成功微动效；
+  - 小组总经验统计：顶部大组胶囊与大组横栏不仅显示人数，还实时统计大组累计总经验（如“第1组 8人 · 2380 EXP”）；
+  - 全局 Toast 反馈：赋分、盖章、孵化、缺勤点击与工具操作统一浮出优雅轻量的 Toast 反馈。
+- [x] 【大屏网页审校与对齐】补齐课堂大屏工具与视图入口：
+  - 悬浮球触控工具（classpet-floating-ball）：右下角支持触控/鼠标拖动与位置记忆，点击展开教学工具（随机抽点、课堂计时器、全班表扬、快捷换肤）；
+  - 座位表模式（Seatmap View）：顶部提供“🌲 宠物森林网格 / 🪑 4大组座位表”轻量无缝切屏，座位表按 4 大组横向排布；
+  - 4 套护眼主题支持：经典奶绿 (classic)、活力暖橙 (orange)、护眼森林 (green)、晴空蓝调 (blue)；
+- [x] 【大屏网页审校与对齐】验证与视觉审查：
+  - demo_a 严格遵循 1.8px 墨线实体卡牌质感；demo_b 严格遵循苹果毛玻璃高透微光；
+  - 严守 4 列上限、>=60% 宠物舞台、20-22px 姓名大字与 22px 呼吸感间距；
+  - 14 项专项自动化对齐检查通过（`test_demos_alignment.js`）、既有正式回归与空白检查通过；
+  - 完成最新全景、座位表与抽屉截屏（`demo_a_normal.png`、`demo_a_seatmap.png`、`demo_a_drawer_open.png`、`demo_b_normal.png`、`demo_b_seatmap.png`、`demo_b_drawer_open.png`）。
 
 ## 2026-11-12 源码同步
 

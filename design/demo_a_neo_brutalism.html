@@ -64,7 +64,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
       background-color: var(--bg-canvas);
-      background-image: 
+      background-image:
         radial-gradient(var(--bg-cream) 0%, transparent 80%),
         radial-gradient(#d1d5db 1.2px, transparent 1.2px);
       background-size: 100% 100%, 24px 24px;
@@ -348,7 +348,7 @@
       justify-content: space-between;
       padding: 18px 16px 16px 16px;
       cursor: pointer;
-      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), 
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
                   box-shadow 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
                   border-color 0.18s ease;
       outline: none;
@@ -1079,6 +1079,520 @@
     .toast-pill.show {
       transform: translateX(-50%) translateY(0);
     }
+
+    /* ==========================================================================
+       Theme System (classic 经典奶绿, orange 暖橙, green 森林, blue 海洋)
+       ========================================================================== */
+    :root, :root[data-theme="classic"] {
+      --bg-canvas: #f7faf7;
+      --bg-cream: #fdfbf7;
+      --surface-card: #ffffff;
+      --surface-sheet: #ffffff;
+      --border-ink: #1e293b;
+      --border-ink-soft: #475569;
+      --color-mint: #bbf7d0;
+      --color-mint-light: #ecfdf5;
+      --color-mint-deep: #059669;
+      --color-yellow: #fef08a;
+      --color-yellow-light: #fefce8;
+      --color-sky: #bae6fd;
+      --color-purple: #e9d5ff;
+      --accent: #10b981;
+    }
+
+    :root[data-theme="orange"] {
+      --bg-canvas: #fcf6ef;
+      --bg-cream: #fff9f2;
+      --surface-card: #ffffff;
+      --surface-sheet: #fffdfa;
+      --border-ink: #382516;
+      --border-ink-soft: #6e4d36;
+      --color-mint: #fed7aa;
+      --color-mint-light: #fff7ed;
+      --color-mint-deep: #ea580c;
+      --color-yellow: #fde68a;
+      --color-yellow-light: #fef9c3;
+      --color-sky: #fdba74;
+      --color-purple: #fed7aa;
+      --accent: #f97316;
+      --shadow-offset: 3px 3px 0px #382516;
+      --shadow-hover: 4px 6px 0px #382516;
+      --shadow-active: 1.5px 1.5px 0px #382516;
+    }
+
+    :root[data-theme="green"] {
+      --bg-canvas: #f2f8f2;
+      --bg-cream: #f8fbf7;
+      --surface-card: #ffffff;
+      --surface-sheet: #fafffa;
+      --border-ink: #19311f;
+      --border-ink-soft: #386043;
+      --color-mint: #bbf7d0;
+      --color-mint-light: #ecfdf5;
+      --color-mint-deep: #16a34a;
+      --color-yellow: #bbf7d0;
+      --color-yellow-light: #f0fdf4;
+      --color-sky: #86efac;
+      --color-purple: #dcfce7;
+      --accent: #15803d;
+      --shadow-offset: 3px 3px 0px #19311f;
+      --shadow-hover: 4px 6px 0px #19311f;
+      --shadow-active: 1.5px 1.5px 0px #19311f;
+    }
+
+    :root[data-theme="blue"] {
+      --bg-canvas: #f1f7fc;
+      --bg-cream: #f8fbff;
+      --surface-card: #ffffff;
+      --surface-sheet: #fbfdff;
+      --border-ink: #14273e;
+      --border-ink-soft: #325075;
+      --color-mint: #bae6fd;
+      --color-mint-light: #f0f9ff;
+      --color-mint-deep: #0284c7;
+      --color-yellow: #e0f2fe;
+      --color-yellow-light: #f0f9ff;
+      --color-sky: #7dd3fc;
+      --color-purple: #bae6fd;
+      --accent: #0284c7;
+      --shadow-offset: 3px 3px 0px #14273e;
+      --shadow-hover: 4px 6px 0px #14273e;
+      --shadow-active: 1.5px 1.5px 0px #14273e;
+    }
+
+    /* Absent Student Styling (85% grayscale, dashed border) */
+    .pet-card.is-absent {
+      filter: grayscale(0.85);
+      opacity: 0.72;
+      border-style: dashed;
+      background: #f8fafc;
+    }
+
+    .card-status-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      border: 1.2px solid var(--border-ink);
+      box-shadow: 1px 1px 0 var(--border-ink);
+      z-index: 3;
+    }
+
+    .card-absent-badge {
+      background: #64748b;
+      color: #ffffff;
+    }
+
+    .card-egg-badge {
+      background: var(--color-yellow);
+      color: var(--text-main);
+      animation: eggBadgePulse 2.4s infinite ease-in-out;
+    }
+
+    @keyframes eggBadgePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    .pet-egg-image {
+      animation: eggWobble 3.6s infinite ease-in-out;
+    }
+
+    @keyframes eggWobble {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(-4deg); }
+      40% { transform: rotate(4deg); }
+      60% { transform: rotate(-2deg); }
+      80% { transform: rotate(2deg); }
+    }
+
+    .sheet-absent-warning {
+      background: #f1f5f9;
+      border: 1.8px dashed #64748b;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .stamp-action-btn:disabled, .stamp-action-btn.is-disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+      filter: grayscale(0.7);
+    }
+
+    /* Egg Hatch Box in Drawer */
+    .sheet-hatch-box {
+      background: var(--color-yellow-light);
+      border: 2px solid var(--border-ink);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 3px 3px 0 var(--border-ink);
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    .sheet-hatch-title {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--text-main);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .sheet-hatch-tip {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--color-amber-deep);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .btn-hatch-now {
+      width: 100%;
+      height: 48px;
+      background: var(--color-yellow);
+      border: 2px solid var(--border-ink);
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--text-main);
+      cursor: pointer;
+      box-shadow: 3px 3px 0 var(--border-ink);
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-hatch-now:hover {
+      background: #fde047;
+      transform: translateY(-2px);
+      box-shadow: 4px 5px 0 var(--border-ink);
+    }
+
+    .btn-hatch-now:active {
+      transform: translateY(2px) scale(0.98);
+      box-shadow: 1px 1px 0 var(--border-ink);
+    }
+
+    /* Group Totals Strip */
+    .group-totals-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+      width: 100%;
+    }
+
+    .group-total-card {
+      background: var(--surface-card);
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: 14px;
+      padding: 8px 12px;
+      box-shadow: 2px 2px 0 var(--border-ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .group-total-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 3px 4px 0 var(--border-ink);
+    }
+
+    .group-total-card.active {
+      background: var(--color-mint-light);
+      border-color: var(--color-mint-deep);
+      box-shadow: 3px 3px 0 var(--color-mint-deep);
+    }
+
+    .group-total-title {
+      font-size: 13px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .group-total-exp {
+      font-size: 12px;
+      font-family: monospace;
+      font-weight: 900;
+      color: var(--color-mint-deep);
+      background: var(--color-mint-light);
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-ink-soft);
+    }
+
+    /* View Switcher */
+    .view-mode-switcher {
+      display: flex;
+      background: #f1f5f9;
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: var(--radius-pill);
+      padding: 2px;
+      box-shadow: 2px 2px 0px rgba(30, 41, 59, 0.6);
+    }
+
+    .view-btn {
+      padding: 5px 14px;
+      border-radius: var(--radius-pill);
+      border: none;
+      background: transparent;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .view-btn.active {
+      background: var(--surface-card);
+      color: var(--text-main);
+      box-shadow: 1.5px 1.5px 0px var(--border-ink);
+      border: 1.2px solid var(--border-ink);
+    }
+
+    /* Seatmap View */
+    .seatmap-container {
+      display: none;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      width: 100%;
+    }
+
+    .seatmap-group-column {
+      background: var(--surface-card);
+      border: var(--border-width) solid var(--border-ink);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: var(--shadow-offset);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .seatmap-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1.5px solid var(--border-ink);
+      font-size: 13.5px;
+      font-weight: 900;
+    }
+
+    .seatmap-desk-card {
+      background: var(--bg-cream);
+      border: 1.5px solid var(--border-ink);
+      border-radius: 12px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 var(--border-ink);
+      transition: all 0.15s ease;
+    }
+
+    .seatmap-desk-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 3px 4px 0 var(--border-ink);
+      background: #ffffff;
+    }
+
+    .seatmap-desk-card.is-absent {
+      filter: grayscale(0.85);
+      opacity: 0.72;
+      border-style: dashed;
+    }
+
+    .seatmap-desk-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 1.2px solid var(--border-ink);
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .seatmap-desk-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .seatmap-desk-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .seatmap-desk-name {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .seatmap-desk-exp {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: monospace;
+      font-weight: 700;
+    }
+
+    /* Floating Ball (classpet-floating-ball) & Tools Menu */
+    .floating-ball-container {
+      position: fixed;
+      right: 36px;
+      bottom: 36px;
+      z-index: 150;
+      touch-action: none;
+    }
+
+    .classpet-floating-ball {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: var(--surface-card);
+      border: 2px solid var(--border-ink);
+      box-shadow: 3px 4px 0 var(--border-ink);
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      transition: transform 0.15s ease;
+      outline: none;
+      user-select: none;
+    }
+
+    .classpet-floating-ball:active {
+      cursor: grabbing;
+      transform: scale(0.94);
+      box-shadow: 1.5px 2px 0 var(--border-ink);
+    }
+
+    .floating-tools-menu {
+      position: absolute;
+      bottom: 74px;
+      right: 0;
+      width: 220px;
+      background: var(--surface-card);
+      border: 2px solid var(--border-ink);
+      border-radius: 18px;
+      box-shadow: 4px 6px 0 var(--border-ink);
+      padding: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 151;
+      animation: menuPop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes menuPop {
+      from { opacity: 0; transform: translateY(12px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .floating-tools-menu.open {
+      display: flex;
+    }
+
+    .tool-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border-ink);
+      border-radius: 12px;
+      background: var(--bg-cream);
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 var(--border-ink);
+      transition: all 0.15s ease;
+      text-align: left;
+    }
+
+    .tool-menu-item:hover {
+      background: var(--color-mint-light);
+      transform: translateY(-2px);
+      box-shadow: 3px 3px 0 var(--border-ink);
+    }
+
+    /* Modal dialogs for tools */
+    .classroom-tool-dialog {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 220;
+    }
+
+    .classroom-tool-dialog.open {
+      display: flex;
+    }
+
+    .tool-dialog-card {
+      width: 420px;
+      max-width: 90vw;
+      background: var(--surface-card);
+      border: 2px solid var(--border-ink);
+      border-radius: 20px;
+      box-shadow: 6px 8px 0 var(--border-ink);
+      overflow: hidden;
+      animation: menuPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .tool-dialog-header {
+      padding: 14px 18px;
+      background: var(--bg-cream);
+      border-bottom: 2px solid var(--border-ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .tool-dialog-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
   </style>
 </head>
 <body>
@@ -1096,26 +1610,35 @@
     <!-- Floating Pill Chips for Group Selection -->
     <nav class="group-nav-chips" aria-label="小组切换">
       <button class="chip-btn active" data-group="all">
-        全部 <span class="count-dot" id="count-all">32</span>
+        全部 <span class="count-dot" id="count-all">32人 · 0 EXP</span>
       </button>
       <button class="chip-btn" data-group="1">
-        第 1 组 <span class="count-dot" id="count-1">8</span>
+        第 1 组 <span class="count-dot" id="count-g1">8人 · 0 EXP</span>
       </button>
       <button class="chip-btn" data-group="2">
-        第 2 组 <span class="count-dot" id="count-2">8</span>
+        第 2 组 <span class="count-dot" id="count-g2">8人 · 0 EXP</span>
       </button>
       <button class="chip-btn" data-group="3">
-        第 3 组 <span class="count-dot" id="count-3">8</span>
+        第 3 组 <span class="count-dot" id="count-g3">8人 · 0 EXP</span>
       </button>
       <button class="chip-btn" data-group="4">
-        第 4 组 <span class="count-dot" id="count-4">8</span>
+        第 4 组 <span class="count-dot" id="count-g4">8人 · 0 EXP</span>
       </button>
     </nav>
 
-    <!-- Header Actions & Controls -->
+    <!-- Header Actions (View Switcher, Theme Switcher, Sorting, Fullscreen, Reset) -->
     <div class="header-actions">
+      <!-- 视图切换：网格 / 座位表 -->
+      <div class="view-mode-switcher" role="tablist" aria-label="大屏视图切换">
+        <button class="view-btn active" id="btn-view-grid" role="tab" aria-selected="true" data-view="grid">🌲 宠物森林</button>
+        <button class="view-btn" id="btn-view-seat" role="tab" aria-selected="false" data-view="seat">🪑 4大组座位表</button>
+      </div>
+
+      <!-- 4套主题切换：经典奶绿 / 活力暖橙 / 护眼森林 / 晴空蓝调 -->
+      <button class="util-icon-btn" id="btn-theme-cycle" title="点击切换护眼主题风格 (经典奶绿 / 活力暖橙 / 护眼森林 / 晴空蓝调)" aria-label="切换风格">🎨</button>
+
       <!-- Sorting Controls (Rule strictly preserved: Ascending ID vs Descending Level & EXP) -->
-      <div class="sort-control-group" aria-label="排序方式">
+      <div class="sort-control-group" id="sort-control-group" aria-label="排序方式">
         <button class="sort-btn active" data-sort="no" title="学号升序">学号 ↑</button>
         <button class="sort-btn" data-sort="level" title="等级与经验降序">等级 / 经验 ↓</button>
       </div>
@@ -1129,6 +1652,8 @@
 
   <!-- Main Pet Forest Grid Section -->
   <main class="workspace-container">
+    <!-- Group Totals Strip (4 大组累计总经验卡牌) -->
+    <div class="group-totals-strip" id="group-totals-strip"></div>
     <div class="status-summary-bar">
       <div class="summary-title" id="grid-status-text">
         全班宠物森林 <span class="badge">共 32 位同学</span>
@@ -1141,6 +1666,11 @@
     <!-- 4-Column Pet Forest Grid -->
     <div class="pet-grid-forest" id="pet-grid">
       <!-- Dynamic Student Cards will be rendered here -->
+    </div>
+
+    <!-- Seatmap View Container (模式 2：4 大组座位表) -->
+    <div class="seatmap-container" id="seatmap-grid">
+      <!-- 4 Columns of student desk cards will be rendered dynamically -->
     </div>
   </main>
 
@@ -1156,6 +1686,19 @@
     </div>
 
     <div class="sheet-body">
+      <!-- Absent Warning Banner -->
+      <div id="sheet-absent-banner" class="sheet-absent-warning" style="display: none;">
+        <span>⚠️</span>
+        <span>该同学今日请假缺勤，课堂互动与赋分已暂时锁定。</span>
+      </div>
+
+      <!-- Egg Hatching Action Card -->
+      <div id="sheet-hatch-box" class="sheet-hatch-box" style="display: none;">
+        <div class="sheet-hatch-title"><span>🐣</span> 宠物蛋破壳孵化中心</div>
+        <p class="sheet-hatch-tip">恭喜积攒满 15 EXP，可破壳诞生！请点击唤醒专属守护萌宠：</p>
+        <button class="btn-hatch-now" id="btn-hatch-now">🐣 立即破壳诞生 (唤醒萌宠)</button>
+      </div>
+
       <!-- Pet Stage View -->
       <div class="sheet-pet-stage">
         <img id="sheet-pet-image" class="sheet-pet-img" src="" alt="宠物形象">
@@ -1278,6 +1821,89 @@
     </div>
   </dialog>
 
+
+  <!-- 🐾 讲台一体机触控工具：悬浮可拖拽小球与快捷教学工具 (classpet-floating-ball) -->
+  <div id="floatingBallContainer" class="floating-ball-container">
+    <button id="classpetFloatingBall" class="classpet-floating-ball" title="拖动可移动位置，点击展开大屏教学工具箱">
+      <span id="floatingBallIcon">🐾</span>
+    </button>
+
+    <div id="floatingToolsMenu" class="floating-tools-menu">
+      <button class="tool-menu-item" id="tool-random-picker">
+        <span style="font-size:20px;">🎲</span>
+        <div>
+          <div style="font-weight:900;">随机抽点</div>
+          <small style="font-size:11px;color:var(--text-muted);">全班互动点名</small>
+        </div>
+      </button>
+      <button class="tool-menu-item" id="tool-class-timer">
+        <span style="font-size:20px;">⏱️</span>
+        <div>
+          <div style="font-weight:900;">课堂计时器</div>
+          <small style="font-size:11px;color:var(--text-muted);">答题与讨论倒计时</small>
+        </div>
+      </button>
+      <button class="tool-menu-item" id="tool-all-praise">
+        <span style="font-size:20px;">🌟</span>
+        <div>
+          <div style="font-weight:900;">全班表扬</div>
+          <small style="font-size:11px;color:var(--text-muted);">全体到校同学 +10 EXP</small>
+        </div>
+      </button>
+      <button class="tool-menu-item" id="tool-quick-theme">
+        <span style="font-size:20px;">🎨</span>
+        <div>
+          <div style="font-weight:900;">切换主题风格</div>
+          <small style="font-size:11px;color:var(--text-muted);" id="tool-theme-label">当前：经典奶绿</small>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- 🎲 随机抽点全屏/弹窗 Modal -->
+  <div class="classroom-tool-dialog" id="modal-rollcall">
+    <div class="tool-dialog-card">
+      <div class="tool-dialog-header">
+        <span>🎲 课堂随机抽点</span>
+        <button class="modal-close-icon" id="rollcall-close-btn" title="关闭">✕</button>
+      </div>
+      <div class="tool-dialog-body">
+        <div id="rollcall-avatar-box" style="width: 120px; height: 120px; border-radius: 20px; background: var(--bg-cream); border: 2px solid var(--border-ink); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 3px 3px 0 var(--border-ink);">
+          <img id="rollcall-avatar-img" src="../electron-app/src/assets/pets/cat/cat-stage2.png" style="width: 100px; height: 100px; object-fit: contain;" />
+        </div>
+        <div id="rollcall-name" style="font-size: 28px; font-weight: 900; color: var(--text-main); letter-spacing: 1px;">准备抽点...</div>
+        <div id="rollcall-group-tag" style="font-size: 13px; font-weight: 800; color: var(--color-mint-deep); background: var(--color-mint-light); padding: 3px 12px; border-radius: var(--radius-pill); border: 1.2px solid var(--border-ink);">点击下方按钮开始</div>
+        <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
+          <button id="btn-rollcall-start" class="btn-hatch-now" style="flex: 1; height: 46px; background: var(--color-mint);">🎲 开始抽点</button>
+          <button id="btn-rollcall-award" class="btn-hatch-now" style="flex: 1; height: 46px; display: none; background: var(--color-yellow);">🌟 赋分 +10 EXP</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⏱️ 课堂计时器 Modal -->
+  <div class="classroom-tool-dialog" id="modal-timer">
+    <div class="tool-dialog-card">
+      <div class="tool-dialog-header">
+        <span>⏱️ 课堂答题计时器</span>
+        <button class="modal-close-icon" id="timer-close-btn" title="关闭">✕</button>
+      </div>
+      <div class="tool-dialog-body">
+        <div id="timer-display" style="font-size: 56px; font-weight: 900; font-family: monospace; color: var(--text-main); background: var(--bg-cream); padding: 10px 28px; border-radius: 16px; border: 2px solid var(--border-ink); box-shadow: 3px 3px 0 var(--border-ink);">01:00</div>
+        <div style="display: flex; gap: 8px; width: 100%; justify-content: center;">
+          <button class="modal-sub-btn timer-preset-btn" data-sec="60">1 分钟</button>
+          <button class="modal-sub-btn timer-preset-btn" data-sec="120">2 分钟</button>
+          <button class="modal-sub-btn timer-preset-btn" data-sec="300">5 分钟</button>
+          <button class="modal-sub-btn" id="btn-timer-add30">+30 秒</button>
+        </div>
+        <div style="display: flex; gap: 10px; width: 100%; margin-top: 6px;">
+          <button id="btn-timer-toggle" class="btn-hatch-now" style="flex: 1; height: 46px; background: var(--color-mint);">▶ 开始倒计时</button>
+          <button id="btn-timer-reset" class="btn-hatch-now" style="flex: 1; height: 46px; background: #e2e8f0;">↺ 重置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Notification Toast -->
   <div class="toast-pill" id="toast-pill">
     <span id="toast-icon">✨</span>
@@ -1289,6 +1915,7 @@
        1. Standard 32 Students Mock Dataset
        - 4 Groups, 8 Students per group
        - 8 Distinct species with realistic evolution stages
+       - State completeness: Absent students (isAbsent: true), Egg students (isEgg: true)
        ========================================================================== */
     const SPECIES_CONFIG = {
       cat: { name: "狸花猫", emoji: "🐱", color: "#fef08a" },
@@ -1305,19 +1932,19 @@
       // 第 1 小组 (Group 1)
       { id: 1, name: "张三", group: 1, species: "cat", level: 8, exp: 280, maxExp: 315 },
       { id: 2, name: "李四", group: 1, species: "dog", level: 13, exp: 620, maxExp: 665 },
-      { id: 3, name: "陈晨", group: 1, species: "fox", level: 2, exp: 50, maxExp: 60 },
+      { id: 3, name: "陈晨", group: 1, species: "fox", level: 2, exp: 50, maxExp: 60, isAbsent: true }, // 缺勤学生
       { id: 4, name: "林夕", group: 1, species: "bunny", level: 20, exp: 1200, maxExp: 1200 },
       { id: 5, name: "周雨", group: 1, species: "hamster", level: 8, exp: 290, maxExp: 315 },
       { id: 6, name: "姜楠", group: 1, species: "deer", level: 13, exp: 610, maxExp: 665 },
       { id: 7, name: "白羽", group: 1, species: "bird", level: 8, exp: 275, maxExp: 315 },
-      { id: 8, name: "陆飞", group: 1, species: "fish", level: 2, exp: 40, maxExp: 60 },
+      { id: 8, name: "陆飞", group: 1, species: "fish", level: 1, exp: 15, maxExp: 15, isEgg: true }, // 蛋与孵化状态
 
       // 第 2 小组 (Group 2)
       { id: 9, name: "王五", group: 2, species: "fox", level: 5, exp: 150, maxExp: 180 },
       { id: 10, name: "赵六", group: 2, species: "bunny", level: 16, exp: 880, maxExp: 920 },
       { id: 11, name: "许嘉", group: 2, species: "cat", level: 10, exp: 430, maxExp: 480 },
       { id: 12, name: "孙诺", group: 2, species: "dog", level: 8, exp: 300, maxExp: 315 },
-      { id: 13, name: "方婷", group: 2, species: "hamster", level: 2, exp: 45, maxExp: 60 },
+      { id: 13, name: "方婷", group: 2, species: "hamster", level: 1, exp: 20, maxExp: 20, isEgg: true }, // 蛋与孵化状态
       { id: 14, name: "钱程", group: 2, species: "deer", level: 20, exp: 1200, maxExp: 1200 },
       { id: 15, name: "韩雪", group: 2, species: "bird", level: 13, exp: 640, maxExp: 665 },
       { id: 16, name: "沈默", group: 2, species: "fish", level: 8, exp: 295, maxExp: 315 },
@@ -1325,7 +1952,7 @@
       // 第 3 小组 (Group 3)
       { id: 17, name: "孙七", group: 3, species: "hamster", level: 8, exp: 285, maxExp: 315 },
       { id: 18, name: "周八", group: 3, species: "deer", level: 13, exp: 615, maxExp: 665 },
-      { id: 19, name: "顾海", group: 3, species: "cat", level: 2, exp: 55, maxExp: 60 },
+      { id: 19, name: "顾海", group: 3, species: "cat", level: 2, exp: 55, maxExp: 60, isAbsent: true }, // 缺勤学生
       { id: 20, name: "孟星", group: 3, species: "dog", level: 20, exp: 1200, maxExp: 1200 },
       { id: 21, name: "陶然", group: 3, species: "fox", level: 10, exp: 440, maxExp: 480 },
       { id: 22, name: "冯悦", group: 3, species: "bunny", level: 8, exp: 270, maxExp: 315 },
@@ -1334,7 +1961,7 @@
 
       // 第 4 小组 (Group 4)
       { id: 25, name: "吴九", group: 4, species: "bird", level: 8, exp: 310, maxExp: 315 },
-      { id: 26, name: "郑十", group: 4, species: "fish", level: 2, exp: 35, maxExp: 60 },
+      { id: 26, name: "郑十", group: 4, species: "fish", level: 1, exp: 18, maxExp: 20, isEgg: true }, // 蛋与孵化状态
       { id: 27, name: "肖楚", group: 4, species: "cat", level: 16, exp: 870, maxExp: 920 },
       { id: 28, name: "薛彤", group: 4, species: "dog", level: 5, exp: 145, maxExp: 180 },
       { id: 29, name: "汪洋", group: 4, species: "fox", level: 13, exp: 630, maxExp: 665 },
@@ -1349,6 +1976,8 @@
     let isSheetOpen = false;
     let currentGroupFilter = "all";
     let currentSortMode = "no"; // "no" or "level"
+    let currentView = "grid"; // "grid" or "seat"
+    let currentTheme = localStorage.getItem('classpet_theme') || 'classic';
     let soundEnabled = true;
 
     // Student honors/stamps recorded per student in session
@@ -1357,13 +1986,33 @@
     /* ==========================================================================
        2. Asset Path & SVG Vector Fallback Generator
        ========================================================================== */
-    function getPetImagePath(species, level) {
+    function getPetImagePath(species, level, isEgg = false) {
+      if (isEgg) {
+        return '../electron-app/src/assets/pets/shared/egg.png';
+      }
       const stage = level >= 20 ? 5 : level >= 13 ? 3 : level >= 8 ? 2 : 1;
       return `../electron-app/src/assets/pets/${species}/${species}-stage${stage}.png`;
     }
 
-    // High quality inline SVG fallback data URIs
-    function getPetSvgFallback(species) {
+    const EGG_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+      <defs>
+        <radialGradient id="eggGrad" cx="35%" cy="32%" r="65%">
+          <stop offset="0%" stop-color="#fffbeb"/>
+          <stop offset="55%" stop-color="#fef08a"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="80" cy="86" rx="50" ry="62" fill="url(#eggGrad)" stroke="#1e293b" stroke-width="4"/>
+      <path d="M52,78 Q66,68 80,78 T108,78" stroke="#f59e0b" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <circle cx="68" cy="88" r="3.5" fill="#d97706"/>
+      <circle cx="92" cy="98" r="4.5" fill="#d97706"/>
+      <circle cx="62" cy="106" r="3" fill="#d97706"/>
+      <text x="80" y="52" font-size="24" text-anchor="middle">✨</text>
+    </svg>`;
+    const EGG_SVG_DATA = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(EGG_SVG);
+
+    function getPetSvgFallback(species, isEgg = false) {
+      if (isEgg) return EGG_SVG_DATA;
       const emojis = {
         cat: "🐱", dog: "🐶", fox: "🦊", bunny: "🐰",
         hamster: "🐹", deer: "🦌", bird: "🐦", fish: "🐠"
@@ -1374,7 +2023,7 @@
       };
       const emoji = emojis[species] || "🐾";
       const bg = colors[species] || "#f1f5f9";
-      
+
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
         <circle cx="80" cy="80" r="74" fill="${bg}" stroke="#1e293b" stroke-width="4"/>
         <text x="80" y="98" font-size="70" text-anchor="middle" font-family="Apple Color Emoji, Segoe UI Emoji, sans-serif">${emoji}</text>
@@ -1399,7 +2048,6 @@
         gain.connect(audioCtx.destination);
 
         if (type === 'select') {
-          // Warm wooden pop
           osc.type = 'sine';
           osc.frequency.setValueAtTime(420, now);
           osc.frequency.exponentialRampToValueAtTime(780, now + 0.08);
@@ -1407,18 +2055,23 @@
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
           osc.start(now);
           osc.stop(now + 0.1);
+        } else if (type === 'tick') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, now);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+          osc.start(now);
+          osc.stop(now + 0.05);
         } else if (type === 'stamp') {
-          // Cheerful reward chime (two-tone arpeggio)
           osc.type = 'triangle';
-          osc.frequency.setValueAtTime(523.25, now); // C5
-          osc.frequency.setValueAtTime(659.25, now + 0.07); // E5
-          osc.frequency.setValueAtTime(783.99, now + 0.14); // G5
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.07);
+          osc.frequency.setValueAtTime(783.99, now + 0.14);
           gain.gain.setValueAtTime(0.08, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
           osc.start(now);
           osc.stop(now + 0.36);
         } else if (type === 'levelup') {
-          // Major fan-fare chord
           [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
             const o = audioCtx.createOscillator();
             const g = audioCtx.createGain();
@@ -1426,31 +2079,86 @@
             g.connect(audioCtx.destination);
             o.type = 'sine';
             o.frequency.setValueAtTime(freq, now + i * 0.06);
-            g.gain.setValueAtTime(0.07, now + i * 0.06);
+            g.gain.setValueAtTime(0.08, now + i * 0.06);
             g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
             o.start(now + i * 0.06);
             o.stop(now + 0.55);
           });
         }
-      } catch (err) {
-        // Silent catch if audio not allowed
-      }
+      } catch (err) {}
     }
 
     /* ==========================================================================
-       4. Render & Core Logic
+       4. Render & Core Logic (Grid, Seatmap, Group Totals, Themes)
        ========================================================================== */
     const petGrid = document.getElementById('pet-grid');
+    const seatmapGrid = document.getElementById('seatmap-grid');
     const sheetBackdrop = document.getElementById('sheet-backdrop');
     const sheetPanel = document.getElementById('sheet-panel');
+
+    function calculateGroupStats() {
+      const stats = {
+        total: { count: students.length, exp: students.reduce((sum, s) => sum + s.exp, 0) },
+        groups: {}
+      };
+      for (let g = 1; g <= 4; g++) {
+        const gStudents = students.filter(s => s.group === g);
+        stats.groups[g] = {
+          count: gStudents.length,
+          exp: gStudents.reduce((sum, s) => sum + s.exp, 0)
+        };
+      }
+      return stats;
+    }
+
+    function updateGroupStatsUI() {
+      const stats = calculateGroupStats();
+
+      // Update Header Nav Chips
+      const countAll = document.getElementById('count-all');
+      if (countAll) countAll.textContent = `${stats.total.count}人 · ${stats.total.exp} EXP`;
+
+      for (let g = 1; g <= 4; g++) {
+        const dot = document.getElementById(`count-g${g}`);
+        if (dot) dot.textContent = `${stats.groups[g].count}人 · ${stats.groups[g].exp} EXP`;
+      }
+
+      // Update Group Totals Strip
+      const strip = document.getElementById('group-totals-strip');
+      if (strip) {
+        strip.innerHTML = [1, 2, 3, 4].map(g => {
+          const info = stats.groups[g];
+          const isActive = currentGroupFilter === String(g);
+          return `
+            <div class="group-total-card ${isActive ? 'active' : ''}" data-group="${g}" role="button" title="点击筛选第 ${g} 小组">
+              <div class="group-total-title">
+                <span>🚩 第 ${g} 大组</span>
+                <span style="font-size:11px;color:var(--text-muted);font-weight:700;">(${info.count}人)</span>
+              </div>
+              <div class="group-total-exp">${info.exp} EXP</div>
+            </div>
+          `;
+        }).join('');
+
+        strip.querySelectorAll('.group-total-card').forEach(card => {
+          card.addEventListener('click', () => {
+            const targetGroup = card.dataset.group;
+            currentGroupFilter = currentGroupFilter === targetGroup ? "all" : targetGroup;
+            document.querySelectorAll('.chip-btn').forEach(b => {
+              b.classList.toggle('active', b.dataset.group === currentGroupFilter);
+            });
+            renderAllViews();
+            playChime('select');
+          });
+        });
+      }
+    }
 
     function getFilteredAndSortedStudents() {
       let list = students.filter(s => currentGroupFilter === "all" || String(s.group) === currentGroupFilter);
       if (currentSortMode === "no") {
-        // Ascending ID strictly
         list.sort((a, b) => a.id - b.id);
       } else {
-        // Level desc -> EXP desc -> ID asc strictly
         list.sort((a, b) => b.level - a.level || b.exp - a.exp || a.id - b.id);
       }
       return list;
@@ -1459,41 +2167,155 @@
     function renderGrid() {
       const list = getFilteredAndSortedStudents();
       const statusText = document.getElementById('grid-status-text');
-      const groupLabel = currentGroupFilter === "all" ? "全部小组" : `第 ${currentGroupFilter} 小组`;
+      const groupLabel = currentGroupFilter === "all" ? "全班" : `第 ${currentGroupFilter} 小组`;
       statusText.innerHTML = `${groupLabel} · 班级宠物森林 <span class="badge">当前显示 ${list.length} / 32 位同学</span>`;
 
-      // Render cards: ONLY pet image and student name
       petGrid.innerHTML = list.map(student => {
         const isSelected = student.id === selectedStudentId && isSheetOpen;
-        const imgPath = getPetImagePath(student.species, student.level);
-        const fallbackSvg = getPetSvgFallback(student.species);
+        const imgPath = getPetImagePath(student.species, student.level, student.isEgg);
+        const fallbackSvg = getPetSvgFallback(student.species, student.isEgg);
+        const absentClass = student.isAbsent ? 'is-absent' : '';
+
+        let badgeHtml = '';
+        if (student.isAbsent) {
+          badgeHtml = '<div class="card-status-badge card-absent-badge">请假</div>';
+        } else if (student.isEgg) {
+          badgeHtml = '<div class="card-status-badge card-egg-badge">🐣 待破壳</div>';
+        }
 
         return `
-          <div class="pet-card ${isSelected ? 'selected' : ''}" 
-               data-id="${student.id}" 
-               tabindex="0" 
-               role="button" 
-               aria-label="查看 ${student.name} 的宠物" 
+          <div class="pet-card ${isSelected ? 'selected' : ''} ${absentClass}"
+               data-id="${student.id}"
+               tabindex="0"
+               role="button"
+               aria-label="查看 ${student.name} 的宠物"
                aria-pressed="${isSelected}">
-            
-            <!-- Selection Checkmark Seal -->
-            <div class="card-check-seal" aria-hidden="true">✓</div>
 
-            <!-- Card Pet Stage (>= 60% height) -->
+            <div class="card-check-seal" aria-hidden="true">✔</div>
+            ${badgeHtml}
+
             <div class="card-stage-area">
               <div class="card-stage-pedestal"></div>
-              <img class="pet-card-image" 
-                   src="${imgPath}" 
-                   alt="${student.name}的宠物" 
+              <img class="pet-card-image ${student.isEgg ? 'pet-egg-image' : ''}"
+                   src="${imgPath}"
+                   alt="${student.name}的宠物"
                    loading="lazy"
                    onerror="this.onerror=null; this.src='${fallbackSvg}';">
             </div>
 
-            <!-- Student Name: 20px bold centered -->
             <div class="card-student-name">${student.name}</div>
           </div>
         `;
       }).join('');
+    }
+
+    function renderSeatmap() {
+      const stats = calculateGroupStats();
+      seatmapGrid.innerHTML = [1, 2, 3, 4].map(g => {
+        const gList = students.filter(s => s.group === g).sort((a, b) => a.id - b.id);
+        const gExp = stats.groups[g].exp;
+
+        const cardsHtml = gList.map(s => {
+          const imgPath = getPetImagePath(s.species, s.level, s.isEgg);
+          const fallbackSvg = getPetSvgFallback(s.species, s.isEgg);
+          const isSelected = s.id === selectedStudentId && isSheetOpen;
+
+          let statusDesc = s.isEgg ? '🐣 待破壳' : `Lv.${s.level}`;
+          if (s.isAbsent) statusDesc = '⚠️ 请假缺勤';
+
+          return `
+            <div class="seatmap-desk-card ${s.isAbsent ? 'is-absent' : ''} ${isSelected ? 'selected' : ''}"
+                 data-id="${s.id}"
+                 role="button"
+                 tabindex="0">
+              <div class="seatmap-desk-avatar">
+                <img src="${imgPath}" onerror="this.onerror=null; this.src='${fallbackSvg}';" alt="${s.name}" />
+              </div>
+              <div class="seatmap-desk-info">
+                <div class="seatmap-desk-name">
+                  <span>${s.name}</span>
+                  <span style="font-size:10.5px;color:var(--text-muted);">#${String(s.id).padStart(2, '0')}</span>
+                </div>
+                <div class="seatmap-desk-exp">
+                  <span>${statusDesc}</span> · <span>${s.exp} EXP</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="seatmap-group-column">
+            <div class="seatmap-group-header">
+              <span>第 ${g} 大组 (${gList.length}人)</span>
+              <span style="font-family:monospace;color:var(--color-mint-deep);font-weight:900;">${gExp} EXP</span>
+            </div>
+            ${cardsHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAllViews() {
+      updateGroupStatsUI();
+      if (currentView === 'grid') {
+        renderGrid();
+      } else {
+        renderSeatmap();
+      }
+    }
+
+    function switchView(view) {
+      currentView = view;
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        const isActive = btn.dataset.view === view;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+
+      const sortGroup = document.getElementById('sort-control-group');
+      if (view === 'grid') {
+        petGrid.style.display = 'grid';
+        seatmapGrid.style.display = 'none';
+        if (sortGroup) sortGroup.style.display = 'flex';
+      } else {
+        petGrid.style.display = 'none';
+        seatmapGrid.style.display = 'grid';
+        if (sortGroup) sortGroup.style.display = 'none';
+      }
+
+      renderAllViews();
+      playChime('select');
+      showToast(view === 'grid' ? '已切入【🌲 宠物森林网格】' : '已切入【🪑 4大组座位表模式】');
+    }
+
+    const THEME_NAMES = {
+      classic: '经典奶绿',
+      orange: '活力暖橙',
+      green: '护眼森林',
+      blue: '晴空蓝调'
+    };
+
+    function setTheme(themeName, showTip = true) {
+      currentTheme = themeName;
+      document.documentElement.setAttribute('data-theme', themeName);
+      try {
+        localStorage.setItem('classpet_theme', themeName);
+      } catch (e) {}
+
+      const label = document.getElementById('tool-theme-label');
+      if (label) label.textContent = `当前：${THEME_NAMES[themeName] || themeName}`;
+
+      if (showTip) {
+        showToast(`已切换主题至【${THEME_NAMES[themeName] || themeName}】`, '🎨');
+      }
+    }
+
+    function cycleTheme() {
+      const themes = ['classic', 'orange', 'green', 'blue'];
+      const nextIdx = (themes.indexOf(currentTheme) + 1) % themes.length;
+      setTheme(themes[nextIdx], true);
+      playChime('select');
     }
 
     function selectStudent(id, openDrawer = true) {
@@ -1501,11 +2323,15 @@
       const student = students.find(s => s.id === selectedStudentId);
       if (!student) return;
 
+      if (student.isAbsent) {
+        showToast(`⚠️ ${student.name} 同学今日请假缺勤，无法参与课堂互动与赋分`, '📋');
+      }
+
       if (openDrawer) {
         openSheet();
       }
       updateSheetContent(student);
-      renderGrid();
+      renderAllViews();
       playChime('select');
     }
 
@@ -1521,36 +2347,66 @@
       sheetBackdrop.classList.remove('open');
       sheetPanel.classList.remove('open');
       sheetPanel.setAttribute('aria-hidden', 'true');
-      renderGrid();
+      renderAllViews();
     }
 
     function updateSheetContent(student) {
       const config = SPECIES_CONFIG[student.species] || { name: "萌宠", emoji: "🐾" };
-      const stageName = student.level >= 20 ? "阶段 V · 极态神宠" : student.level >= 13 ? "阶段 III · 敏锐成年期" : student.level >= 8 ? "阶段 II · 活泼成长体" : "阶段 I · 软萌幼年期";
 
       document.getElementById('sheet-no').textContent = `#${String(student.id).padStart(2, '0')}`;
       document.getElementById('sheet-group').textContent = `第 ${student.group} 小组`;
       document.getElementById('sheet-name').textContent = student.name;
-      document.getElementById('sheet-species').textContent = `${config.name} · 语文守护宠 (${stageName})`;
 
-      const imgPath = getPetImagePath(student.species, student.level);
-      const fallbackSvg = getPetSvgFallback(student.species);
+      const absentBanner = document.getElementById('sheet-absent-banner');
+      const stampListen = document.getElementById('btn-stamp-listen');
+      const stampSpeak = document.getElementById('btn-stamp-speak');
+      const stampTeam = document.getElementById('btn-stamp-team');
+
+      if (student.isAbsent) {
+        absentBanner.style.display = 'flex';
+        [stampListen, stampSpeak, stampTeam].forEach(b => {
+          if (b) { b.disabled = true; b.classList.add('is-disabled'); }
+        });
+      } else {
+        absentBanner.style.display = 'none';
+        [stampListen, stampSpeak, stampTeam].forEach(b => {
+          if (b) { b.disabled = false; b.classList.remove('is-disabled'); }
+        });
+      }
+
+      const hatchBox = document.getElementById('sheet-hatch-box');
+      const imgPath = getPetImagePath(student.species, student.level, student.isEgg);
+      const fallbackSvg = getPetSvgFallback(student.species, student.isEgg);
       const sheetImg = document.getElementById('sheet-pet-image');
-      sheetImg.src = imgPath;
-      sheetImg.onerror = function() { this.onerror = null; this.src = fallbackSvg; };
+
+      if (student.isEgg) {
+        hatchBox.style.display = 'block';
+        document.getElementById('sheet-species').textContent = `神秘宠物蛋 · 达标待破壳`;
+        document.getElementById('sheet-level').textContent = `蛋形态 · 待唤醒`;
+        sheetImg.src = imgPath;
+        sheetImg.className = 'sheet-pet-img pet-egg-image';
+        sheetImg.onerror = function() { this.onerror = null; this.src = fallbackSvg; };
+      } else {
+        hatchBox.style.display = 'none';
+        sheetImg.className = 'sheet-pet-img';
+        const stageName = student.level >= 20 ? "阶段 V · 极态神宠" : student.level >= 13 ? "阶段 III · 敏锐成年期" : student.level >= 8 ? "阶段 II · 活泼成长体" : "阶段 I · 软萌幼年期";
+        document.getElementById('sheet-species').textContent = `${config.name} · 语文守护宠 (${stageName})`;
+        document.getElementById('sheet-level').textContent = `Lv.${student.level} ${stageName.split('·')[1] || ''}`;
+        sheetImg.src = imgPath;
+        sheetImg.onerror = function() { this.onerror = null; this.src = fallbackSvg; };
+      }
 
       // Growth and EXP
-      document.getElementById('sheet-level').textContent = `Lv.${student.level} ${stageName.split('·')[1] || ''}`;
       document.getElementById('sheet-current-exp').textContent = student.exp;
       document.getElementById('sheet-max-exp').textContent = student.maxExp;
 
       const pct = Math.min(100, Math.round((student.exp / student.maxExp) * 100));
       document.getElementById('sheet-progress-fill').style.width = `${pct}%`;
       document.getElementById('subj-fill-yuwen').style.width = `${pct}%`;
-      document.getElementById('subj-lvl-yuwen').textContent = `Lv.${student.level}`;
+      document.getElementById('subj-lvl-yuwen').textContent = student.isEgg ? '蛋形态' : `Lv.${student.level}`;
 
       const delta = Math.max(0, student.maxExp - student.exp);
-      document.getElementById('sheet-delta-hint').textContent = student.level >= 20 ? "已达大屏最高满阶！" : `距离下一级还需 ${delta} EXP`;
+      document.getElementById('sheet-delta-hint').textContent = student.isEgg ? "已积攒满 15 EXP，可立即破壳诞生！" : (student.level >= 20 ? "已达大屏最高满阶！" : `距离下一级还需 ${delta} EXP`);
 
       // Render today's stamps
       renderStudentStamps(student.id);
@@ -1560,7 +2416,7 @@
       const wall = document.getElementById('today-stamp-wall');
       const stamps = studentStamps[studentId] || [];
       if (stamps.length === 0) {
-        wall.innerHTML = '<span class="stamp-wall-empty">本堂课暂未盖章表彰</span>';
+        wall.innerHTML = '<span class="stamp-wall-empty">本堂课暂未盖章表扬</span>';
         return;
       }
       wall.innerHTML = stamps.map(st => {
@@ -1571,16 +2427,19 @@
     }
 
     /* ==========================================================================
-       5. Interactive Stamping & Rewarding Micro-Animations
+       5. Interactive Stamping & Hatching Logic
        ========================================================================== */
     function applyStampReward(expBonus, title, icon, color, event) {
       const student = students.find(s => s.id === selectedStudentId);
       if (!student) return;
+      if (student.isAbsent) {
+        showToast(`⚠️ ${student.name} 同学请假中，无法赋分`, '📋');
+        return;
+      }
 
       student.exp += expBonus;
       let leveledUp = false;
 
-      // Handle level progression
       if (student.exp >= student.maxExp && student.level < 20) {
         student.level += 1;
         student.exp = student.exp - student.maxExp;
@@ -1590,7 +2449,6 @@
         student.exp = student.maxExp;
       }
 
-      // Record stamp
       if (!studentStamps[student.id]) studentStamps[student.id] = [];
       studentStamps[student.id].push({
         title,
@@ -1600,20 +2458,38 @@
         rot: (Math.random() * 8 - 4).toFixed(1)
       });
 
-      // Sound feedback
       if (leveledUp) {
         playChime('levelup');
         showToast(`🎉 恭喜！${student.name} 的宠物升到了 Lv.${student.level}！`);
       } else {
         playChime('stamp');
+        showToast(`已为 ${student.name} 盖章【${title}】+${expBonus} EXP`, icon);
       }
 
-      // Visual floating EXP feedback
       spawnFloatingExp(event ? event.clientX : window.innerWidth / 2, event ? event.clientY : window.innerHeight / 2, `+${expBonus} ${icon}`);
-
-      // Refresh UI
       updateSheetContent(student);
-      renderGrid();
+      renderAllViews();
+    }
+
+    function hatchEgg(studentId) {
+      const student = students.find(s => s.id === studentId);
+      if (!student || !student.isEgg) return;
+
+      student.isEgg = false;
+      student.level = 2;
+      student.exp = 20;
+      student.maxExp = 60;
+
+      playChime('levelup');
+      const config = SPECIES_CONFIG[student.species] || { name: "萌宠" };
+      showToast(`🎉 破壳诞生！恭喜 ${student.name} 唤醒了【${config.name}】！`, '🐣');
+
+      const stage = document.querySelector('.sheet-pet-stage');
+      const rect = stage ? stage.getBoundingClientRect() : { left: window.innerWidth / 2, top: window.innerHeight / 2 };
+      spawnFloatingExp(rect.left + 80, rect.top + 60, '🐣 破壳成功！');
+
+      updateSheetContent(student);
+      renderAllViews();
     }
 
     function spawnFloatingExp(x, y, text) {
@@ -1627,10 +2503,10 @@
     }
 
     /* ==========================================================================
-       6. Toast System
+       6. Global Toast System
        ========================================================================== */
     let toastTimer = null;
-    function showToast(msg, icon = '✨') {
+    function showToast(msg, icon = '✔') {
       const toast = document.getElementById('toast-pill');
       document.getElementById('toast-msg').textContent = msg;
       document.getElementById('toast-icon').textContent = icon;
@@ -1640,25 +2516,250 @@
     }
 
     /* ==========================================================================
-       7. Event Listeners & Wiring
+       7. Floating Ball & Classroom Tools
+       ========================================================================== */
+    function initFloatingBall() {
+      const ballContainer = document.getElementById('floatingBallContainer');
+      const ball = document.getElementById('classpetFloatingBall');
+      const toolsMenu = document.getElementById('floatingToolsMenu');
+      if (!ball || !ballContainer) return;
+
+      // Restore position from localStorage
+      try {
+        const saved = JSON.parse(localStorage.getItem('classpet_floating_ball_pos'));
+        if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
+          const maxL = window.innerWidth - 75;
+          const maxT = window.innerHeight - 75;
+          ballContainer.style.left = Math.min(maxL, Math.max(16, saved.left)) + 'px';
+          ballContainer.style.top = Math.min(maxT, Math.max(16, saved.top)) + 'px';
+          ballContainer.style.bottom = 'auto';
+          ballContainer.style.right = 'auto';
+        }
+      } catch (e) {}
+
+      let isDragging = false;
+      let startX = 0, startY = 0;
+      let initL = 0, initT = 0;
+      let hasMoved = false;
+
+      ball.addEventListener('pointerdown', (e) => {
+        if (e.button > 0) return;
+        isDragging = true;
+        hasMoved = false;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        const rect = ballContainer.getBoundingClientRect();
+        initL = rect.left;
+        initT = rect.top;
+
+        ball.setPointerCapture(e.pointerId);
+        e.stopPropagation();
+      });
+
+      ball.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (Math.hypot(dx, dy) > 6) {
+          hasMoved = true;
+        }
+        if (hasMoved) {
+          let newL = initL + dx;
+          let newT = initT + dy;
+          newL = Math.max(16, Math.min(window.innerWidth - 75, newL));
+          newT = Math.max(16, Math.min(window.innerHeight - 75, newT));
+
+          ballContainer.style.left = newL + 'px';
+          ballContainer.style.top = newT + 'px';
+          ballContainer.style.bottom = 'auto';
+          ballContainer.style.right = 'auto';
+        }
+      });
+
+      const onPointerUp = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        try { ball.releasePointerCapture(e.pointerId); } catch (err) {}
+
+        if (hasMoved) {
+          const rect = ballContainer.getBoundingClientRect();
+          try {
+            localStorage.setItem('classpet_floating_ball_pos', JSON.stringify({ left: rect.left, top: rect.top }));
+          } catch (err) {}
+        } else {
+          // Click! Toggle tools menu
+          toolsMenu.classList.toggle('open');
+          playChime('select');
+        }
+      };
+
+      ball.addEventListener('pointerup', onPointerUp);
+      ball.addEventListener('pointercancel', onPointerUp);
+
+      // Close menu on outside click
+      document.addEventListener('click', (e) => {
+        if (!ballContainer.contains(e.target)) {
+          toolsMenu.classList.remove('open');
+        }
+      });
+    }
+
+    // Tool 1: 🎲 随机抽点
+    let rollcallInterval = null;
+    let selectedRollcallStudent = null;
+    function openRollcallModal() {
+      const modal = document.getElementById('modal-rollcall');
+      modal.classList.add('open');
+      document.getElementById('floatingToolsMenu').classList.remove('open');
+      document.getElementById('btn-rollcall-award').style.display = 'none';
+      document.getElementById('btn-rollcall-start').style.display = 'block';
+      document.getElementById('rollcall-name').textContent = '准备抽点...';
+      document.getElementById('rollcall-group-tag').textContent = '点击下方按钮开始';
+    }
+
+    function startRollcallAnimation() {
+      const candidates = students.filter(s => !s.isAbsent);
+      if (candidates.length === 0) return;
+
+      const btnStart = document.getElementById('btn-rollcall-start');
+      const btnAward = document.getElementById('btn-rollcall-award');
+      btnStart.disabled = true;
+      btnAward.style.display = 'none';
+
+      let count = 0;
+      let delay = 50;
+      const totalSteps = 24;
+
+      function step() {
+        count++;
+        const randomIndex = Math.floor(Math.random() * candidates.length);
+        selectedRollcallStudent = candidates[randomIndex];
+
+        document.getElementById('rollcall-name').textContent = selectedRollcallStudent.name;
+        document.getElementById('rollcall-group-tag').textContent = `第 ${selectedRollcallStudent.group} 小组 · ${selectedRollcallStudent.isEgg ? '蛋形态' : 'Lv.' + selectedRollcallStudent.level}`;
+
+        const img = document.getElementById('rollcall-avatar-img');
+        img.src = getPetImagePath(selectedRollcallStudent.species, selectedRollcallStudent.level, selectedRollcallStudent.isEgg);
+        img.onerror = function() { this.onerror = null; this.src = getPetSvgFallback(selectedRollcallStudent.species, selectedRollcallStudent.isEgg); };
+
+        playChime('tick');
+
+        if (count < totalSteps) {
+          if (count > totalSteps - 6) delay += 40;
+          setTimeout(step, delay);
+        } else {
+          btnStart.disabled = false;
+          btnStart.textContent = '🎲 重新抽点';
+          btnAward.style.display = 'block';
+          playChime('levelup');
+          showToast(`🎉 抽中了：${selectedRollcallStudent.name} 同学！`, '🎲');
+        }
+      }
+      step();
+    }
+
+    // Tool 2: ⏱️ 课堂计时器
+    let timerDuration = 60;
+    let timerRemaining = 60;
+    let timerInterval = null;
+    let isTimerRunning = false;
+
+    function openTimerModal() {
+      const modal = document.getElementById('modal-timer');
+      modal.classList.add('open');
+      document.getElementById('floatingToolsMenu').classList.remove('open');
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(timerRemaining / 60);
+      const s = timerRemaining % 60;
+      document.getElementById('timer-display').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function toggleTimer() {
+      const toggleBtn = document.getElementById('btn-timer-toggle');
+      if (isTimerRunning) {
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        toggleBtn.textContent = '▶ 继续倒计时';
+        toggleBtn.style.background = 'var(--color-mint)';
+      } else {
+        if (timerRemaining <= 0) timerRemaining = timerDuration;
+        isTimerRunning = true;
+        toggleBtn.textContent = '⏸ 暂停';
+        toggleBtn.style.background = 'var(--color-yellow)';
+        timerInterval = setInterval(() => {
+          timerRemaining--;
+          updateTimerDisplay();
+          if (timerRemaining <= 0) {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            toggleBtn.textContent = '▶ 开始倒计时';
+            toggleBtn.style.background = 'var(--color-mint)';
+            playChime('levelup');
+            showToast('🔔 课堂倒计时结束！请同学们停笔坐好。', '⏱️');
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isTimerRunning = false;
+      timerRemaining = timerDuration;
+      updateTimerDisplay();
+      const toggleBtn = document.getElementById('btn-timer-toggle');
+      toggleBtn.textContent = '▶ 开始倒计时';
+      toggleBtn.style.background = 'var(--color-mint)';
+    }
+
+    // Tool 3: 🌟 全班表扬
+    function praiseAllStudents() {
+      const presentStudents = students.filter(s => !s.isAbsent);
+      presentStudents.forEach(s => {
+        s.exp += 10;
+        if (s.exp >= s.maxExp && s.level < 20) {
+          s.level += 1;
+          s.exp = s.exp - s.maxExp;
+          s.maxExp = Math.round(s.maxExp * 1.3);
+        }
+      });
+      playChime('levelup');
+      showToast(`🌟 全班 ${presentStudents.length} 位到校同学各获得 +10 EXP 课堂表扬！`, '🌟');
+      document.getElementById('floatingToolsMenu').classList.remove('open');
+      renderAllViews();
+    }
+
+    /* ==========================================================================
+       8. Event Listeners & Wiring
        ========================================================================== */
     // Card click & keyboard selection
     petGrid.addEventListener('click', e => {
       const card = e.target.closest('.pet-card');
-      if (card) {
-        selectStudent(card.dataset.id, true);
-      }
+      if (card) selectStudent(card.dataset.id, true);
     });
 
     petGrid.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') {
         const card = e.target.closest('.pet-card');
-        if (card) {
-          e.preventDefault();
-          selectStudent(card.dataset.id, true);
-        }
+        if (card) { e.preventDefault(); selectStudent(card.dataset.id, true); }
       }
     });
+
+    // Seatmap desk card clicks
+    seatmapGrid.addEventListener('click', e => {
+      const desk = e.target.closest('.seatmap-desk-card');
+      if (desk) selectStudent(desk.dataset.id, true);
+    });
+
+    // View Switcher buttons
+    document.getElementById('btn-view-grid').addEventListener('click', () => switchView('grid'));
+    document.getElementById('btn-view-seat').addEventListener('click', () => switchView('seat'));
+
+    // Theme Switcher button in header
+    document.getElementById('btn-theme-cycle').addEventListener('click', cycleTheme);
 
     // Close Sheet triggers: Button, Outside Click, Esc Key
     document.getElementById('sheet-close-btn').addEventListener('click', closeSheet);
@@ -1668,6 +2769,8 @@
         if (isSheetOpen) closeSheet();
         const dialog = document.getElementById('preview-dialog');
         if (dialog.open) dialog.close();
+        document.querySelectorAll('.classroom-tool-dialog').forEach(d => d.classList.remove('open'));
+        document.getElementById('floatingToolsMenu').classList.remove('open');
       }
     });
 
@@ -1677,7 +2780,7 @@
         document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentGroupFilter = btn.dataset.group;
-        renderGrid();
+        renderAllViews();
         playChime('select');
       });
     });
@@ -1688,7 +2791,7 @@
         document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentSortMode = btn.dataset.sort;
-        renderGrid();
+        renderAllViews();
         playChime('select');
         showToast(currentSortMode === 'no' ? '已按【学号升序】排列' : '已按【等级 / 经验降序】排列');
       });
@@ -1707,13 +2810,17 @@
       applyStampReward(20, '团队协作', '🌟', '#7c3aed', e);
     });
 
+    // Hatch Button Click
+    document.getElementById('btn-hatch-now').addEventListener('click', () => {
+      hatchEgg(selectedStudentId);
+    });
+
     // Sound toggle
     const soundBtn = document.getElementById('btn-sound');
     soundBtn.addEventListener('click', () => {
       soundEnabled = !soundEnabled;
       soundBtn.classList.toggle('active', soundEnabled);
-      soundBtn.title = `音效反馈：${soundEnabled ? '已开启' : '已静音'}`;
-      showToast(soundEnabled ? '音效反馈已开启' : '音效反馈已静音', '♪');
+      showToast(soundEnabled ? '音效反馈已开启' : '音效反馈已静音', '🔊');
     });
 
     // Fullscreen API
@@ -1733,8 +2840,47 @@
       for (const k in studentStamps) delete studentStamps[k];
       const current = students.find(s => s.id === selectedStudentId);
       if (current) updateSheetContent(current);
-      renderGrid();
+      renderAllViews();
       showToast('演示经验数据已重置为初始状态', '🔄');
+    });
+
+    // Tool Menu Wiring
+    document.getElementById('tool-random-picker').addEventListener('click', openRollcallModal);
+    document.getElementById('tool-class-timer').addEventListener('click', openTimerModal);
+    document.getElementById('tool-all-praise').addEventListener('click', praiseAllStudents);
+    document.getElementById('tool-quick-theme').addEventListener('click', cycleTheme);
+
+    // Rollcall modal buttons
+    document.getElementById('rollcall-close-btn').addEventListener('click', () => {
+      document.getElementById('modal-rollcall').classList.remove('open');
+    });
+    document.getElementById('btn-rollcall-start').addEventListener('click', startRollcallAnimation);
+    document.getElementById('btn-rollcall-award').addEventListener('click', () => {
+      if (selectedRollcallStudent) {
+        selectedRollcallStudent.exp += 10;
+        playChime('stamp');
+        showToast(`已为 ${selectedRollcallStudent.name} 同学赋分 +10 EXP！`, '🌟');
+        document.getElementById('modal-rollcall').classList.remove('open');
+        renderAllViews();
+      }
+    });
+
+    // Timer modal buttons
+    document.getElementById('timer-close-btn').addEventListener('click', () => {
+      document.getElementById('modal-timer').classList.remove('open');
+    });
+    document.getElementById('btn-timer-toggle').addEventListener('click', toggleTimer);
+    document.getElementById('btn-timer-reset').addEventListener('click', resetTimer);
+    document.getElementById('btn-timer-add30').addEventListener('click', () => {
+      timerRemaining += 30;
+      updateTimerDisplay();
+      showToast('已增加 30 秒倒计时', '⏱️');
+    });
+    document.querySelectorAll('.timer-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        timerDuration = parseInt(btn.dataset.sec, 10);
+        resetTimer();
+      });
     });
 
     // Sub Actions Modal Dialog
@@ -1751,7 +2897,11 @@
     });
 
     // Initialize
-    renderGrid();
+    window.addEventListener('DOMContentLoaded', () => {
+      setTheme(currentTheme, false);
+      initFloatingBall();
+      renderAllViews();
+    });
   </script>
 </body>
 </html>
