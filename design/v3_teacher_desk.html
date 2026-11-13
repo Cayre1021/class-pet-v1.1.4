@@ -773,6 +773,43 @@ body{ background:var(--paper) }
 .dock-sec .sec-title{ display:inline-block; padding:0 2px;
   background:linear-gradient(transparent 64%, var(--accent-soft) 64%, var(--accent-soft) 94%, transparent 94%); }
 </style>
+<style>
+/* —— Looseleaf 纸感对齐（第二层）：卡片手绘感 / 赋分按钮墨线 / 赋分台纸边 —— */
+.lanes .stu-row{
+  position:relative;
+  border-radius:14px 11px 15px 12px !important;
+  box-shadow:0 3px 0 rgba(17,17,17,.14) !important;
+  transition:transform .16s ease, box-shadow .18s ease, background-color .16s linear !important;
+}
+.lanes .stu-row:nth-child(3n){ transform:rotate(-.28deg); }
+.lanes .stu-row:nth-child(3n+1){ transform:rotate(.18deg); }
+.lanes .stu-row:hover{
+  transform:translateY(-4px) rotate(0deg) !important;
+  box-shadow:0 7px 0 rgba(17,17,17,.16), 0 14px 24px rgba(17,17,17,.10) !important;
+}
+.lanes .stu-row.is-selected,
+.lanes .stu-row.selected{
+  box-shadow:0 0 0 3px var(--accent), 0 4px 0 rgba(17,17,17,.9) !important;
+}
+.lanes .chk-box{ border-radius:7px 5px 8px 6px !important; }
+.lanes .stu-more{ border-radius:9px 7px 10px 8px !important; }
+
+.dock{
+  border-radius:18px 0 0 16px;
+  background-image:var(--grain) !important; background-size:140px 140px !important;
+}
+.score-btn{
+  position:relative; border-color:transparent !important;
+  border-radius:12px 9px 13px 10px !important;
+  background-image:var(--grain); background-size:140px 140px;
+}
+.score-btn::before{
+  content:''; position:absolute; inset:-1px; pointer-events:none;
+  border:1.5px solid var(--ink); border-radius:inherit; filter:url(#inkWobSm);
+}
+.score-btn .val{ border-radius:8px 6px 9px 7px; }
+.dock-sec .sec-title{ transform:rotate(-.4deg); }
+</style>
 </head>
 <body>
 <svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
