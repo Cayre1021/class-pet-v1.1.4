@@ -883,7 +883,7 @@ html.theme-fade *::after{
     </div>
     <span class="class-chip"><i class="dot" aria-hidden="true"></i>三年级二班 · 刘老师</span>
     <div class="topbar-right">
-      <a class="btn" id="btn-bigscreen" data-audit="btn-bigscreen" href="v3_looseleaf_paper.html" target="_blank" rel="noopener">
+      <a class="btn" id="btn-bigscreen" data-audit="btn-bigscreen" href="v3_looseleaf_paper.html">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
         学生大屏
       </a>
@@ -2404,6 +2404,13 @@ html.theme-fade *::after{
     else if (action === 'edit') openEditDialog(id);
   });
 
+  var bigscreen = $('#btn-bigscreen');
+  if (bigscreen) bigscreen.addEventListener('click', function (e) {
+    if (window.electronAPI && window.electronAPI.openDisplayWindow) {
+      e.preventDefault();
+      window.electronAPI.openDisplayWindow();
+    }
+  });
   var pillClear = $('#sel-pill-clear');
   if (pillClear) pillClear.addEventListener('click', function () { clearSelection(); });
   searchInput.addEventListener('input', onSearchInput);

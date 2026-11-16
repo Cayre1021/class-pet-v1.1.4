@@ -816,7 +816,8 @@ function pad2(n){ return n < 10 ? '0' + n : String(n); }
 /* ============================================================
    2 · 素材
    ============================================================ */
-function stageOf(level){ return Math.max(1, Math.min(5, level - 2)); }
+/* 临时演示映射：与教师台保持同一公式；接线时统一改用 class_visual_stages */
+function stageOf(level){ return Math.max(1, Math.min(5, Math.ceil(level / 2))); }
 function petSrc(s){
   if (s.isEgg) return '../electron-app/src/assets/pets/shared/egg.png';
   return '../electron-app/src/assets/pets/' + s.species + '/' + s.species + '-stage' + stageOf(s.level) + '.png';
