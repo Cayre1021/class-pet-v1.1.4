@@ -1,0 +1,25 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..'); const OUT = path.join(ROOT,'screenshots_v3');
+app.setPath('userData', path.join(process.env.TEMP || '.', 'cp-ent-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const out = {}; const fails = [];
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1920, height: 1080, show: true, webPreferences: { contextIsolation: true, backgroundThrottling: false } });
+  win.setContentSize(1920,1080); win.setAlwaysOnTop(true); win.focus();
+  const js = async (l, c) => { try { return await win.webContents.executeJavaScript(c, true); } catch (e) { fails.push(l); return null; } };
+  const errs = [];
+  win.webContents.on('console-message', function(){ var a=[].slice.call(arguments); var d=a[1]; var lvl=(typeof d==='object'&&d)?d.level:a[1]; var m=(typeof d==='object'&&d)?d.message:a[2]; if(lvl==='error'||lvl===3) errs.push(String(m).slice(0,120)); });
+  await win.loadURL('file://' + path.join(ROOT, 'design', 'v3_portal.html').replace(/\\/g, '/'));
+  await sleep(1400);
+  await js('tab', `document.getElementById('tab-register').click()`);
+  await sleep(300);
+  await js('reg', `(function(){function s(id,v){var e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));}s('rg-class','三年级二班');s('rg-name','李青');document.querySelector('input[name=subject][value=\"语文\"]').click();var p=document.getElementById('panel-register');(p.querySelector('button[type=submit]')||p.querySelector('.btn-primary')).click();})()`);
+  await sleep(900);
+  out.panel = await js('panel', `(function(){var p=document.getElementById('panel-done');var t=p?p.innerText.replace(/\\s+/g,' ').trim():'';return {text:t,hasMeter:/3 米/.test(t),hasReady:/演示身份已就绪/.test(t),hasFine:/以演示身份进入/.test(t),gates:[].slice.call(document.querySelectorAll('a.gate')).map(function(a){return a.getAttribute('href')}),docH:document.documentElement.scrollHeight,innerH:innerHeight};})()`);
+  const im = await win.webContents.capturePage(); fs.writeFileSync(path.join(OUT,'portal_visual_07_entry.png'), im.toPNG());
+  out.errors = errs.slice(0,4); out.fails = fails;
+  fs.writeFileSync(path.join(OUT,'portal_entry_check.json'), JSON.stringify(out,null,2));
+  console.log('done'); app.quit();
+});

@@ -1,0 +1,25 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..');
+app.setPath('userData', path.join(app.getPath('temp'), 'cp-kb-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1440, height: 900, show: false, webPreferences: { contextIsolation: true } });
+  const js = c => win.webContents.executeJavaScript(c, true);
+  const out = {};
+  await win.loadURL('file://' + path.join(ROOT, 'design/v3_teacher_desk.html').replace(/\\/g, '/'));
+  await sleep(1400);
+  out.triggerTabIndex = await js('(function(){var b=document.getElementById("btn-data-menu");b.focus();return {focused:document.activeElement===b, tabIndex:b.tabIndex};})()');
+  await js('document.getElementById("btn-data-menu").click()');
+  await sleep(300);
+  out.menuDetails = await js('(function(){var m=document.getElementById("data-menu");var s=getComputedStyle(m);var b=m.querySelector("button");return {display:s.display, visibility:s.visibility, firstBtnTabIndex:b?b.tabIndex:null, menuTabIndex:m.tabIndex, inert:m.hasAttribute("inert")};})()');
+  out.focusFirst = await js('(function(){var m=document.getElementById("data-menu");var b=m.querySelector("button");b.focus();return document.activeElement===b;})()');
+  await win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Tab' });
+  await sleep(200);
+  out.activeAfterTab = await js('(function(){var a=document.activeElement;return a? (a.id||a.textContent.trim().slice(0,14)) : null;})()');
+  out.rowClickSelects = await js('(function(){document.getElementById("btn-data-menu").click();var r=document.querySelector(".stu-row");r.click();return document.querySelectorAll(".stu-row.selected").length;})()');
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','teacher_kb_probe.json'), JSON.stringify(out,null,2));
+  console.log(JSON.stringify(out));
+  app.quit();
+});

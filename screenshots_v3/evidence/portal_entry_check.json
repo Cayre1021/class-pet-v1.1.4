@@ -1,0 +1,16 @@
+{
+  "panel": {
+    "text": "选择入口 同一份班级数据，两种进入方式。 学生大屏 课堂投影用 教师操作台 赋分、考勤、台账",
+    "hasMeter": false,
+    "hasReady": false,
+    "hasFine": false,
+    "gates": [
+      "v3_looseleaf_paper.html",
+      "v3_teacher_desk.html"
+    ],
+    "docH": 1080,
+    "innerH": 1080
+  },
+  "errors": [],
+  "fails": []
+}

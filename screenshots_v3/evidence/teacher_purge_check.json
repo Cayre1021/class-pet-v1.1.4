@@ -1,0 +1,12 @@
+{
+  "rows": 32,
+  "pick": 2,
+  "scoreBtn": "团队协作",
+  "scoreToast": "恭喜！陈雨桐 的宠物升到 LV6",
+  "menuItems": [
+    "学生日志",
+    "编辑资料"
+  ],
+  "errors": [],
+  "fails": []
+}

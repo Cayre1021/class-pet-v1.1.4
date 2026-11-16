@@ -1,0 +1,42 @@
+{
+  "student": null,
+  "student2": {
+    "simbadge": 0,
+    "theme": "orange",
+    "themeLabel": "暖橙 · 牛皮纸",
+    "teacherHref": "v3_teacher_desk.html"
+  },
+  "studentAudit": {
+    "pass": false,
+    "occluded": 0
+  },
+  "fabAfterIns": {
+    "left": 1832,
+    "top": 992,
+    "right": 24,
+    "bottom": 24,
+    "hatchVisible": "no-hatch"
+  },
+  "studentErrors": [
+    "Uncaught ReferenceError: a is not defined"
+  ],
+  "teacher": {
+    "badge": 0,
+    "grain": true,
+    "subjectText": "语文课"
+  },
+  "subjectAfter": {
+    "dock": "数学课",
+    "pressed": [
+      "false",
+      "true",
+      "false"
+    ]
+  },
+  "teacherAudit": {
+    "pass": true,
+    "occluded": 0,
+    "missing": 0
+  },
+  "teacherErrors": []
+}

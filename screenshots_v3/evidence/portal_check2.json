@@ -1,0 +1,15 @@
+{
+  "emptyMsgs": {
+    "id": "请输入工号或手机号",
+    "pw": "请输入密码",
+    "invalid": [
+      "true",
+      "true"
+    ],
+    "badFields": 2
+  },
+  "gates": [
+    "v3_looseleaf_paper.html",
+    "v3_teacher_desk.html"
+  ]
+}

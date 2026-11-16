@@ -1,0 +1,28 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..');
+app.setPath('userData', path.join(process.env.TEMP || '.', 'cp-dbg-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1600, height: 900, show: true, webPreferences: { contextIsolation: true } });
+  const js = c => win.webContents.executeJavaScript(c, true);
+  const msgs = [];
+  win.webContents.on('console-message', function(){ var a=[].slice.call(arguments); var d=a[1]; msgs.push(((typeof d==='object'&&d)?d.level:a[1]) + ' :: ' + ((typeof d==='object'&&d)?d.message:a[2]).slice(0,200)); });
+  await win.loadURL('file://' + path.join(ROOT, 'design/v3_looseleaf_paper.html').replace(/\\/g, '/'));
+  await sleep(1500);
+  const out = {};
+  await js('window.__err=[];window.addEventListener("error",function(e){window.__err.push(String(e.message));});0;');
+  out.cardClick = await js('(function(){var c=document.querySelector(".pet-card");if(!c)return "no-card";c.click();return "ok";})()');
+  await sleep(700);
+  out.expBefore = await js('(function(){var n=document.getElementById("ins-exp");return n?n.textContent:"no-ins";})()');
+  out.btn3 = await js('(function(){var bs=document.querySelectorAll("#ins-body [data-score]");for(var i=0;i<bs.length;i++){if(bs[i].getAttribute("data-score")==="3"){bs[i].click();return "clicked";}}return "none";})()');
+  await sleep(900);
+  out.expAfter = await js('(function(){var n=document.getElementById("ins-exp");return n?n.textContent:"no-ins";})()');
+  out.pageErr = await js('JSON.stringify(window.__err||[])');
+  out.fxDisplay = await js('(function(){var c=document.getElementById("fx");return {display:getComputedStyle(c).display,w:c.width,h:c.height};})()');
+  out.pix = await js('(function(){var c=document.getElementById("fx");var g=c.getContext("2d");var d=g.getImageData(0,0,c.width,c.height).data;var n=0;for(var i=3;i<d.length;i+=64){if(d[i]>8)n++;}return n;})()');
+  out.msgs = msgs.slice(-8);
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','fx_debug.json'), JSON.stringify(out,null,2));
+  console.log('done'); app.quit();
+});

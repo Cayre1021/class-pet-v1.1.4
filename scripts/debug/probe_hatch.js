@@ -1,0 +1,20 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..');
+app.setPath('userData', path.join(process.env.TEMP || '.', 'cp-hatch-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1920, height: 1080, show: true, webPreferences: { contextIsolation: true, backgroundThrottling: false } });
+  win.setContentSize(1920,1080); win.setAlwaysOnTop(true); win.focus();
+  const js = c => win.webContents.executeJavaScript(c, true);
+  await win.loadURL('file://' + path.join(ROOT, 'design', 'v3_looseleaf_paper.html').replace(/\\/g, '/'));
+  await sleep(1500);
+  const out = {};
+  out.eggCard = await js(`(function(){var cs=[].slice.call(document.querySelectorAll('.pet-card'));var egg=cs.find(function(c){return c.classList.contains('is-egg')});if(!egg)return 'no-egg';egg.click();return egg.getAttribute('aria-label');})()`);
+  await sleep(900);
+  out.hatch = await js(`(function(){var b=document.getElementById('btn-hatch');if(!b)return {found:false};var r=b.getBoundingClientRect();var x=r.left+r.width/2,y=r.top+r.height/2;var hit=document.elementFromPoint(x,y);var ins=document.getElementById('inspector');return {found:true,rect:[Math.round(r.x),Math.round(r.y),Math.round(r.width),Math.round(r.height)],inView:r.top>=0&&r.bottom<=innerHeight,hit:hit?(hit.id||hit.className||hit.tagName):null,inspScroll:[ins.scrollHeight,ins.clientHeight],inspRect:[Math.round(ins.getBoundingClientRect().x),Math.round(ins.getBoundingClientRect().width)]};})()`);
+  out.fab = await js(`(function(){var w=document.getElementById('fab-wrap').getBoundingClientRect();return [Math.round(w.x),Math.round(w.y),Math.round(w.width)];})()`);
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','hatch_check.json'), JSON.stringify(out,null,2));
+  console.log('done'); app.quit();
+});

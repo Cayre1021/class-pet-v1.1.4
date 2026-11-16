@@ -1,0 +1,31 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..');
+app.setPath('userData', path.join(app.getPath('temp'), 'cp-tf2-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1440, height: 900, show: false, webPreferences: { contextIsolation: true } });
+  const js = c => win.webContents.executeJavaScript(c, true);
+  const out = {};
+  await win.loadURL('file://' + path.join(ROOT, 'design/v3_teacher_desk.html').replace(/\\/g, '/'));
+  await sleep(1400);
+  await js('document.getElementById("btn-data-menu").click()');
+  await sleep(400);
+  out.menuOpen = await js('getComputedStyle(document.getElementById("data-menu")).display');
+  out.overlap = await js('(function(){var m=document.getElementById("data-menu").getBoundingClientRect();var rows=[...document.querySelectorAll(".stu-row")];var covered=rows.filter(function(r){var b=r.getBoundingClientRect();var x=Math.min(b.left+b.width/2,innerWidth-1),y=Math.min(b.top+b.height/2,innerHeight-1);return x>=m.left&&x<=m.right&&y>=m.top&&y<=m.bottom;});var t=covered[0]?document.elementFromPoint(covered[0].getBoundingClientRect().left+covered[0].getBoundingClientRect().width/2, covered[0].getBoundingClientRect().top+covered[0].getBoundingClientRect().height/2):null;return {coveredRows:covered.length, hitOnCoveredRow: t? t.id||String(t.className).slice(0,30):null};})()');
+  out.outsidePointerDown = await js('(function(){var r=document.querySelector(".stu-row").getBoundingClientRect();var x=r.left+r.width/2,y=r.top+r.height/2;var el=document.elementFromPoint(x,y);["pointerdown","mousedown","pointerup","mouseup","click"].forEach(function(t){el.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));});return el.id||String(el.className).slice(0,30);})()');
+  await sleep(400);
+  out.menuAfterOutside = await js('getComputedStyle(document.getElementById("data-menu")).display');
+  out.selectedAfterOutside = await js('document.querySelectorAll(".stu-row.selected").length');
+  // 重新打开后按 Esc 关闭
+  await js('(function(){var m=document.getElementById("data-menu");if(getComputedStyle(m).display==="none")document.getElementById("btn-data-menu").click();})()');
+  await sleep(300);
+  await js('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));window.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));');
+  await sleep(300);
+  out.menuAfterEsc = await js('getComputedStyle(document.getElementById("data-menu")).display');
+  out.focusable = await js('(function(){var m=document.getElementById("data-menu");if(getComputedStyle(m).display==="none")m.style.display="block";var b=m.querySelector("button");b.focus();return document.activeElement===b;})()');
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','teacher_menu_probe.json'), JSON.stringify(out,null,2));
+  console.log(JSON.stringify(out));
+  app.quit();
+});

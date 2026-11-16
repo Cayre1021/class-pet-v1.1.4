@@ -1,0 +1,24 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..');
+app.setPath('userData', path.join(process.env.TEMP || '.', 'cp-err-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1920, height: 1080, show: false, webPreferences: { contextIsolation: true, backgroundThrottling: false } });
+  const js = c => win.webContents.executeJavaScript(c, true);
+  await win.loadURL('file://' + path.join(ROOT, 'design/v3_teacher_desk.html').replace(/\\/g, '/'));
+  await sleep(1500);
+  await js(`window.__errs=[];window.addEventListener('error',function(e){window.__errs.push((e.message||'')+' @ '+(e.error&&e.error.stack?e.error.stack.split('\\n').slice(0,3).join(' | '):''));});0;`);
+  const out = {};
+  out.cb1 = await js(`(function(){var c=document.querySelectorAll('.stu-row input[type=checkbox]');c[0].click();return document.querySelectorAll('.stu-row.is-selected,.stu-row.selected').length;})()`);
+  await sleep(300);
+  out.cb2 = await js(`(function(){var c=document.querySelectorAll('.stu-row input[type=checkbox]');c[1].click();return document.querySelectorAll('.stu-row.is-selected,.stu-row.selected').length;})()`);
+  await sleep(300);
+  out.cb3 = await js(`(function(){var c=document.querySelectorAll('.stu-row input[type=checkbox]');c[2].click();return document.querySelectorAll('.stu-row.is-selected,.stu-row.selected').length;})()`);
+  await sleep(400);
+  out.errs = await js('JSON.stringify(window.__errs)');
+  out.selText = await js(`(function(){var t=document.body.innerText.match(/已选[^0-9]{0,4}(\\d+)/);return t?t[0]:null;})()`);
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','teacher_err.json'), JSON.stringify(out,null,2));
+  console.log('done'); app.quit();
+});

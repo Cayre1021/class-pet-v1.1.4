@@ -1,0 +1,7 @@
+{
+  "errs": [
+    "Uncaught TypeError: Cannot read properties of undefined (reading 'push') @@ TypeError: Cannot read properties of undefined (reading 'push') |     at file:///D:/Desk/ALL%20Vibe/new-class-pet/design/v3_teacher_desk.html:1602:15 |     at Array.forEach (<anonymous>) |     at applyScore (file:///D:/Desk/ALL%20Vibe/new-class-pet/design/v3_teacher_desk.html:1578:9)"
+  ],
+  "sel": 1,
+  "toast": "已就绪"
+}

@@ -1,0 +1,22 @@
+{
+  "row": [
+    361,
+    247
+  ],
+  "chk": [
+    28,
+    152,
+    40,
+    40
+  ],
+  "more": [
+    24,
+    159,
+    40,
+    40
+  ],
+  "chkHit": "more-1",
+  "chkPos": "relative",
+  "morePos": "relative",
+  "rowOverflow": "hidden"
+}

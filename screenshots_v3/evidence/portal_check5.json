@@ -1,0 +1,52 @@
+{
+  "words": {
+    "phone": false,
+    "pw": false,
+    "role": false,
+    "peek": false
+  },
+  "layout": [
+    1080,
+    1080,
+    1920,
+    1920
+  ],
+  "regInputs": [
+    "text:rg-class",
+    "text:rg-name",
+    "radio:语文",
+    "radio:数学",
+    "radio:英语",
+    "radio:自定义",
+    "text:rg-custom"
+  ],
+  "reg": "ok",
+  "customVisible": {
+    "visible": true,
+    "placeholder": "例如 科学"
+  },
+  "stored": {
+    "raw": "{\"class\":\"三年级二班\",\"name\":\"李青\",\"subject\":\"科学\"}",
+    "keys": [
+      "class",
+      "name",
+      "subject"
+    ],
+    "session": "1",
+    "done": true,
+    "who": "\n      三年级二班 · 李青 · 科学\n      退出\n      切换账号\n    "
+  },
+  "afterReload": {
+    "doneHidden": false
+  },
+  "afterLogout": {
+    "cls": "三年级二班",
+    "name": "李青",
+    "session": null
+  },
+  "badLogin": {
+    "doneHidden": true,
+    "bodyHasMsg": true
+  },
+  "fails": []
+}

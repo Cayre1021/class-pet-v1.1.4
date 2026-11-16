@@ -1,0 +1,33 @@
+{
+  "base": {
+    "docH": 1080,
+    "innerH": 1080,
+    "docW": 1920,
+    "innerW": 1920,
+    "tabs": 2,
+    "forms": 2,
+    "img": 4,
+    "brokenImgs": 0
+  },
+  "empty": {
+    "msgs": []
+  },
+  "emptyMsgs": [],
+  "fill": "filled",
+  "done": {
+    "gates": [
+      {
+        "href": "v3_looseleaf_paper.html",
+        "title": "学生大屏 课堂投影用 · 3 米可读"
+      },
+      {
+        "href": "v3_teacher_desk.html",
+        "title": "教师操作台 赋分、考勤、台账"
+      }
+    ],
+    "docH": 1080,
+    "innerH": 1080,
+    "doneVisible": true
+  },
+  "errors": []
+}

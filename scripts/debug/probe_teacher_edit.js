@@ -1,0 +1,28 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..'); const OUT = path.join(ROOT,'screenshots_v3');
+app.setPath('userData', path.join(process.env.TEMP || '.', 'cp-e9-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1920, height: 1080, show: true, webPreferences: { contextIsolation: true, backgroundThrottling: false } });
+  win.setContentSize(1920,1080); win.setAlwaysOnTop(true); win.focus();
+  const js = c => win.webContents.executeJavaScript(c, true);
+  const errs = [];
+  win.webContents.on('console-message', function(){ var a=[].slice.call(arguments); var d=a[1]; var lvl=(typeof d==='object'&&d)?d.level:a[1]; var m=(typeof d==='object'&&d)?d.message:a[2]; if(lvl==='error'||lvl===3) errs.push(String(m).slice(0,120)); });
+  await win.loadURL('file://' + path.join(ROOT, 'design', 'v3_teacher_desk.html').replace(/\\/g, '/'));
+  await sleep(1500);
+  const out = {};
+  await js(`document.querySelector('.stu-more').click()`);
+  await sleep(400);
+  await js(`(function(){var m=document.getElementById('row-menu');var b=[].slice.call(m.querySelectorAll('button')).find(function(x){return /编辑资料/.test(x.textContent)});b.click();})()`);
+  await sleep(600);
+  out.editDialog = await js(`(function(){var d=document.getElementById('dlg');var t=d?d.innerText:'';return {open:!!(d&&d.open),hasArchive:/归档/.test(t),text:t.replace(/\\s+/g,' ').slice(0,140),fields:[].slice.call(d.querySelectorAll('.field label')).map(function(l){return l.textContent.trim()})};})()`);
+  const im = await win.webContents.capturePage(); fs.writeFileSync(path.join(OUT,'teacher_visual_07_editdialog.png'), im.toPNG());
+  const audit = await js(`(function(){var d=document.getElementById('dlg');if(d&&d.open)d.close();return null;})()`);
+  await sleep(300);
+  out.audit = await js(`(function(){var a=window.__v3audit?window.__v3audit():null;return a?{pass:a.pass,occluded:(a.occluded||[]).length,missing:(a.missing||[]).length}:null;})()`);
+  out.errors = errs.slice(0,4);
+  fs.writeFileSync(path.join(OUT,'teacher_edit_check.json'), JSON.stringify(out,null,2));
+  console.log('done'); app.quit();
+});

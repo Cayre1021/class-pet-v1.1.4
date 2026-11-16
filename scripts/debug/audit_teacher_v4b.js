@@ -1,0 +1,47 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..');
+app.setPath('userData', path.join(process.env.TEMP || '.', 'cp-tv4d-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1920, height: 1080, show: false, webPreferences: { contextIsolation: true, backgroundThrottling: false } });
+  const raw = c => win.webContents.executeJavaScript(c, true);
+  const out = {}; const fails = [];
+  const safe = async (label, code) => { try { return await raw(code); } catch (e) { fails.push(label + ': ' + String(e.message || e).slice(0, 80)); return null; } };
+  await win.loadURL('file://' + path.join(ROOT, 'design/v3_teacher_desk.html').replace(/\\/g, '/'));
+  await sleep(1600);
+  const exps = `(function(){return [].slice.call(document.querySelectorAll('.stu-row')).slice(0,5).map(function(r){var e=r.querySelector('.stu-exp,.exp');return e?e.textContent.trim().slice(0,20):null;});})()`;
+  out.expBefore = await safe('expBefore', exps);
+  out.select3 = await safe('select3', `(function(){var rs=document.querySelectorAll('.stu-row');for(var i=0;i<3;i++)rs[i].click();return document.querySelectorAll('.stu-row.is-selected,.stu-row.selected').length;})()`);
+  out.selText = await safe('selText', `(function(){var t=document.body.innerText.match(/已选[^0-9]{0,4}(\\d+)/);return t?t[0]:null;})()`);
+  out.scoreBtn = await safe('scoreBtn', `(function(){return !!document.querySelector('[data-score="3"]');})()`);
+  await safe('scoreClick', `(function(){var b=document.querySelector('[data-score="3"]');if(b)b.click();})()`);
+  await sleep(500);
+  out.expAfter = await safe('expAfter', exps);
+  out.toast = await safe('toast', `(function(){var t=document.getElementById('toast-text')||document.querySelector('.toast');return t?t.textContent.trim().slice(0,44):null;})()`);
+  out.undo = await safe('undo', `(function(){var b=document.querySelector('#btn-undo');if(!b)return 'no-undo';b.click();return 'ok';})()`);
+  await sleep(400);
+  out.expUndo = await safe('expUndo', exps);
+  out.custom = await safe('custom', `(function(){var p=document.querySelector('[data-step="1"]'),ap=document.querySelector('[data-custom-apply]');if(!p||!ap)return 'missing';p.click();p.click();return ap.textContent.replace(/\\s+/g,' ').trim();})()`);
+  await safe('customApply', `(function(){var ap=document.querySelector('[data-custom-apply]');if(ap)ap.click();})()`);
+  await sleep(400);
+  out.customToast = await safe('customToast', `(function(){var t=document.getElementById('toast-text');return t?t.textContent.trim().slice(0,44):null;})()`);
+  out.more = await safe('more', `(function(){var rs=document.querySelectorAll('.stu-row');var last=rs[rs.length-1];last.querySelector('.stu-more').click();var m=document.querySelector('#row-menu');if(!m)return 'no-menu';var r=m.getBoundingClientRect();var items=[].slice.call(m.querySelectorAll('button'));var hit=items.filter(function(x){var q=x.getBoundingClientRect();var t=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);return t===x||x.contains(t);}).length;return {disp:getComputedStyle(m).display,inView:r.top>=0&&r.bottom<=innerHeight,items:items.length,hit:hit};})()`);
+  await safe('esc', `document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));`);
+  await sleep(300);
+  out.moreResidual = await safe('residual', `(function(){var m=document.querySelector('#row-menu');if(!m)return 'absent';var s=getComputedStyle(m);return s.display+'/'+s.pointerEvents;})()`);
+  out.audit = await safe('audit', `(function(){var a=window.__v3audit?window.__v3audit():null;return a?{pass:a.pass,occluded:(a.occluded||[]).length,controls:(a.controls||[]).length,overflow:a.overflow}:null;})()`);
+  out.dialogs = [];
+  for (const label of ['台账', '经验阈值', 'Excel', '备份', '新增']) {
+    const r = await safe('open-' + label, `(function(){var m=document.getElementById('data-menu');if(m)m.hidden=false;var bs=[].slice.call(document.querySelectorAll('button'));for(var i=0;i<bs.length;i++){var t=(bs[i].textContent||'').replace(/\\s+/g,'');if(t.indexOf(JSON.stringify('${label}'))>=0){bs[i].click();return 'clicked';}}return 'notfound';})()`);
+    await sleep(350);
+    const d = await safe('dlg-' + label, `(function(){var ds=[].slice.call(document.querySelectorAll('.dialog,.modal,[role=dialog]')).filter(function(x){return x.getBoundingClientRect().height>10});return ds.map(function(x){var q=x.getBoundingClientRect();return {w:Math.round(q.width),h:Math.round(q.height),bar:x.scrollHeight>x.clientHeight+1||x.scrollWidth>x.clientWidth+1,ovY:getComputedStyle(x).overflowY};});})()`);
+    out.dialogs.push({ label, opened: r, count: d ? d.length : null, bars: d ? d.filter(x => x.bar).length : null, sample: d && d[0] });
+    await safe('close-' + label, `[].slice.call(document.querySelectorAll('.mask,[role=dialog]')).forEach(function(m){if(!m.hidden)m.hidden=true;});var dm=document.getElementById('data-menu');if(dm)dm.hidden=true;`);
+    await sleep(150);
+  }
+  out.fails = fails;
+  fs.writeFileSync(path.join(ROOT, 'screenshots_v3', 'teacher_v4_check2.json'), JSON.stringify(out, null, 2));
+  console.log('done'); app.quit();
+});

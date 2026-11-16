@@ -1,0 +1,36 @@
+{
+  "layout": [
+    1080,
+    1080,
+    1920,
+    1920,
+    false
+  ],
+  "regFields": [
+    "rg-class:true",
+    "rg-name:true",
+    "rg-subject:true",
+    "rg-phone:true",
+    "rg-pw:true",
+    "rg-pw2:true"
+  ],
+  "fill": "rg-class:ok|rg-name:ok|rg-phone:ok|rg-pw:ok|rg-pw2:ok|subject:ok",
+  "submit": "clicked",
+  "state": {
+    "stored": "{\"schoolClass\":\"三年级二班\",\"teacherName\":\"李青\",\"subject\":\"语文\",\"phone\":\"13800138000\",\"pwHash\":\"ca5c5dc0\",\"savedAt\":1794571053526}",
+    "session": "1",
+    "doneHidden": false,
+    "who": "\n      三年级二班 · 李青 · 语文\n      退出\n    "
+  },
+  "reload": {
+    "doneHidden": false,
+    "hasClass": true,
+    "hasName": true,
+    "hasExit": true,
+    "gates": [
+      "v3_looseleaf_paper.html",
+      "v3_teacher_desk.html"
+    ]
+  },
+  "fails": []
+}

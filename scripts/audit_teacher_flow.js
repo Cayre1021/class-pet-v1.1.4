@@ -3,7 +3,7 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');
-const OUT = path.join(ROOT, 'screenshots_v3');
+const OUT = path.join(ROOT, 'screenshots_v3', 'evidence');
 fs.mkdirSync(OUT, { recursive: true });
 app.setPath('userData', path.join(app.getPath('temp'), 'classpet-tflow-' + Date.now()));
 app.commandLine.appendSwitch('disable-gpu');

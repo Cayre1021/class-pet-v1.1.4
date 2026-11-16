@@ -38,6 +38,6 @@ app.whenReady().then(async () => {
   out.overflow = await js(`(function(){var b=document.getElementById('score-scroll'),p=document.getElementById('score-more'),w=b.parentElement;return {scrollH:b.scrollHeight,clientH:b.clientHeight,canScroll:b.scrollHeight>b.clientHeight,pillHidden:p.hidden,pillText:p.textContent.replace(/\\s+/g,' ').trim(),hasMore:w.classList.contains('has-more')};})()`);
   out.overflowAfter = await js(`(function(){var b=document.getElementById('score-scroll');b.scrollTop=b.scrollHeight;return new Promise(function(res){setTimeout(function(){var p=document.getElementById('score-more');res({pillHidden:p.hidden,hasMore:b.parentElement.classList.contains('has-more')});},300);});})()`);
   out.errors = errs.slice(0,6);
-  fs.writeFileSync(path.join(ROOT,'screenshots_v3','teacher_v5_check.json'), JSON.stringify(out,null,2));
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','evidence','teacher_v5_check.json'), JSON.stringify(out,null,2));
   console.log('done'); app.quit();
 });

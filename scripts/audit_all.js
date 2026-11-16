@@ -37,6 +37,6 @@ app.whenReady().then(async () => {
       win.close();
     }
   }
-  fs.writeFileSync(path.join(ROOT,'screenshots_v3','audit_all.json'), JSON.stringify(report,null,2));
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','evidence','audit_all.json'), JSON.stringify(report,null,2));
   console.log('done'); app.quit();
 });

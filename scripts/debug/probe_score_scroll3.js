@@ -1,0 +1,20 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..');
+app.setPath('userData', path.join(process.env.TEMP || '.', 'cp-scr3-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1920, height: 1080, show: false, webPreferences: { contextIsolation: true, backgroundThrottling: false } });
+  const js = c => win.webContents.executeJavaScript(c, true);
+  await win.loadURL('file://' + path.join(ROOT, 'design/v3_teacher_desk.html').replace(/\\/g, '/'));
+  await sleep(1500);
+  for (let i = 0; i < 12; i++) await js(`window.__v3.state.extraRules.push({name:'规则${i}',value:2});`);
+  await js(`(function(){var b=document.getElementById('extra-rules');b.innerHTML=window.__v3.state.extraRules.map(function(r){return '<button class="score-btn"><span>'+r.name+'</span></button>';}).join('');})()`);
+  await sleep(300);
+  const top = await js(`(function(){var p=document.getElementById('score-more');return {hidden:p.hidden,text:p.textContent.replace(/\\s+/g,' ').trim(),hasMore:document.getElementById('score-scroll').parentElement.classList.contains('has-more')};})()`);
+  const bottom = await js(`(function(){var b=document.getElementById('score-scroll');b.scrollTop=b.scrollHeight;b.dispatchEvent(new Event('scroll'));return new Promise(function(res){setTimeout(function(){var p=document.getElementById('score-more');res({top:b.scrollTop,hidden:p.hidden,hasMore:b.parentElement.classList.contains('has-more')});},200);});})()`);
+  const backTop = await js(`(function(){var b=document.getElementById('score-scroll');b.scrollTop=0;b.dispatchEvent(new Event('scroll'));return new Promise(function(res){setTimeout(function(){var p=document.getElementById('score-more');res({hidden:p.hidden,text:p.textContent.replace(/\\s+/g,' ').trim()});},200);});})()`);
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','scroll_probe3.json'), JSON.stringify({top,bottom,backTop},null,2));
+  console.log('done'); app.quit();
+});

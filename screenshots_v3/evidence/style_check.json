@@ -1,0 +1,15 @@
+{
+  "link": {
+    "color": "rgb(17, 17, 17)",
+    "decoration": "none",
+    "border": "0px rgb(17, 17, 17)"
+  },
+  "teacher": {
+    "radius": "14px",
+    "shadow": "rgba(17, 17, 17, 0.14) 0px 3px 0px 0px",
+    "transform": "matrix(0.999995, 0.00314159, -0.00314159, 0.999995, 0, 0)",
+    "scoreBefore": "1.33333px",
+    "scoreRadius": "12px",
+    "dockGrain": true
+  }
+}

@@ -1,0 +1,31 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..');
+app.setPath('userData', path.join(process.env.TEMP || '.', 'cp-fabdrag-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1920, height: 1080, show: true, webPreferences: { contextIsolation: true, backgroundThrottling: false } });
+  win.setContentSize(1920,1080); win.setAlwaysOnTop(true); win.focus();
+  const js = c => win.webContents.executeJavaScript(c, true);
+  await win.loadURL('file://' + path.join(ROOT, 'design', 'v3_looseleaf_paper.html').replace(/\\/g, '/'));
+  await sleep(1600);
+  const out = {};
+  out.before = await js(`(function(){var r=document.getElementById('fab-wrap').getBoundingClientRect();return [Math.round(r.left),Math.round(r.top)];})()`);
+  await js(`document.querySelector('.pet-card').click()`);
+  await sleep(900);
+  out.afterSelect = await js(`(function(){var r=document.getElementById('fab-wrap').getBoundingClientRect();return [Math.round(r.left),Math.round(r.top)];})()`);
+  // 拖到画面中部偏左
+  await js(`(function(){var b=document.getElementById('fab');var r=b.getBoundingClientRect();var sx=r.left+r.width/2, sy=r.top+r.height/2;function ev(t,x,y){b.dispatchEvent(new PointerEvent(t,{bubbles:true,clientX:x,clientY:y,pointerId:1,button:0,isPrimary:true}));}ev('pointerdown',sx,sy);ev('pointermove',sx-250,sy-120);ev('pointermove',sx-600,sy-300);window.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,clientX:sx-600,clientY:sy-300,pointerId:1}));})()`);
+  await sleep(600);
+  out.afterDrag = await js(`(function(){var r=document.getElementById('fab-wrap').getBoundingClientRect();return [Math.round(r.left),Math.round(r.top)];})()`);
+  await sleep(700);
+  out.afterSettle = await js(`(function(){var r=document.getElementById('fab-wrap').getBoundingClientRect();var saved=localStorage.getItem('classpet_v3paper_fab');return {pos:[Math.round(r.left),Math.round(r.top)],saved:saved};})()`);
+  await js(`document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));`);
+  await sleep(500);
+  await js(`document.querySelector('.pet-card').click()`);
+  await sleep(900);
+  out.afterReopen = await js(`(function(){var r=document.getElementById('fab-wrap').getBoundingClientRect();return [Math.round(r.left),Math.round(r.top)];})()`);
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','fab_drag.json'), JSON.stringify(out,null,2));
+  console.log('done'); app.quit();
+});

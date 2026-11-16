@@ -1,0 +1,24 @@
+{
+  "toolbar": [
+    "search-input",
+    "btn-search-clear",
+    "btn-add"
+  ],
+  "gone": {
+    "clear": false,
+    "move": false,
+    "strip": false
+  },
+  "selected": 2,
+  "afterRailClear": {
+    "sel": 0,
+    "count": "0"
+  },
+  "audit": {
+    "pass": true,
+    "occluded": 0,
+    "missing": 0
+  },
+  "errors": [],
+  "fails": []
+}

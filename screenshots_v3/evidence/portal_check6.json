@@ -1,0 +1,25 @@
+{
+  "afterRegister": {
+    "done": true,
+    "stored": "{\"class\":\"三年级二班\",\"name\":\"李青\",\"subject\":\"语文\"}"
+  },
+  "afterSwitch": {
+    "cls": "",
+    "name": "",
+    "flag": "1"
+  },
+  "afterSwitchReload": {
+    "cls": "",
+    "name": "",
+    "doneHidden": true
+  },
+  "afterLogin": {
+    "done": true,
+    "flag": null
+  },
+  "afterLoginReload": {
+    "done": true,
+    "cls": "三年级二班"
+  },
+  "fails": []
+}

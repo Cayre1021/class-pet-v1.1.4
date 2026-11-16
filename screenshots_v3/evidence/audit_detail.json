@@ -1,0 +1,30 @@
+{
+  "v3_looseleaf_paper.html": {
+    "pass": true,
+    "occluded": [],
+    "bad": [],
+    "clipped": [],
+    "unlabeled": [],
+    "missing": [],
+    "overflow": {
+      "scrollH": 1080,
+      "innerH": 1080,
+      "scrollW": 1920,
+      "innerW": 1920
+    }
+  },
+  "v3_teacher_desk.html": {
+    "pass": true,
+    "occluded": [],
+    "bad": [],
+    "clipped": [],
+    "unlabeled": [],
+    "missing": [],
+    "overflow": {
+      "scrollH": 1080,
+      "innerH": 1080,
+      "scrollW": 1920,
+      "innerW": 1920
+    }
+  }
+}

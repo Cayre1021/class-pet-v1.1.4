@@ -1,0 +1,15 @@
+{
+  "out": {
+    "hasStamp": false,
+    "hasEmptyStamp": false,
+    "hasDisclaimer": false,
+    "text": "学号 #01 姓名 陈雨桐 小组 1 组 宠物 狸花猫 等级 LV.6（第 4 阶段） 经验 238 / 240 状态 正常",
+    "bar": false,
+    "inView": true
+  },
+  "audit": {
+    "pass": false,
+    "occluded": 29
+  },
+  "errors": []
+}

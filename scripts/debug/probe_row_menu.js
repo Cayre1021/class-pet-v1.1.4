@@ -1,0 +1,20 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path'); const fs = require('fs');
+const ROOT = path.join(__dirname, '..', '..');
+app.setPath('userData', path.join(app.getPath('temp'), 'cp-rm-' + Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 1440, height: 900, show: false, webPreferences: { contextIsolation: true } });
+  const js = c => win.webContents.executeJavaScript(c, true);
+  const out = {};
+  await win.loadURL('file://' + path.join(ROOT, 'design/v3_teacher_desk.html').replace(/\\/g, '/'));
+  await sleep(1400);
+  out.open = await js('(function(){var rows=[...document.querySelectorAll(".lane-rows > *")];var last=rows[rows.length-1];last.scrollIntoView({block:"center"});var b=last.querySelector(".stu-more");b.click();return true;})()');
+  await sleep(700);
+  out.probe = await js('(function(){var m=document.getElementById("row-menu");var cs=getComputedStyle(m);var r=m.getBoundingClientRect();var btns=[...m.querySelectorAll("button")].map(function(b){var br=b.getBoundingClientRect();var t=document.elementFromPoint(Math.min(br.left+br.width/2,innerWidth-1),Math.min(br.top+br.height/2,innerHeight-1));return {text:(b.textContent||"").trim().slice(0,10),rect:[Math.round(br.x),Math.round(br.y),Math.round(br.width),Math.round(br.height)],hit:t?(t.id||String(t.className).slice(0,24)):null, pe:getComputedStyle(b).pointerEvents};});return {menuRect:[Math.round(r.x),Math.round(r.y),Math.round(r.width),Math.round(r.height)],display:cs.display,opacity:cs.opacity,pe:cs.pointerEvents,z:cs.zIndex,btns:btns};})()');
+  out.rowSelected = await js('document.querySelectorAll(".stu-row.selected").length');
+  fs.writeFileSync(path.join(ROOT,'screenshots_v3','row_menu_probe.json'), JSON.stringify(out,null,2));
+  console.log(JSON.stringify(out));
+  app.quit();
+});
