@@ -818,9 +818,12 @@ class ClassPetStore {
                     }
                 }
 
-                // 若内存数据拥有更高经验，异步回写至 SQLite，确保数据库永不滞后
-                if (hadHigherMemoryExp && db && typeof db.saveStudent === 'function') {
-                    loadedStudents.forEach(s => db.saveStudent(s, classId));
+                // 只以数据库为准：不再把"内存/localStorage 里更高的经验"回写数据库。
+                // 旧逻辑会拿 localStorage 镜像去覆盖库（撤销后重启会把旧经验写回，撤销白撤；
+                // 序号/并发场景也会让镜像压过库）。现在所有写入口都直接写库（v3Score/v3UndoLast/...），
+                // localStorage 只剩给老页面兜底的只读镜像，绝不反向写库。
+                if (hadHigherMemoryExp) {
+                    console.warn('[ClassPetStore] 检测到 localStorage 镜像经验高于数据库，已忽略（以库为准）');
                 }
 
                 this.students = loadedStudents;
