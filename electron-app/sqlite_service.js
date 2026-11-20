@@ -644,7 +644,11 @@ class SQLiteService {
         return { success: true, studentId, realId, subjectCode, speciesCode };
     }
 
-    // 默认阈值升级迁移：仍等于旧默认（15/20 递增）的班级一次性改成新默认（破壳 50、每级 +100）；自定义过的不动
+    // 默认阈值升级迁移：把"旧曲线"的班级一次性改成新默认（破壳 50、每级 +100）
+    // 旧曲线有两类（都匹配过）：
+    //   ① 官方旧默认 0,15,35,60,90,125,…（步长递增）
+    //   ② 教师台的「学期平稳档」 0,15,35,55,75,…（15 + 每级 20）← 负责人这个班就是这一类，之前漏了
+    // 判定用「第 1 级阈值 < 50」：新规则下破壳门槛最低就是 50，凡低于它的一定是旧曲线
     migrateLegacyDefaultThresholds() {
         const OLD = [0, 15, 35, 60, 90, 125, 165, 210, 260, 315, 375, 440, 510, 585, 665, 750, 840, 935, 1035, 1140, 1250];
         const NEW = [0, 50, 150, 250, 350, 450, 550, 650, 750, 850, 950, 1050, 1150, 1250, 1350, 1450, 1550, 1650, 1750, 1850, 1950];
@@ -654,9 +658,16 @@ class SQLiteService {
             classRows.forEach(row => {
                 const classId = row.class_id;
                 const rows = this.query("SELECT level, min_exp FROM class_level_thresholds WHERE class_id = ? ORDER BY level", [classId]);
-                if (rows.length !== 21) return;
-                const isOldDefault = rows.every((r, i) => Number(r.min_exp) === OLD[i]);
-                if (!isOldDefault) return;
+                if (rows.length === 0) return;
+                // 老版本 saveThresholds 只写 1..20（缺 level 0），所以行数可能是 20 或 21；
+                // 缺 level 0 本身就是旧数据，必须重写整表。
+                const byLevel = {};
+                rows.forEach(r => { byLevel[Number(r.level)] = Number(r.min_exp); });
+                const lv1 = byLevel[1];
+                const isOldDefault = rows.every(r => OLD[Number(r.level)] === Number(r.min_exp));
+                const isLegacyHatch = !Number.isFinite(lv1) || lv1 < 50;   /* 破壳门槛低于 50：一律视为旧曲线 */
+                const missingLevel0 = rows.length !== 21;
+                if (!isOldDefault && !isLegacyHatch && !missingLevel0) return;
                 this.db.run('BEGIN TRANSACTION;');
                 this.db.run("DELETE FROM class_level_thresholds WHERE class_id = ?", [classId]);
                 for (let l = 0; l <= 20; l++) {
