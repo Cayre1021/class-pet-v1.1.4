@@ -44,6 +44,8 @@
   --err:#A22E14;
 }
 html[data-theme="orange"]{ --accent:#B84B1B; --accent-soft:#FBE3D3; --paper:#FBF3EA; --canvas:#FDF7F0; --surface:#FFFDFA; --surface-2:#FCF4EB; }
+html[data-theme="forest"]{ --accent:#267853; --accent-soft:#DFF3E7; --paper:#EFF6EF; --canvas:#F5FAF5; --surface:#FDFFFB; --surface-2:#F1F7F0; }
+html[data-theme="ocean"] { --accent:#2869A6; --accent-soft:#DDEBFA; --paper:#EEF5FB; --canvas:#F5FAFE; --surface:#FCFEFF; --surface-2:#EFF6FC; }
 
 *{box-sizing:border-box}
 [hidden]{display:none !important}
@@ -921,7 +923,19 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
   })();
 
   /* ---------- 启动：有身份（账号缓存优先，其次本机档案）就预填；有会话直接进选择入口 ---------- */
-  (function boot() {
+    /* 第6条：门户跟随共享主题（门户不提供切换入口，只跟随教师台/大屏的选择） */
+  (function followTheme() {
+    var apply = function (name) {
+      if (name !== 'orange' && name !== 'forest' && name !== 'ocean') name = 'orange';
+      document.documentElement.setAttribute('data-theme', name);
+    };
+    try { apply(localStorage.getItem('classpet_v3_theme') || 'orange'); } catch (e) { apply('orange'); }
+    window.addEventListener('storage', function (e) {
+      if (e && e.key === 'classpet_v3_theme') apply(e.newValue || 'orange');
+    });
+  })();
+
+(function boot() {
     var identity = readIdentity();
     if (identity && !switchedAccount()) { prefill(identity); }
     if (identity && hasSession()) {

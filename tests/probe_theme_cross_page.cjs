@@ -42,7 +42,19 @@ app.whenReady().then(async () => {
     const attr3 = await w3.webContents.executeJavaScript("document.documentElement.getAttribute('data-theme')", true);
     assert(attr3 === 'orange', '反向：大屏改成 orange 后，教师台重开是 orange', attr3);
 
-    w1.destroy(); w3.destroy();
+    // 门户也要跟随共享主题（门户本身没有切换按钮）
+    const w4 = await open('v3_portal.html');
+    const js4 = c => w4.webContents.executeJavaScript(c, true);
+    const portTheme = await js4("document.documentElement.getAttribute('data-theme')");
+    assert(portTheme === 'orange', '门户启动读到共享主题（当前 orange）', portTheme);
+    await js4("localStorage.setItem('classpet_v3_theme','ocean'); 'ok'");
+    w4.destroy();
+    const w5 = await open('v3_portal.html');
+    const portTheme2 = await w5.webContents.executeJavaScript("document.documentElement.getAttribute('data-theme')", true);
+    const accent = await w5.webContents.executeJavaScript("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()", true);
+    assert(portTheme2 === 'ocean' && accent === '#2869A6', '换成 ocean 后门户重开也跟随（--accent 变 #2869A6）', { portTheme2, accent });
+
+    w1.destroy(); w3.destroy(); w5.destroy();
     console.log('\n结果: ' + passed + ' passed, ' + failed + ' failed');
     app.exit(failed === 0 ? 0 : 1);
 }).catch(e => { console.error('探针异常:', e); app.exit(2); });
