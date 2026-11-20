@@ -919,14 +919,27 @@ function isMaxed(s){ return (typeof s.isMax === 'boolean') ? s.isMax : (s.level 
 function stageText(s){ return s.stageName || ('第 ' + demoStageOf(s.level) + ' 阶段'); }
 function awakenText(s){ return stageText(s) + '觉醒'; }
 
+/* 批次 5.1：主题/音效改用跨页共享键（与教师台同一组），旧纸感私有键只读兼容、启动时迁移一次 */
+var KEY_THEME = 'classpet_v3_theme', KEY_SOUND = 'classpet_v3_sound';
+var LEGACY_THEME = 'classpet_v3paper_theme', LEGACY_SOUND = 'classpet_v3paper_sound';
+function storeGet(key){ try { return localStorage.getItem(key); } catch(e){ return null; } }
+function storeSet(key, val){ try { localStorage.setItem(key, val); } catch(e){} }
+function storeMigrate(key, legacyKey){
+  var cur = storeGet(key);
+  if (cur !== null) return cur;
+  var old = storeGet(legacyKey);
+  if (old === null) return null;
+  storeSet(key, old);   /* 新键写一次即弃；旧键保留不删（只读兼容） */
+  return old;
+}
 var state = {
   students: window.electronAPI ? [] : buildStudents(),
   selectedId: null,
   group: 'all',
   sort: 'no',
   view: 'grid',
-  theme: (function(){ try { return localStorage.getItem('classpet_v3paper_theme') || 'orange'; } catch(e){ return 'orange'; } })(),
-  sound: (function(){ try { return localStorage.getItem('classpet_v3paper_sound') !== 'off'; } catch(e){ return true; } })()
+  theme: storeMigrate(KEY_THEME, LEGACY_THEME) || 'orange',
+  sound: storeMigrate(KEY_SOUND, LEGACY_SOUND) !== 'off'
 };
 function byId(id){ for (var i = 0; i < state.students.length; i++) if (state.students[i].id === id) return state.students[i]; return null; }
 function pad2(n){ return n < 10 ? '0' + n : String(n); }
@@ -1757,12 +1770,22 @@ function themeName(id){ for (var i = 0; i < THEMES.length; i++) if (THEMES[i].id
 function applyTheme(id, ripple){
   state.theme = id;
   document.documentElement.setAttribute('data-theme', id);
-  try { localStorage.setItem('classpet_v3paper_theme', id); } catch(e){}
+  storeSet(KEY_THEME, id);
   document.querySelectorAll('[data-theme-tick]').forEach(function(t){
     t.textContent = t.getAttribute('data-theme-tick') === id ? '当前' : '';
   });
   var fn = $('fab-theme-name'); if (fn) fn.textContent = themeName(id);
   if (ripple) { themeRipple(); sfx('theme'); toast('已切换到「' + themeName(id) + '」'); }
+}
+function syncSoundLabel(){ var l = $('sound-label'); if (l) l.textContent = state.sound ? '开' : '关'; }
+function setSound(on, notify){
+  state.sound = !!on;
+  storeSet(KEY_SOUND, state.sound ? 'on' : 'off');
+  syncSoundLabel();
+  if (notify) {
+    if (state.sound) sfx('stamp');
+    toast('音效已' + (state.sound ? '开启' : '关闭'));
+  }
 }
 function setInspector(on){
   elIns.classList.toggle('is-open', on);
@@ -1941,7 +1964,7 @@ function initFab(){
    ============================================================ */
 var draw = { busy: false, picked: null, timer: null };
 function openRollcall(){
-  $('mask-rollcall').hidden = false;
+  openMask('mask-rollcall', 'fab');
   closeFab(); closeTools();
   var stage = $('draw-stage');
   stage.classList.remove('is-drawing', 'is-done');
@@ -1955,7 +1978,7 @@ function openRollcall(){
   setTimeout(function(){ $('rollcall-start').focus(); }, 30);
 }
 function closeRollcall(){
-  $('mask-rollcall').hidden = true;
+  hideMask($('mask-rollcall'));
   if (draw.timer) { clearTimeout(draw.timer); draw.timer = null; }
   draw.busy = false;
   $('mask-rollcall').querySelectorAll('.confetti').forEach(function(n){ n.remove(); });
@@ -2020,12 +2043,20 @@ function confettiBurst(host){
 var RING = 2 * Math.PI * 88;
 var timer = { dur: 60, left: 60, run: false, id: null };
 function openTimer(){
-  $('mask-timer').hidden = false;
+  openMask('mask-timer', 'fab');
   closeFab(); closeTools();
   timerRender();
   setTimeout(function(){ $('timer-toggle').focus(); }, 30);
 }
-function closeTimer(){ $('mask-timer').hidden = true; }
+/* 批次 5.4：关闭计时器 / 离开页面必须停表，否则弹层已关仍会响铃并刷新显示 */
+function stopTimerClock(){
+  if (timer.id !== null && timer.id !== undefined) { clearInterval(timer.id); timer.id = null; }
+  timer.run = false;
+}
+function closeTimer(){
+  stopTimerClock();
+  hideMask($('mask-timer'));
+}
 function timerRender(){
   var m = Math.floor(timer.left / 60), s = timer.left % 60;
   $('timer-num').textContent = pad2(m) + ':' + pad2(s);
@@ -2073,6 +2104,95 @@ function setTimerDur(sec){
 }
 
 /* ============================================================
+   14.5 · 弹层焦点管理：背景 inert + Tab 循环 + 焦点回归（批次 5.3）
+   ============================================================ */
+var BG_INERT_SEL = '.topbar, #group-band, #content, .fab-wrap';
+var INERT_OK = (typeof HTMLElement !== 'undefined') && ('inert' in HTMLElement.prototype);
+var inertApplied = [];
+var maskCtx = null;
+
+/* 背景网格/工具区禁用交互：支持 inert 用 inert，否则退化为 aria-hidden（关闭时逐条还原） */
+function markBackgroundInert(on){
+  if (!on) {
+    for (var i = 0; i < inertApplied.length; i++) inertApplied[i].node.removeAttribute(inertApplied[i].attr);
+    inertApplied = [];
+    return;
+  }
+  markBackgroundInert(false);
+  var nodes = document.querySelectorAll(BG_INERT_SEL);
+  for (var j = 0; j < nodes.length; j++) {
+    var n = nodes[j];
+    if (INERT_OK) { n.setAttribute('inert', ''); inertApplied.push({ node: n, attr: 'inert' }); }
+    else if (!n.hasAttribute('aria-hidden')) { n.setAttribute('aria-hidden', 'true'); inertApplied.push({ node: n, attr: 'aria-hidden' }); }
+  }
+}
+function openMask(id, fallbackId){
+  var node = $(id);
+  if (!node) return null;
+  var act = document.activeElement;
+  maskCtx = {
+    node: node,
+    trigger: (act && act !== document.body && act !== document.documentElement) ? act : null,
+    fallbackId: fallbackId || null
+  };
+  node.hidden = false;
+  markBackgroundInert(true);
+  return maskCtx;
+}
+function hideMask(node){
+  if (!node) return;
+  node.hidden = true;
+  markBackgroundInert(false);
+  var ctx = (maskCtx && maskCtx.node === node) ? maskCtx : null;
+  maskCtx = null;
+  if (ctx) restoreMaskFocus(ctx);
+}
+function focusUsable(el){
+  if (!el || !el.isConnected || typeof el.focus !== 'function') return false;
+  if (el.closest && (el.closest('[hidden]') || el.closest('[aria-hidden="true"]'))) return false;
+  var cs = getComputedStyle(el);
+  if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+  var r = el.getBoundingClientRect();
+  return r.width > 0 || r.height > 0;
+}
+function restoreMaskFocus(ctx){
+  if (ctx.trigger) {
+    if (focusUsable(ctx.trigger)) { ctx.trigger.focus(); return; }
+    var fb = ctx.fallbackId ? $(ctx.fallbackId) : null;
+    if (focusUsable(fb)) { fb.focus(); return; }
+  }
+  var a = document.activeElement;
+  if (a && a !== document.body && typeof a.blur === 'function') a.blur();
+}
+function focusablesIn(root){
+  var out = [], list = root.querySelectorAll('a[href], button, input, select, textarea, [tabindex]');
+  for (var i = 0; i < list.length; i++) {
+    var n = list[i];
+    if (n.disabled || n.getAttribute('tabindex') === '-1') continue;
+    if (n.hasAttribute('hidden') || (n.closest && n.closest('[hidden]'))) continue;
+    var cs = getComputedStyle(n);
+    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    var r = n.getBoundingClientRect();
+    if (r.width <= 0 && r.height <= 0) continue;
+    out.push(n);
+  }
+  return out;
+}
+/* 批次 5.5：焦点在卡片/按钮/输入等可交互元素上时，Space 归元素自己 */
+function isInteractiveTarget(t){
+  if (!t || t.nodeType !== 1 || t === document.body || t === document.documentElement) return false;
+  if (!t.closest) return false;
+  return !!t.closest('button, a[href], input, select, textarea, summary, label, [contenteditable],' +
+    ' [role="button"], [role="menuitem"], [role="tab"], [role="switch"], [role="checkbox"], [tabindex]');
+}
+function closeMaskBy(node){
+  if (!node) return;
+  if (node.id === 'mask-rollcall') { closeRollcall(); return; }
+  if (node.id === 'mask-timer') { closeTimer(); return; }
+  hideMask(node);
+}
+
+/* ============================================================
    15 · 详情 / 重置
    ============================================================ */
 function openDetail(){
@@ -2089,7 +2209,7 @@ function openDetail(){
   cells.forEach(function(c){ html += '<div class="detail-cell"><b>' + c[0] + '</b>' + c[1] + '</div>'; });
   html += '</div>';
   $('detail-body').innerHTML = html;
-  $('mask-detail').hidden = false;
+  openMask('mask-detail', 'fab');
   setTimeout(function(){ $('detail-ok').focus(); }, 30);
 }
 function resetAll(){
@@ -2101,7 +2221,7 @@ function resetAll(){
   lastExpShown = {};
   setInspector(false);
   $('sort-label').textContent = '学号升序';
-  $('mask-reset').hidden = true;
+  hideMask($('mask-reset'));
   applyTheme('orange', false);
   renderAll();
   toast(DATA_MODE === 'demo' ? '演示数据已重置'
@@ -2275,14 +2395,7 @@ function bind(){
   document.querySelectorAll('[data-theme-set]').forEach(function(b){
     b.addEventListener('click', function(){ applyTheme(b.getAttribute('data-theme-set'), true); closeTools(); });
   });
-  $('btn-sound').addEventListener('click', function(){
-    state.sound = !state.sound;
-    try { localStorage.setItem('classpet_v3paper_sound', state.sound ? 'on' : 'off'); } catch(e){}
-    $('sound-label').textContent = state.sound ? '开' : '关';
-    $('btn-sound').querySelector('.k').textContent = state.sound ? '开' : '关';
-    if (state.sound) sfx('stamp');
-    toast('音效已' + (state.sound ? '开启' : '关闭'));
-  });
+  $('btn-sound').addEventListener('click', function(){ setSound(!state.sound, true); });
   $('btn-full').addEventListener('click', function(){
     if (!document.fullscreenElement) {
       if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().then(function(){ toast('已进入全屏'); }).catch(function(){ toast('当前环境不允许全屏'); });
@@ -2292,10 +2405,10 @@ function bind(){
     closeTools();
   });
   $('btn-coach').addEventListener('click', function(){ showCoach(4200); closeTools(); });
-  $('btn-reset').addEventListener('click', function(){ closeTools(); $('mask-reset').hidden = false; });
-  $('reset-cancel').addEventListener('click', function(){ $('mask-reset').hidden = true; });
+  $('btn-reset').addEventListener('click', function(){ closeTools(); openMask('mask-reset', 'btn-tools'); });
+  $('reset-cancel').addEventListener('click', function(){ hideMask($('mask-reset')); });
   $('reset-ok').addEventListener('click', resetAll);
-  $('mask-reset').addEventListener('click', function(e){ if (e.target === this) this.hidden = true; });
+  $('mask-reset').addEventListener('click', function(e){ if (e.target === this) hideMask(this); });
 
   elBand.addEventListener('click', function(e){
     var b = e.target.closest('[data-group]'); if (!b) return;
@@ -2334,9 +2447,9 @@ function bind(){
   $('btn-ins-close').addEventListener('click', function(){ setInspector(false); });
   $('btn-ins-collapse').addEventListener('click', function(){ setInspector(false); });
   $('btn-detail').addEventListener('click', openDetail);
-  $('detail-close').addEventListener('click', function(){ $('mask-detail').hidden = true; });
-  $('detail-ok').addEventListener('click', function(){ $('mask-detail').hidden = true; });
-  $('mask-detail').addEventListener('click', function(e){ if (e.target === this) this.hidden = true; });
+  $('detail-close').addEventListener('click', function(){ hideMask($('mask-detail')); });
+  $('detail-ok').addEventListener('click', function(){ hideMask($('mask-detail')); });
+  $('mask-detail').addEventListener('click', function(e){ if (e.target === this) hideMask(this); });
 
   $('fab-rollcall').addEventListener('click', openRollcall);
   $('fab-timer').addEventListener('click', openTimer);
@@ -2369,8 +2482,8 @@ function bind(){
     var tag = (e.target && e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea' || (e.target && e.target.isContentEditable)) return;
     if (e.key === 'Escape') {
-      var openMask = document.querySelector('.mask:not([hidden])');
-      if (openMask) { openMask.hidden = true; if (openMask.id === 'mask-rollcall') closeRollcall(); return; }
+      var openMask = (maskCtx && maskCtx.node && !maskCtx.node.hidden) ? maskCtx.node : document.querySelector('.mask:not([hidden])');
+      if (openMask) { closeMaskBy(openMask); return; }
       if (!$('fab-menu').hidden) { closeFab(); return; }
       if (!$('tools-menu').hidden) { closeTools(); return; }
       if (elIns.classList.contains('is-open')) { setInspector(false); toast('已收起成长档案'); }
@@ -2380,12 +2493,46 @@ function bind(){
     if (maskOpen) return;
     if (e.key === 'ArrowRight') { e.preventDefault(); moveSelection(1); return; }
     if (e.key === 'ArrowLeft') { e.preventDefault(); moveSelection(-1); return; }
-    if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); openRollcall(); startDraw(); return; }
+    if (e.key === ' ' || e.code === 'Space') {
+      if (isInteractiveTarget(e.target)) return;   /* 5.5 卡片/按钮/输入自己消费 Space */
+      e.preventDefault(); openRollcall(); startDraw(); return;
+    }
     if (e.key === '1' || e.key === '2' || e.key === '3') {
       if (elIns.classList.contains('is-open') && state.selectedId) {
         e.preventDefault();
         award(state.selectedId, Number(e.key), null, null);
       }
+    }
+  });
+
+  /* 5.3 弹层内 Tab / Shift+Tab 循环，焦点不逃到背景 */
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Tab' && e.keyCode !== 9) return;
+    var node = (maskCtx && maskCtx.node && !maskCtx.node.hidden) ? maskCtx.node : null;
+    if (!node) return;
+    var list = focusablesIn(node);
+    if (!list.length) return;
+    var first = list[0], last = list[list.length - 1], act = document.activeElement;
+    if (!node.contains(act)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); return; }
+    if (e.shiftKey && act === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && act === last) { e.preventDefault(); first.focus(); }
+  }, true);
+
+  /* 5.1 跨页共享键：别的文档改了主题/音效就跟着同步（等值不写回，不会来回震荡） */
+  window.addEventListener('storage', function(e){
+    if (!e || e.key === null || e.key === undefined) return;
+    if (e.key === KEY_THEME) {
+      var id = e.newValue;
+      var known = false;
+      for (var i = 0; i < THEMES.length; i++) if (THEMES[i].id === id) known = true;
+      if (!known || id === state.theme) return;
+      applyTheme(id, false);
+      return;
+    }
+    if (e.key === KEY_SOUND) {
+      var on = e.newValue !== 'off';
+      if (on === state.sound) return;
+      setSound(on, false);
     }
   });
 }
@@ -2521,6 +2668,8 @@ if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').m
 }
 showCoach(3000);
 window.addEventListener('resize', function(){ closeTools(); closeFab(); });
+/* 5.4 切页/卸载时停表 */
+window.addEventListener('pagehide', stopTimerClock);
 
 if (/[?&]audit=1/.test(location.search)) {
   setTimeout(function(){

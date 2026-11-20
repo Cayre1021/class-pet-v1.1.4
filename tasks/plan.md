@@ -276,3 +276,15 @@
 - 验证（2026-11-19 真跑）：`node --check` core/service/main/preload 通过；`test_v3_viewmodel` 24/24、`test_v3_real_db` 12/12、`test_v3_writes` 31/31、`test_v3_manage` 20/20；`test_v3_write_e2e` **31/31**（含批次 4 台账/新增编辑/备份恢复，全部走真 preload+IPC+真服务+临时库）；5 个回归脚本全绿；`audit_all` 与批次 2 基线零差异；`probe_src_copy` 三页 0 破图 0 报错；启动探针如上。
 - 未验证：CSV/JSON 在真实 Electron 原生文件对话框与真实下载路径下的点验（探针里拦了 `URL.createObjectURL`/`a.click()`）；真实库上 CSV 导入后旧台账行对学生名的对照；小分辨率下 7 列台账宽度；真机投影/触屏/音效；真实数据态画面观感。
 - 回滚：`git revert` 本批提交；数据库未写入，无需数据回滚。
+
+## 2026-11-19：V3 批次 5 · 三页接线与体验缺陷
+
+- 范围（`docs/V3_执行总清单.md` 批次 5 的 5.1–5.5）：跨页共享存储键、`renderLanes` 保焦点、弹层焦点陷阱/`inert`、计时器清 interval、Space 冒泡冲突。
+- 冻结契约（Lead）：`classpet_v3_theme` / `classpet_v3_sound` / `classpet_v3_scale` / `classpet_v3_quiet`；学生大屏旧键 `classpet_v3paper_theme/sound` 只作一次迁移来源、不删；不引入 BroadcastChannel 新协议（`storage` 在 file:// 下不派发事件，属尽力而为）。
+- 学生大屏（`design/v3_looseleaf_paper.html` + src）：新增 `storeGet/storeSet/storeMigrate` 与 `KEY_THEME/KEY_SOUND`；抽点/计时/详情/重置四个弹层统一走 `openMask/hideMask`（背景 `inert`，无 `inert` 时降级 `aria-hidden`，关闭还原）；捕获阶段 Tab/Shift+Tab 弹层内循环；Esc 统一 `closeMaskBy`；计时器新增 `stopTimerClock` 并在关闭/`pagehide` 调用；Space 守卫在可交互元素上直接 return（保留元素自身行为）。
+- 教师台（`design/v3_teacher_desk.html` + src）：缩放改为启动读 `classpet_v3_scale`（原来只写不读）；`setTheme/setSound/setScale` 支持外部同步不回写；`storage` 尽力同步；`renderLanes` 改为按 `data-stu` 复用行节点（`laneRows` Map + `patchRow` + 移动前记焦点/移动后归还），只有增删行才动 DOM。
+- 并发处置：教师台文件同一时段被两个子代理先后写入（批次 4 收尾 + 批次 5）。Lead 核对 5 个批次 4 标记（`noBom`/`resolveSpeciesCode`/`dupNames`/`moveGroupReal`/`v3ReadonlyNotice=0`）全部保留、`cmp` IDENTICAL、`node --check` 通过；并向第二批下达「重读再改、禁止整文件覆盖」约束。
+- 验证（2026-11-19 真跑）：Lead 独立探针 `tests/probe_b5_ux.cjs` **21/21**（真 Electron 键鼠事件：焦点陷阱 Tab×12、Esc 焦点回归、计时器关闭后 3.2 秒读数不变、卡片 Space 不抽点/body Space 正常、勾选后焦点仍在原复选框、连勾 3 人、搜索不抢焦点、排序后行数不变、共享键写入面）；`test_v3_viewmodel` 24/24、`test_v3_real_db` 12/12、`test_v3_writes` 31/31、`test_v3_manage` 20/20、`test_v3_write_e2e` 31/31；5 个回归脚本全绿；`audit_all` 与批次 2 基线**零差异**；`probe_src_copy` 三页 0 破图 0 报错；启动探针仍落 V3 门户且库哈希未变。
+- 未验证：`storage` 跨文档同步（file:// 不派发，无运行时证据）；真实数据态下的逐帧动画比对；1280×720 下台账 7 列与 13 条规则几何；真机投影/触屏/音效/画面观感。
+- 既有孤儿（未处理）：`openMoveGroupDialog()` 无调用点（改动前即如此），真实态实现已接但其入口需负责人决定是否新增。
+- 回滚：`git revert` 本批提交即可；不要对教师台整文件 `git checkout`（会连带回退批次 4 的 CSV/JSON/移组修复）。

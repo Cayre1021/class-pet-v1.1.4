@@ -1185,7 +1185,8 @@ html.theme-fade *::after{
     selected: new Set(),
     chipsAll: false,
     collapsed: new Set(),
-    scale: 1.2,
+    /* 5.1 共享键：scale 启动时从 classpet_v3_scale 恢复（默认 1.2） */
+    scale: (function () { var v = parseFloat(store('classpet_v3_scale')); return isFinite(v) ? v : 1.2; })(),
     theme: store('classpet_v3_theme') || 'orange',
     customValue: 5,
     sound: store('classpet_v3_sound') !== 'off',
@@ -1208,10 +1209,6 @@ html.theme-fade *::after{
 
   function isRealMode() { return state.mode === 'real'; }
   function isRealStu(s) { return !!(s && s.fromVm === true); }
-  /* 批次 2 只读：真实数据态的写类入口给出明确说明，绝不伪装成功 */
-  function v3ReadonlyNotice(what) {
-    toast('正式数据来自班级库（本次只读）：' + what + '将在后续批次接入写入', 'warn');
-  }
   /* 批次 3 写库链路（D18=A：全部等数据库确认才返回成功）。演示态一律不经过这里 */
   var SUBJECT_CODE = { '语文': 'chinese', '数学': 'math', '英语': 'english' };
   function subjectCodeFor(label) { return SUBJECT_CODE[label] || 'chinese'; }
@@ -1547,7 +1544,9 @@ html.theme-fade *::after{
      6. 主题 / 音效 / 行高
      ============================================================ */
   var themeFadeTimer = null;
-  function setTheme(name, notify) {
+  /* 5.1 四个键就是跨页共享键（classpet_v3_theme / _sound / _scale / _quiet），页面不得再用私有别名 */
+  function setTheme(name, notify, opts) {
+    var external = !!(opts && opts.external);
     if (!THEME_NAMES[name]) name = 'orange';
     state.theme = name;
     var root = document.documentElement;
@@ -1555,26 +1554,43 @@ html.theme-fade *::after{
     root.setAttribute('data-theme', name);
     clearTimeout(themeFadeTimer);
     themeFadeTimer = setTimeout(function(){ root.classList.remove('theme-fade'); }, 380);
-    store('classpet_v3_theme', name);
-    themeRipple();
+    if (!external) store('classpet_v3_theme', name);
+    if (!external) themeRipple();
     if (notify !== false) toast('已切换主题：' + THEME_NAMES[name]);
   }
   function setSound(on, opts) {
     var silent = !!(opts && opts.silent);
     state.sound = !!on;
-    store('classpet_v3_sound', state.sound ? 'on' : 'off');
+    if (!(opts && opts.external)) store('classpet_v3_sound', state.sound ? 'on' : 'off');
     var label = $('#sound-state');
     if (label) label.textContent = state.sound ? '开启' : '关闭';
     if (!silent) toast(state.sound ? '课堂音效已开启' : '课堂音效已静音');
     if (state.sound && !silent) playChime('select');
   }
-  function setScale(v) {
+  function setScale(v, opts) {
     state.scale = Math.round(clamp(v, 0.85, 1.3) * 100) / 100;
     document.documentElement.style.setProperty('--stu-scale', String(state.scale));
     var out = $('#zoom-label');
     if (out) out.textContent = Math.round(state.scale * 100) + '%';
-    store('classpet_v3_scale', String(state.scale));
+    if (!(opts && opts.external)) store('classpet_v3_scale', String(state.scale));
   }
+  /* 5.1 跨文档同步：别的页面改了共享键时本页跟随（尽力而为；回写时带 external 杜绝来回写） */
+  window.addEventListener('storage', function (e) {
+    if (!e || !e.key) return;
+    var v = e.newValue;
+    if (e.key === 'classpet_v3_theme') {
+      if (THEME_NAMES[v] && v !== state.theme) setTheme(v, false, { external: true });
+    } else if (e.key === 'classpet_v3_sound') {
+      var on = v !== 'off';
+      if (on !== state.sound) setSound(on, { silent: true, external: true });
+    } else if (e.key === 'classpet_v3_scale') {
+      var n = parseFloat(v);
+      if (isFinite(n) && n !== state.scale) setScale(n, { external: true });
+    } else if (e.key === 'classpet_v3_quiet') {
+      var q = v === 'on';
+      if (q !== state.quiet) { state.quiet = q; $('#quiet-mode').checked = q; }
+    }
+  });
 
   /* ============================================================
      7. 泳道渲染
@@ -1600,16 +1616,26 @@ html.theme-fade *::after{
     return [{ key: state.filter, label: state.filter + '组', group: Number(state.filter) }];
   }
 
-  function rowHTML(s) {
+  function rowFlags(s) {
     var flags = '';
     if (s.isAbsent) flags += '<span class="stu-flag absent">缺勤</span>';
     if (s.isEgg) flags += '<span class="stu-flag egg">待破壳</span>';
     if (s.isMax) flags += '<span class="stu-flag max">满级</span>';
+    return flags;
+  }
+  function rowClass(s) {
     var cls = 'stu-row';
     if (state.selected.has(s.id)) cls += ' is-selected';
     if (s.isAbsent) cls += ' is-absent';
     if (s.isEgg) cls += ' is-egg';
     if (s.isMax) cls += ' is-max';
+    return cls;
+  }
+  function rowMetaHTML(s) {
+    return '<span class="no">#' + stuNo(s) + '</span><span>' + s.group + '组</span>' + rowFlags(s);
+  }
+  function rowHTML(s) {
+    var cls = rowClass(s);
     return '' +
       '<div class="' + cls + '" data-stu="' + s.id + '" data-group="' + s.group + '" role="checkbox" aria-checked="' + state.selected.has(s.id) + '" tabindex="0" data-audit-row="' + s.id + '">' +
         '<label class="chk" title="选中 ' + esc(s.name) + '">' +
@@ -1623,7 +1649,7 @@ html.theme-fade *::after{
         '</div>' +
         '<div class="stu-main">' +
           '<div class="stu-name" title="' + esc(s.name) + '"><span class="nm">' + esc(s.name) + '</span></div>' +
-          '<div class="stu-meta"><span class="no">#' + stuNo(s) + '</span><span>' + s.group + '组</span>' + flags + '</div>' +
+          '<div class="stu-meta">' + rowMetaHTML(s) + '</div>' +
           '<div class="stu-exp" title="经验 ' + s.exp + ' / ' + s.maxExp + '"><span style="width:' + expPct(s) + '%"></span></div>' +
         '</div>' +
       '</div>';
@@ -1640,6 +1666,86 @@ html.theme-fade *::after{
     return '该分组暂无学生';
   }
 
+  /* 5.2 局部更新：按学生 id 复用行节点，只改变化字段（整块 innerHTML 重建会丢焦点） */
+  var laneRows = new Map();
+
+  function laneRow(s) {
+    var el = laneRows.get(s.id);
+    if (el && el.getAttribute('data-stu') !== String(s.id)) el = null;
+    if (!el) {
+      var box = document.createElement('div');
+      box.innerHTML = rowHTML(s);
+      el = box.firstElementChild;
+      laneRows.set(s.id, el);
+    }
+    return el;
+  }
+  function setText(el, text) { if (el && el.textContent !== text) el.textContent = text; }
+
+  /* 把一行的所有展示字段对齐到 s：与 rowHTML 的输出逐字段一致，且不替换节点 */
+  function patchRow(el, s) {
+    var selected = state.selected.has(s.id);
+    var cls = rowClass(s);
+    if (el.className !== cls) el.className = cls;
+    if (el.getAttribute('data-group') !== String(s.group)) el.setAttribute('data-group', String(s.group));
+    if (el.getAttribute('aria-checked') !== String(selected)) el.setAttribute('aria-checked', String(selected));
+    var chk = el.querySelector('.chk');
+    if (chk && chk.getAttribute('title') !== '选中 ' + s.name) chk.setAttribute('title', '选中 ' + s.name);
+    var cb = el.querySelector('input[type="checkbox"]');
+    if (cb) {
+      if (cb.checked !== selected) cb.checked = selected;
+      if (cb.getAttribute('aria-label') !== '选中 ' + s.name) cb.setAttribute('aria-label', '选中 ' + s.name);
+    }
+    var more = el.querySelector('.stu-more');
+    if (more) {
+      if (more.getAttribute('aria-label') !== '更多操作：' + s.name) more.setAttribute('aria-label', '更多操作：' + s.name);
+      if (more.getAttribute('aria-expanded') !== 'false') more.setAttribute('aria-expanded', 'false');
+    }
+    var avatar = el.querySelector('.stu-avatar');
+    if (avatar && avatar.classList.contains('is-egg') !== !!s.isEgg) avatar.classList.toggle('is-egg', !!s.isEgg);
+    var img = el.querySelector('.stu-avatar img');
+    if (img) {
+      var src = petSrc(s);
+      if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+      var alt = s.name + '的宠物 ' + speciesName(s);
+      if (img.getAttribute('alt') !== alt) img.setAttribute('alt', alt);
+    }
+    setText(el.querySelector('.stu-lv'), 'LV' + s.level);
+    var nameBox = el.querySelector('.stu-name');
+    if (nameBox && nameBox.getAttribute('title') !== s.name) nameBox.setAttribute('title', s.name);
+    setText(el.querySelector('.stu-name .nm'), s.name);
+    var meta = el.querySelector('.stu-meta');
+    var metaHTML = rowMetaHTML(s);
+    if (meta && meta.innerHTML !== metaHTML) meta.innerHTML = metaHTML;
+    var exp = el.querySelector('.stu-exp');
+    if (exp) {
+      var expTitle = '经验 ' + s.exp + ' / ' + s.maxExp;
+      if (exp.getAttribute('title') !== expTitle) exp.setAttribute('title', expTitle);
+      var bar = exp.firstElementChild;
+      if (bar) {
+        var w = expPct(s) + '%';
+        if (bar.style.width !== w) bar.style.width = w;
+      }
+    }
+  }
+
+  /* 焦点归还：行节点被移动（排序/筛选）前记住焦点落在哪个学生的哪个控件上 */
+  function lanesFocusTarget() {
+    var wrap = $('#lanes'), a = document.activeElement;
+    if (!wrap || !a || !a.closest) return null;
+    var row = a.closest('.stu-row');
+    if (!row || !wrap.contains(row)) return null;
+    var sel = a === row ? '.stu-row' : (a.classList.contains('stu-more') ? '.stu-more' : (a.matches('input[type="checkbox"]') ? 'input[type="checkbox"]' : null));
+    return sel ? { id: row.getAttribute('data-stu'), sel: sel } : null;
+  }
+  function restoreLanesFocus(t) {
+    if (!t) return;
+    var row = $('.stu-row[data-stu="' + t.id + '"]');
+    if (!row) return;
+    var target = t.sel === '.stu-row' ? row : row.querySelector(t.sel);
+    if (target && document.activeElement !== target) target.focus({ preventScroll: true });
+  }
+
   function renderLanes() {
     var wrap = $('#lanes');
     var cards = [];
@@ -1647,10 +1753,31 @@ html.theme-fade *::after{
       visibleStudentsForGroup(lane.key).forEach(function (s) { cards.push(s); });
     });
     if (!cards.length) {
-      wrap.innerHTML = '<div class="grid-empty">' + emptyGridText() + '</div>';
+      laneRows.clear();
+      var empty = '<div class="grid-empty">' + emptyGridText() + '</div>';
+      if (wrap.innerHTML !== empty) wrap.innerHTML = empty;
       return;
     }
-    wrap.innerHTML = cards.map(rowHTML).join('');
+    var focusTarget = lanesFocusTarget();
+    var next = wrap.firstChild;
+    var keep = {};
+    cards.forEach(function (s) {
+      var el = laneRow(s);
+      patchRow(el, s);
+      keep[s.id] = 1;
+      if (next === el) next = next.nextSibling;
+      else wrap.insertBefore(el, next);
+    });
+    /* 只删不再可见的行（含残留的空态块） */
+    var gone = [];
+    laneRows.forEach(function (el, id) { if (!keep[id]) gone.push(id); });
+    gone.forEach(function (id) { laneRows.delete(id); });
+    while (next) {
+      var after = next.nextSibling;
+      if (next.parentNode === wrap) wrap.removeChild(next);
+      next = after;
+    }
+    restoreLanesFocus(focusTarget);
   }
 
   /* ============================================================
@@ -2159,9 +2286,10 @@ html.theme-fade *::after{
   $('#dlg-cancel').addEventListener('click', closeDialog);
   dlg.addEventListener('close', function () { if (dlgOnClose) { var f = dlgOnClose; dlgOnClose = null; f(); } });
 
-  function downloadFile(name, text, mime) {
+  /* noBom：JSON 等严格解析格式不能带 UTF-8 BOM（否则 JSON.parse / 其他工具会报错）；CSV 仍保留 BOM 给 Excel */
+  function downloadFile(name, text, mime, noBom) {
     try {
-      var blob = new Blob(['\ufeff' + text], { type: mime || 'text/plain;charset=utf-8' });
+      var blob = new Blob([(noBom ? '' : '\ufeff') + text], { type: mime || 'text/plain;charset=utf-8' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url; a.download = name;
@@ -2385,9 +2513,10 @@ html.theme-fade *::after{
     if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
     return rows.filter(function (r) { return r.some(function (v) { return String(v).trim() !== ''; }); });
   }
+  /* fallback 传 null 时表示「调用方要自己判断是否识别不出来」 */
   function resolveSpeciesCode(raw, fallback) {
     var v = String(raw === undefined || raw === null ? '' : raw).trim();
-    if (!v) return fallback || 'egg';
+    if (!v) return fallback === undefined ? 'egg' : fallback;
     var low = v.toLowerCase();
     if (low === 'egg' || v === '蛋' || v.indexOf('宠物蛋') >= 0 || v === '待破壳') return 'egg';
     if (SPECIES[low]) return low;
@@ -2402,7 +2531,7 @@ html.theme-fade *::after{
         if (p && p.speciesName === v && p.speciesCode) return String(p.speciesCode);
       }
     }
-    return fallback || 'egg';
+    return fallback === undefined ? 'egg' : fallback;
   }
   function findVmStudent(no, name) {
     var list = (state.vm && state.vm.students) || [];
@@ -2429,7 +2558,7 @@ html.theme-fade *::after{
     if (!db || typeof db.saveStudent !== 'function') { toast('导入失败：班级库通道不可用（no-bridge）', 'warn'); return false; }
     var classId = (state.vm && state.vm.classId) || '';
     var stamp = Date.now().toString(36);
-    var payload = [], absentNos = [], skipped = 0;
+    var payload = [], absentNos = [], skipped = 0, unknownSpecies = 0;
     rows.forEach(function (cols, idx) {
       var no = String(cols[0] === undefined ? '' : cols[0]).trim();
       var name = String(cols[1] === undefined ? '' : cols[1]).trim();
@@ -2451,7 +2580,11 @@ html.theme-fade *::after{
         };
       });
       var target = prev ? displayedSubjectOf(prev) : 'chinese';
-      pets[target].species = resolveSpeciesCode(speciesRaw, pets[target].species);
+      if (speciesRaw) {
+        var resolvedSpecies = resolveSpeciesCode(speciesRaw, null);
+        if (resolvedSpecies) pets[target].species = resolvedSpecies;
+        else unknownSpecies += 1;   /* 认不出的物种：沿用原物种并计数上报 */
+      }
       if (/缺勤|请假/.test(statusRaw)) { if (no) absentNos.push(no); }
       payload.push({
         id: prev ? String(prev.id) : ('st_imp_' + stamp + '_' + idx),
@@ -2463,15 +2596,18 @@ html.theme-fade *::after{
       });
     });
     if (!payload.length) { toast('导入失败：没有解析到有效学生行（数据未改动）', 'warn'); return false; }
-    /* 写前校验：学号/姓名重复一律拒单，避免半套与错配 */
-    var seenNo = {}, seenName = {}, dupMsg = '';
+    /* 写前校验：学号是班级库唯一键，重复一律拒单；姓名允许重复（同班同名很常见），仅作提示 */
+    var seenNo = {}, seenName = {}, dupNo = '', dupNames = [];
     payload.forEach(function (p) {
       var noKey = String(p.student_no || '').replace(/\D/g, '');
       var nameKey = String(p.name || '');
-      if (noKey) { if (seenNo[noKey]) dupMsg = '文件里学号重复：' + p.student_no; seenNo[noKey] = 1; }
-      if (nameKey) { if (seenName[nameKey]) dupMsg = dupMsg || ('文件里姓名重复：' + nameKey); seenName[nameKey] = 1; }
+      if (noKey) { if (seenNo[noKey]) dupNo = String(p.student_no); seenNo[noKey] = 1; }
+      if (nameKey) {
+        if (seenName[nameKey]) { if (dupNames.indexOf(nameKey) < 0) dupNames.push(nameKey); }
+        seenName[nameKey] = 1;
+      }
     });
-    if (dupMsg) { toast('导入失败：' + dupMsg + '（数据未改动）', 'warn'); return false; }
+    if (dupNo) { toast('导入失败：文件里学号重复（' + dupNo + '），班级库要求学号唯一，请先修正（数据未改动）', 'warn'); return false; }
     /* 逐人 upsert：已有学生按库内 id 更新，新学生新增；绝不删除未出现在文件里的学生 */
     var okCount = 0, failMsg = '';
     v3Busy = true;
@@ -2496,7 +2632,10 @@ html.theme-fade *::after{
       });
       renderLanes(); renderDock(); renderBatch();
     }
-    toast('已导入 ' + okCount + ' 人（班级库已确认）' + (skipped ? '；跳过 ' + skipped + ' 行无姓名' : '') + '；等级/经验由赋分产生，导入时忽略；文件里没有的学生不会被删除');
+    toast('已导入 ' + okCount + ' 人（班级库已确认）' + (skipped ? '；跳过 ' + skipped + ' 行无姓名' : '') +
+      (dupNames.length ? '；' + dupNames.length + ' 个姓名重复（已允许）' : '') +
+      (unknownSpecies ? '；' + unknownSpecies + ' 行物种无法识别，沿用原物种' : '') +
+      '；等级/经验由赋分产生，导入时忽略；文件里没有的学生不会被删除');
     return true;
   }
   function openRealExcelDialog() {
@@ -2722,7 +2861,7 @@ html.theme-fade *::after{
       actions: [
         { label: '导出 JSON 备份', primary: true, onClick: function () {
             var payload = buildRealBackup();
-            if (downloadFile('班级备份-' + Date.now() + '.json', JSON.stringify(payload, null, 2), 'application/json')) toast('JSON 备份已导出（班级库数据）');
+            if (downloadFile('班级备份-' + Date.now() + '.json', JSON.stringify(payload, null, 2), 'application/json', true)) toast('JSON 备份已导出（班级库数据）');
           } },
         { label: '导入 JSON 备份', onClick: function () { pendingImport = 'backup'; $('#file-input').value = ''; $('#file-input').click(); } },
         { label: '恢复初始数据', danger: true, onClick: function () { resetData(); closeDialog(); } }
