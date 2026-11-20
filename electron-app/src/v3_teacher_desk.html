@@ -78,7 +78,7 @@ button{cursor:pointer}
 .btn svg{width:16px;height:16px;flex:none}
 .btn-primary{background:var(--accent); color:var(--accent-ink); border-color:var(--ink)}
 .btn-primary:hover{background:var(--accent); filter:brightness(1.06)}
-.btn-sm{height:32px; padding:0 10px; font-size:var(--t-sm); border-radius:8px}
+.btn-sm{height:44px; min-width:64px; padding:0 16px; font-size:var(--t-sm); border-radius:10px}
 .btn-ghost{background:transparent}
 .btn-ghost:hover{background:var(--surface-2)}
 
@@ -370,6 +370,8 @@ button{cursor:pointer}
 }
 .subject-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .subject-seg .seg button{min-width:64px}
+.seg button.is-locked{opacity:.5; cursor:not-allowed}
+.seg button .seg-lock{width:13px;height:13px;margin-left:5px;vertical-align:-2px;flex:none}
 .subject-note{font-size:var(--t-xs);color:var(--ink-3);font-weight:700}
 .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .score-btn{
@@ -1025,7 +1027,6 @@ html.theme-fade *::after{
   <div class="menu-sep" aria-hidden="true"></div>
   <button class="menu-item" role="menuitem" data-action="sound" data-audit="mi-sound" data-audit-label="音效开关"><span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9h4l5-4v14l-5-4H5z"/><path d="M18 9a4 4 0 010 6"/></svg></span>音效：<span id="sound-state">开启</span></button>
   <button class="menu-item" role="menuitem" data-action="fullscreen" data-audit="mi-fullscreen" data-audit-label="全屏显示"><span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 15v5h-5M20 9V4h-5M4 15v5h5"/></svg></span>全屏显示</button>
-  <button class="menu-item" role="menuitem" data-action="reset" data-audit="mi-reset" data-audit-label="重置模拟数据"><span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 108-8"/><path d="M4 5v7h7"/></svg></span>重置模拟数据</button>
 </div>
 
 <!-- ================= 学生行「⋯」菜单 ================= -->
@@ -1097,7 +1098,7 @@ html.theme-fade *::after{
     { id: 4, name: '赵一诺', group: 1, level: 6, exp: 72 },
     { id: 5, name: '周小满', group: 1, level: 3, exp: 48 },
     { id: 6, name: '吴念安', group: 1, level: 4, exp: 52 },
-    { id: 7, name: '郑亦然', group: 1, level: 5, exp: 84, isAbsent: true },
+    { id: 7, name: '郑亦然', group: 1, level: 5, exp: 84 },
     { id: 8, name: '孙可欣', group: 1, level: 3, exp: 20 },
     { id: 9, name: '李佳怡', group: 2, level: 4, exp: 60 },
     { id: 10, name: '张沐辰', group: 2, level: 5, exp: 70 },
@@ -1341,8 +1342,9 @@ html.theme-fade *::after{
     state.teacherId = vm.teacherId || '';
     state.thresholds = (vm.thresholds && vm.thresholds.length) ? vm.thresholds.slice() : null;
     state.maxLevel = Number(vm.maxLevel) || 20;
-    if (SUBJECTS.indexOf(vm.subjectLabel) >= 0) state.subject = vm.subjectLabel;
+    if (!state.subjectTouched && SUBJECTS.indexOf(vm.subjectLabel) >= 0) state.subject = vm.subjectLabel;
     buildRealStudents(vm);
+    syncSubjectLocks(vm);
   }
   function byId(id) {
     id = Number(id);
@@ -1556,7 +1558,23 @@ html.theme-fade *::after{
     themeFadeTimer = setTimeout(function(){ root.classList.remove('theme-fade'); }, 380);
     if (!external) store('classpet_v3_theme', name);
     if (!external) themeRipple();
+    syncThemeMenu();
     if (notify !== false) toast('已切换主题：' + THEME_NAMES[name]);
+  }
+  /* 第8条：主题菜单里「当前主题」显示打勾（原来那三个圆点改成选中对勾） */
+  function syncThemeMenu() {
+    var circle = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>';
+    var check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>';
+    $$('[data-action^="theme-"]').forEach(function (b) {
+      var on = b.getAttribute('data-action') === 'theme-' + state.theme;
+      b.setAttribute('aria-checked', String(on));
+      b.classList.toggle('is-active', on);
+      var icon = b.querySelector('.mi-icon');
+      if (icon) icon.innerHTML = on ? check : circle;
+      var mark = b.querySelector('.mi-sub');
+      if (on && !mark) b.insertAdjacentHTML('beforeend', '<span class="mi-sub">当前</span>');
+      if (!on && mark && mark.textContent === '当前') mark.remove();
+    });
   }
   function setSound(on, opts) {
     var silent = !!(opts && opts.silent);
@@ -1618,7 +1636,6 @@ html.theme-fade *::after{
 
   function rowFlags(s) {
     var flags = '';
-    if (s.isAbsent) flags += '<span class="stu-flag absent">缺勤</span>';
     if (s.isEgg) flags += '<span class="stu-flag egg">待破壳</span>';
     if (s.isMax) flags += '<span class="stu-flag max">满级</span>';
     return flags;
@@ -1626,7 +1643,6 @@ html.theme-fade *::after{
   function rowClass(s) {
     var cls = 'stu-row';
     if (state.selected.has(s.id)) cls += ' is-selected';
-    if (s.isAbsent) cls += ' is-absent';
     if (s.isEgg) cls += ' is-egg';
     if (s.isMax) cls += ' is-max';
     return cls;
@@ -1960,7 +1976,6 @@ html.theme-fade *::after{
     ids.forEach(function (id) {
       var s = byId(id);
       if (!s) return;
-      if (s.isAbsent) { skipped.push(s.name); return; }
       snaps.push({ id: s.id, level: s.level, exp: s.exp });
       s.exp += value;
       if (s.exp < 0) s.exp = 0;
@@ -1990,7 +2005,7 @@ html.theme-fade *::after{
       });
     });
     if (!applied.length) {
-      toast('所选学生均不可赋分（缺勤）', 'warn');
+      toast('所选学生均不可赋分', 'warn');
       return;
     }
     var op = {
@@ -2023,7 +2038,7 @@ html.theme-fade *::after{
       toast('恭喜！' + levelUps.map(function (s) { return s.name + ' 的宠物升到 LV' + s.level; }).join('、'));
     } else {
       playChime(value < 0 ? 'neg' : 'stamp');
-      toast(applied.length + ' 人 · ' + rule + ' ' + (value > 0 ? '+' : '') + value + ' · ' + state.subject + '（模拟）' + (skipped.length ? '，跳过 ' + skipped.length + ' 人（缺勤）' : ''));
+      toast(applied.length + ' 人 · ' + rule + ' ' + (value > 0 ? '+' : '') + value + ' · ' + state.subject + '（模拟）' + (skipped.length ? '，跳过 ' + skipped.length + ' 人' : ''));
     }
     renderLanes(); renderDock(); renderBatch();
     applied.forEach(function (s) {
@@ -2048,7 +2063,6 @@ html.theme-fade *::after{
     var picked = Array.from(state.selected).map(byId).filter(Boolean);
     var ids = picked.map(function (s) { return s.dbId; }).filter(Boolean);
     if (!ids.length) { toast('所选学生缺少班级库标识，无法写入', 'warn'); return; }
-    var absentIds = picked.filter(function (s) { return s.isAbsent; }).map(function (s) { return s.dbId; });
     var ruleId = opts.ruleId || '';
     if (!ruleId) {
       var named = ((state.vm && state.vm.rules) || []).filter(function (r) { return r.name === rule; })[0];
@@ -2065,7 +2079,7 @@ html.theme-fade *::after{
         reason: rule,
         ruleId: ruleId || null,
         subjectCode: subjectCodeFor(state.subject),
-        absentIds: absentIds
+        absentIds: []
       });
     } catch (e) {
       res = { ok: false, reason: 'db-failed', error: String((e && e.message) || e) };
@@ -2554,7 +2568,7 @@ html.theme-fade *::after{
     var classId = (state.vm && state.vm.classId) || '';
     var stamp = Date.now().toString(36);
     var byNo = new Map(), seenNo = new Set(), seenName = new Set(), dupNames = new Set();
-    var payload = [], absentIds = new Set(), skipped = 0, unknownSpecies = 0, validationError = '';
+    var payload = [], skipped = 0, unknownSpecies = 0, validationError = '';
     ((state.vm && state.vm.students) || []).forEach(function (s) {
       var key = rosterNoKey(s.no);
       if (key) byNo.set(key, byNo.has(key) ? null : s);
@@ -2593,7 +2607,6 @@ html.theme-fade *::after{
         else unknownSpecies += 1;   /* 认不出的物种：沿用原物种并计数上报 */
       }
       var id = prev ? String(prev.id) : ('st_imp_' + stamp + '_' + idx);
-      if (/缺勤|请假/.test(statusRaw)) absentIds.add(id);
       payload.push({
         id: id,
         student_no: no,
@@ -2626,12 +2639,6 @@ html.theme-fade *::after{
     }
     var refreshed = await v3Refresh();
     if (!refreshed) return true;
-    if (absentIds.size) {   /* 状态列=缺勤 只作当日开关，不写库（D9=A） */
-      state.students.forEach(function (s) {
-        if (absentIds.has(s.dbId)) s.isAbsent = true;
-      });
-      renderLanes(); renderDock(); renderBatch();
-    }
     toast('已导入 ' + okCount + ' 人（班级库已确认）' + (skipped ? '；跳过 ' + skipped + ' 行无姓名' : '') +
       (dupNames.size ? '；' + dupNames.size + ' 个姓名重复（已允许）' : '') +
       (unknownSpecies ? '；' + unknownSpecies + ' 行物种无法识别，沿用原物种' : '') +
@@ -2653,7 +2660,7 @@ html.theme-fade *::after{
         { label: '导出名单 CSV', primary: true, onClick: function () {
             var lines = [csvLine(['学号', '姓名', '小组', '等级', '经验', '物种', '状态'])];
             state.students.forEach(function (s) {
-              lines.push(csvLine([stuNo(s), s.name, s.group, s.level, s.exp, s.isEgg ? '蛋' : speciesName(s), s.isAbsent ? '缺勤' : '在读']));
+              lines.push(csvLine([stuNo(s), s.name, s.group, s.level, s.exp, s.isEgg ? '蛋' : speciesName(s)]));
             });
             if (downloadFile('班级名单-' + Date.now() + '.csv', lines.join('\n'), 'text/csv;charset=utf-8')) toast('名单 CSV 已导出（班级库数据）');
           } },
@@ -2680,7 +2687,7 @@ html.theme-fade *::after{
         { label: '导出名单 CSV', primary: true, onClick: function () {
             var lines = ['学号,姓名,小组,等级,经验,物种,状态'];
             state.students.forEach(function (s) {
-              lines.push([stuNo(s), s.name, s.group, s.level, s.exp, s.isEgg ? '蛋' : speciesName(s), s.isAbsent ? '缺勤' : '在读'].join(','));
+              lines.push([stuNo(s), s.name, s.group, s.level, s.exp, s.isEgg ? '蛋' : speciesName(s)].join(','));
             });
             if (downloadFile('班级名单-三年级二班-' + Date.now() + '.csv', lines.join('\n'), 'text/csv;charset=utf-8')) toast('名单 CSV 已导出（模拟数据）');
           } },
@@ -2864,7 +2871,6 @@ html.theme-fade *::after{
             if (downloadFile('班级备份-' + Date.now() + '.json', JSON.stringify(payload, null, 2), 'application/json', true)) toast('JSON 备份已导出（班级库数据）');
           } },
         { label: '导入 JSON 备份', onClick: function () { pendingImport = 'backup'; $('#file-input').value = ''; $('#file-input').click(); } },
-        { label: '恢复初始数据', danger: true, onClick: function () { resetData(); closeDialog(); } }
       ]
     });
   }
@@ -2891,7 +2897,6 @@ html.theme-fade *::after{
             if (downloadFile('班级备份-三年级二班-' + Date.now() + '.json', JSON.stringify(payload, null, 2), 'application/json')) toast('JSON 备份已导出（模拟数据）');
           } },
         { label: '导入 JSON 备份', onClick: function () { pendingImport = 'backup'; $('#file-input').value = ''; $('#file-input').click(); } },
-        { label: '恢复初始数据', danger: true, onClick: function () { resetData(); closeDialog(); } }
       ]
     });
   }
@@ -3015,9 +3020,6 @@ html.theme-fade *::after{
           '<div class="field"><label for="edit-level">等级</label><input id="edit-level" type="number" min="0" max="' + (real ? state.maxLevel : 9) + '" value="' + s.level + '"' + (real ? ' readonly' : '') + '></div>' +
           '<div class="field"><label for="edit-exp">经验</label><input id="edit-exp" type="number" min="0" value="' + s.exp + '"' + (real ? ' readonly' : '') + '></div>' +
         '</div>' +
-        '<div class="form-row"><div class="field"><label>状态</label>' +
-          '<label class="switch" style="min-height:38px"><input type="checkbox" id="edit-absent"' + (s.isAbsent ? ' checked' : '') + '><span class="track" aria-hidden="true"></span>缺勤</label>' +
-        '</div></div>' +
         (s.isEgg ? '<p class="note">该学生处于蛋形态（' + s.exp + ' / ' + s.maxExp + ' EXP）。经验满后可在下方直接破壳。</p>' : '') +
         '<p class="note">宠物：' + speciesName(s) + ' · 阶段 ' + stageLabel(s) + ' / 5 · 学号 #' + stuNo(s) + '</p>' +
         (real ? '<p class="note warn">正式数据来自班级库：本页只读预览，保存不会写入班级库（写入在后续批次接入）。</p>' : ''),
@@ -3030,7 +3032,6 @@ html.theme-fade *::after{
             s.level = clamp(Number($('#edit-level').value) || s.level, 1, 9);
             s.maxExp = s.level * state.expPerLevel;
             s.exp = clamp(Number($('#edit-exp').value) || 0, 0, s.maxExp);
-            s.isAbsent = $('#edit-absent').checked;
             s.isMax = s.level >= 9;
             s.log.push({ time: nowTime(), tag: '编辑', text: '资料已更新' });
             closeDialog(); renderLanes(); renderDock(); renderBatch();
@@ -3040,7 +3041,7 @@ html.theme-fade *::after{
     });
   }
 
-  /* 4.1 真实数据态编辑学生：只写姓名/小组；等级、经验 readonly（D12=A）；缺勤=当日开关（D9=A） */
+  /* 4.1 真实数据态编辑学生：只写姓名/小组；等级、经验 readonly（D12=A）。考勤已移除（覆盖 D9）。 */
   async function saveRealStudentProfile(s, name, group) {
     if (v3Busy) return false;
     var core = await v3Core(['v3SaveStudentProfile']);
@@ -3069,25 +3070,20 @@ html.theme-fade *::after{
           '<div class="field"><label for="edit-level">等级</label><input id="edit-level" type="number" min="0" max="' + state.maxLevel + '" value="' + s.level + '" readonly></div>' +
           '<div class="field"><label for="edit-exp">经验</label><input id="edit-exp" type="number" min="0" value="' + s.exp + '" readonly></div>' +
         '</div>' +
-        '<div class="form-row"><div class="field"><label>状态</label>' +
-          '<label class="switch" style="min-height:38px"><input type="checkbox" id="edit-absent"' + (s.isAbsent ? ' checked' : '') + '><span class="track" aria-hidden="true"></span>缺勤</label>' +
-        '</div></div>' +
         (s.isEgg ? '<p class="note">该学生处于蛋形态（' + s.exp + ' / ' + s.maxExp + ' EXP）。经验满后可在下方直接破壳。</p>' : '') +
         '<p class="note">宠物：' + speciesName(s) + ' · 阶段 ' + stageLabel(s) + ' / 5 · 学号 #' + stuNo(s) + '</p>' +
-        '<p class="note warn">姓名与小组保存后写入班级库并立即生效；等级、经验由赋分产生，不可直改。缺勤是<b>当日开关</b>：不写入数据库、不保留历史。</p>',
+        '<p class="note warn">姓名与小组保存后写入班级库并立即生效；等级、经验由赋分产生，不可直改。</p>',
       actions: (s.isEgg ? [{ label: '立即破壳', onClick: function () { hatch(s.id); closeDialog(); } }] : []).concat([
         { label: '保存修改', primary: true, onClick: function () {
             var name = ($('#edit-name').value || '').trim();
             if (!name) { toast('姓名不能为空', 'warn'); return; }
             var group = Number($('#edit-group').value) || s.group;
-            var absent = $('#edit-absent').checked;
             saveRealStudentProfile(s, name, group).then(function (ok) {
               if (!ok) return;                                  /* 失败保留弹窗 */
               var now = byId(s.id);                              /* 刷新后按行号重新取（顺序不变） */
-              if (now) now.isAbsent = absent;                    /* D9=A 当日开关：只在本页生效，不写库 */
               renderLanes(); renderDock(); renderBatch();
               closeDialog();
-              toast('已保存 ' + name + ' 的资料（班级库已确认）' + (absent ? ' · 今日缺勤' : ''));
+              toast('已保存 ' + name + ' 的资料（班级库已确认）');
             });
           } }
       ])
@@ -3144,6 +3140,7 @@ html.theme-fade *::after{
   function openLogDialog(id) {
     var s = byId(id);
     if (!s) return;
+    if (isRealMode()) { return openRealLogDialog(s); }
     var items = s.log.length
       ? s.log.slice().reverse().map(function (l) {
           return '<div class="log-item"><time>' + l.time + '</time><span class="lg-tag' + (l.tag === '扣分' || l.tag === '撤销' ? ' neg' : '') + '">' + esc(l.tag) + '</span><span>' + esc(l.text) + '</span></div>';
@@ -3153,7 +3150,35 @@ html.theme-fade *::after{
       title: '学生日志 · ' + s.name,
       body: '<p class="note">#' + stuNo(s) + ' · ' + s.group + '组 · LV' + s.level + ' · ' + s.exp + ' / ' + s.maxExp + ' EXP · ' + speciesName(s) +
         (isRealStu(s) && !s.isEgg && s.stageName ? ' · ' + esc(s.stageName) : '') +
-        (s.isAbsent ? ' · 缺勤' : s.isEgg ? ' · 蛋形态' : '') + '</p>' +
+        (s.isEgg ? ' · 蛋形态' : '') + '</p>' +
+        '<div class="log-list">' + items + '</div>',
+      actions: [{ label: '编辑资料', onClick: function () { closeDialog(); openEditDialog(s.id); } }]
+    });
+  }
+
+  /* 第10条：真实数据态的日志来自数据库审计流水（原来读内存 s.log，真实态永远是空的） */
+  async function openRealLogDialog(s) {
+    var core = await v3Core(['v3Ledger']);
+    if (!core) { v3NoBridge('读取学生日志'); return; }
+    var res = null;
+    try { res = await core.v3Ledger({ fromTs: todayStartTs, toTs: Date.now() + 60000 }); }
+    catch (e) { res = { ok: false, error: String((e && e.message) || e) }; }
+    if (!res || res.ok !== true) {
+      toast('读取学生日志失败：' + ((res && (res.error || res.reason)) || '班级库未确认'), 'warn');
+      return;
+    }
+    var rows = (res.rows || []).filter(function (r) { return String(r.studentId) === String(s.dbId); });
+    var items = rows.length ? rows.map(function (r) {
+      var d = new Date(r.createdAt);
+      var hh = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+      var tag = r.undone ? '已撤销' : (r.points >= 0 ? '加分' : '扣分');
+      return '<div class="log-item"><time>' + hh + '</time><span class="lg-tag' + ((r.points < 0 || r.undone) ? ' neg' : '') + '">' + tag + '</span>' +
+        '<span>' + esc(r.actionName || '赋分') + ' · ' + esc(r.subjectLabel) + ' ' + (r.points > 0 ? '+' : '') + r.points + (r.undone ? '（已撤销）' : '') + '</span></div>';
+    }).join('') : '<div class="empty-state">今天还没有赋分记录。<br>赋分、撤销都会实时记入这里。</div>';
+    openDialog({
+      title: '学生日志 · ' + s.name,
+      body: '<p class="note">#' + stuNo(s) + ' · ' + s.group + '组 · LV' + s.level + ' · ' + s.exp + ' / ' + s.maxExp + ' EXP · ' + speciesName(s) +
+        (s.stageName ? ' · ' + esc(s.stageName) : '') + '</p>' +
         '<div class="log-list">' + items + '</div>',
       actions: [{ label: '编辑资料', onClick: function () { closeDialog(); openEditDialog(s.id); } }]
     });
@@ -3488,16 +3513,7 @@ html.theme-fade *::after{
     toast('重新读取班级数据失败，当前显示保持不变', 'warn');
   }
 
-  function resetData() {
-    if (state.mode !== 'demo') { reloadRealData(); return; }
-    buildStudents();
-    state.selected.clear();
-    state.history = []; state.lastOp = null;
-    state.chipsAll = false;
-    renderLanes(); renderDock(); renderBatch();
-    toast('已恢复初始模拟数据（32 人 · 4 组）');
-    playChime('undo');
-  }
+  /* 第7条：「重置演示数据」已按负责人指令彻底删除（原 D5 被覆盖） */
 
   function toggleFullscreen() {
     closeDataMenu();
@@ -3528,10 +3544,72 @@ html.theme-fade *::after{
     var ds = $('#dock-subject');
     if (ds) ds.textContent = state.subject + '课';
   }
+
+  /* 第11条：学科没被任何学生解锁时显示锁，且滑块不能切过去；新解锁时弹卡片让老师选下一科 */
+  var SUBJECT_CODES = { '语文': 'chinese', '数学': 'math', '英语': 'english' };
+  var SUBJECT_LABELS = { chinese: '语文', math: '数学', english: '英语' };
+  var pendingUnlockChoices = [];
+  function subjectUnlockMap(vm) {
+    var list = (vm && vm.students) || [];
+    var out = { chinese: true, math: false, english: false };
+    ['math', 'english'].forEach(function (code) {
+      out[code] = list.some(function (s) { return s.petsBySubject && s.petsBySubject[code] && s.petsBySubject[code].unlocked; });
+    });
+    return out;
+  }
+  function syncSubjectLocks(vm) {
+    var map = subjectUnlockMap(vm);
+    state.subjectLocks = map;
+    var lockSvg = '<svg class="seg-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V8a3.5 3.5 0 017 0v3"/></svg>';
+    $$('#subject-seg button, #subject-seg-2 button').forEach(function (b) {
+      var code = SUBJECT_CODES[b.getAttribute('data-subject')] || 'chinese';
+      var locked = map[code] === false;
+      b.classList.toggle('is-locked', locked);
+      b.setAttribute('aria-disabled', String(locked));
+      if (locked && !b.querySelector('.seg-lock')) b.insertAdjacentHTML('beforeend', lockSvg);
+      if (!locked) { var lk = b.querySelector('.seg-lock'); if (lk) lk.remove(); }
+      b.title = locked ? ('该学科还没有学生解锁：需【语文】宠物升到 Lv.' + (state.maxLevel || 20) + ' 满级') : '';
+    });
+    var prev = state.unlockedSeen;
+    if (prev) {
+      ['math', 'english'].forEach(function (code) {
+        if (map[code] && !prev[code] && pendingUnlockChoices.indexOf(code) < 0) pendingUnlockChoices.push(code);
+      });
+    }
+    state.unlockedSeen = map;
+    if (pendingUnlockChoices.length && !state.unlockPrompted) showUnlockChooser();
+  }
+  function showUnlockChooser() {
+    state.unlockPrompted = true;
+    var codes = pendingUnlockChoices.slice();
+    var actions = codes.map(function (code) {
+      return { label: '唤醒「' + SUBJECT_LABELS[code] + '」', primary: true, onClick: function () {
+        pendingUnlockChoices = pendingUnlockChoices.filter(function (c) { return c !== code; });
+        state.unlockPrompted = false;
+        setSubject(SUBJECT_LABELS[code]);
+        toast('「' + SUBJECT_LABELS[code] + '」已解锁：每位学生的这一科从一颗蛋开始，攒够破壳经验再认领');
+        closeDialog();
+      } };
+    });
+    actions.push({ label: '稍后再说', onClick: function () { state.unlockPrompted = false; closeDialog(); } });
+    openDialog({
+      title: '新学科可以解锁了',
+      sub: '语文已满级',
+      body: '<p class="note">现在可以唤醒一门新学科。新学科的宠物从<b>一颗蛋</b>开始：先攒破壳经验，再认领萌宠；解锁的那一科会出现在「赋分学科」里，可以正常赋分。</p>',
+      actions: actions
+    });
+  }
   /* D7=A：切授课科目只换赋分目标；卡片宠物固定跟随 display_pet_id（真实态即 VM 的 activePet），不随之切换 */
   function setSubject(name) {
     if (SUBJECTS.indexOf(name) < 0) return;
+    var code = SUBJECT_CODES[name];
+    if (code && state.subjectLocks && state.subjectLocks[code] === false) {
+      toast('【' + name + '】还没有任何学生解锁：需【语文】宠物升到 Lv.' + (state.maxLevel || 20) + ' 满级', 'warn');
+      return;
+    }
     state.subject = name;
+    state.subjectTouched = true;
+    store('classpet_current_teaching_subject', name);   /* 持久化：否则 v3Refresh 会用账号科目覆盖回来 */
     syncSubjectUI();
     toast('已切换到「' + name + '」赋分' + (isRealMode() ? '（写入班级库）' : '（模拟）'));
     playChime('select');
@@ -3583,7 +3661,7 @@ html.theme-fade *::after{
     else if (a === 'excel') openExcelDialog();
     else if (a === 'threshold') openThresholdDialog();
     else if (a === 'backup') openBackupDialog();
-    else if (a === 'reset') { closeDataMenu(); resetData(); }
+
     else if (a === 'sound') { closeDataMenu(); setSound(!state.sound); }
     else if (a === 'fullscreen') toggleFullscreen();
     else if (a.indexOf('theme-') === 0) { closeDataMenu(); setTheme(a.replace('theme-', '')); }
@@ -3876,7 +3954,7 @@ html.theme-fade *::after{
     }
 
     var required = ['btn-portal', 'btn-bigscreen', 'btn-data-menu', 'mi-ledger', 'mi-excel', 'mi-threshold', 'mi-backup',
-      'mi-theme-orange', 'mi-theme-forest', 'mi-theme-ocean', 'mi-sound', 'mi-fullscreen', 'mi-reset',
+      'mi-theme-orange', 'mi-theme-forest', 'mi-theme-ocean', 'mi-sound', 'mi-fullscreen',
       'subject2-yuwen', 'subject2-shuxue', 'subject2-yingyu',
       'search-input', 'btn-add', 'btn-select-all',
       'sel-clear', 'btn-open-ledger', 'btn-undo', 'btn-custom-rule', 'quiet-mode',

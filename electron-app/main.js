@@ -260,6 +260,10 @@ app.whenReady().then(async () => {
     try {
         await sqliteService.init(app);
         console.log('[Main] SQLite 服务初始化就绪！');
+        try {
+            const mig = sqliteService.migrateLegacyDefaultThresholds();
+            if (mig && mig.migrated) console.log('[Main] 已把 ' + mig.migrated + ' 个班级的默认经验阈值升级为新默认');
+        } catch (e) { console.error('[Main] 阈值迁移异常:', e); }
     } catch (e) {
         console.error('[Main] SQLite 初始化发生异常:', e);
     }

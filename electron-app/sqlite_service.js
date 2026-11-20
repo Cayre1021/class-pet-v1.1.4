@@ -248,10 +248,7 @@ class SQLiteService {
         const rulesRows = this.query("SELECT * FROM behavior_rules WHERE class_id = ? ORDER BY sort_order ASC", [classId]);
         let thresholdRows = this.query("SELECT level, min_exp FROM class_level_thresholds WHERE class_id = ? ORDER BY level ASC", [classId]);
         if (thresholdRows.length === 0) {
-            const defaultThresholds = [
-                0, 15, 35, 60, 90, 125, 165, 210, 260, 315,
-                375, 440, 510, 585, 665, 750, 840, 935, 1035, 1140, 1250
-            ];
+            const defaultThresholds = [0, 50, 150, 250, 350, 450, 550, 650, 750, 850, 950, 1050, 1150, 1250, 1350, 1450, 1550, 1650, 1750, 1850, 1950];
             for (let l = 0; l <= 20; l++) {
                 this.execute("INSERT OR IGNORE INTO class_level_thresholds (class_id, level, min_exp) VALUES (?, ?, ?)", [classId, l, defaultThresholds[l]]);
             }
@@ -568,6 +565,37 @@ class SQLiteService {
         this.execute("UPDATE students SET display_pet_id = ?, updated_at = ? WHERE id = ? AND class_id = ?", [targetPetId, now, realId, classId]);
 
         return { success: true, studentId, realId, subjectCode, speciesCode };
+    }
+
+    // 默认阈值升级迁移：仍等于旧默认（15/20 递增）的班级一次性改成新默认（破壳 50、每级 +100）；自定义过的不动
+    migrateLegacyDefaultThresholds() {
+        const OLD = [0, 15, 35, 60, 90, 125, 165, 210, 260, 315, 375, 440, 510, 585, 665, 750, 840, 935, 1035, 1140, 1250];
+        const NEW = [0, 50, 150, 250, 350, 450, 550, 650, 750, 850, 950, 1050, 1150, 1250, 1350, 1450, 1550, 1650, 1750, 1850, 1950];
+        try {
+            const classRows = this.query("SELECT DISTINCT class_id FROM class_level_thresholds");
+            let migrated = 0;
+            classRows.forEach(row => {
+                const classId = row.class_id;
+                const rows = this.query("SELECT level, min_exp FROM class_level_thresholds WHERE class_id = ? ORDER BY level", [classId]);
+                if (rows.length !== 21) return;
+                const isOldDefault = rows.every((r, i) => Number(r.min_exp) === OLD[i]);
+                if (!isOldDefault) return;
+                this.db.run('BEGIN TRANSACTION;');
+                this.db.run("DELETE FROM class_level_thresholds WHERE class_id = ?", [classId]);
+                for (let l = 0; l <= 20; l++) {
+                    this.db.run("INSERT INTO class_level_thresholds (class_id, level, min_exp) VALUES (?, ?, ?)", [classId, l, NEW[l]]);
+                }
+                this.db.run('COMMIT;');
+                migrated += 1;
+                console.log('[SQLiteService] 班级 ' + classId + ' 的经验阈值已升级为新默认（破壳 50 / 每级 +100）');
+            });
+            if (migrated) this.saveToDiskSync();
+            return { success: true, migrated: migrated };
+        } catch (err) {
+            console.error('[SQLiteService] 阈值迁移失败:', err);
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            return { success: false, error: err.message };
+        }
     }
 
     // 批次 4.3 本堂课 + 今日台账：一条操作一笔流水，带学生、学科、撤销状态、真实时间

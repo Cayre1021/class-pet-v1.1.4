@@ -38,13 +38,14 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     console.log('== 批次 6.1 单元测试（纯 node，无 Electron，正式库不参与）==');
 
     // ===================== 1. 阈值换算 =====================
-    console.log('\n[1] calcLevel 阈值换算（0/15/35 … 1250 与边界上下 1）');
+    console.log('\n[1] calcLevel 阈值换算（0/50/150 … 1950 与边界上下 1）');
     const core = loadCore();
     const store = new core.ClassPetStore();
 
     const thr = store.getLevelThresholds();
-    assert(thr.length === 21 && thr[0] === 0 && thr[1] === 15 && thr[20] === 1250,
-        '默认阈值表 0~20 级共 21 个数值（L0=0 / L1=15 / L20=1250）', thr);
+    assert(thr.length === 21 && thr[0] === 0 && thr[1] === 50 && thr[20] === 1950,
+        '默认阈值表 0~20 级共 21 个数值（L0=0 / L1=50 破壳 / L20=1950）', thr);
+    assert(thr[2] - thr[1] === 100 && thr[20] - thr[19] === 100, '每个等级之间默认 100 EXP（负责人指令）', { l1: thr[1], l2: thr[2], l20: thr[20] });
 
     const boundaryBad = [];
     for (let l = 0; l <= 20; l++) {
@@ -65,45 +66,45 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     // ===================== 2. getExpProgress 三段 =====================
     console.log('\n[2] getExpProgress：蛋态 / 普通级 / 满级三段边界');
     const egg0 = store.getExpProgress(0, 0, false);
-    assert(egg0.isEgg === true && egg0.percent === 0 && egg0.needExp === 15 && egg0.levelNextExp === 15,
-        '蛋态 exp=0：percent=0 / needExp=15 / 目标=破壳阈值 15', egg0);
+    assert(egg0.isEgg === true && egg0.percent === 0 && egg0.needExp === 50 && egg0.levelNextExp === 50,
+        '蛋态 exp=0：percent=0 / needExp=50 / 目标=破壳阈值 50', egg0);
     const egg7 = store.getExpProgress(7, 0, false);
-    assert(egg7.percent === 47 && egg7.needExp === 8 && egg7.progressInLevel === 7,
-        '蛋态 exp=7：percent=47（7/15 四舍五入）/ 还差 8', egg7);
-    const egg14 = store.getExpProgress(14, 0, false);
-    assert(egg14.percent === 93 && egg14.needExp === 1, '蛋态 exp=14：percent=93 / 还差 1', egg14);
-    const egg15 = store.getExpProgress(15, 0, false);
+    assert(egg7.percent === 14 && egg7.needExp === 43 && egg7.progressInLevel === 7,
+        '蛋态 exp=7：percent=14（7/50）/ 还差 43', egg7);
+    const egg14 = store.getExpProgress(49, 0, false);
+    assert(egg14.percent === 98 && egg14.needExp === 1, '蛋态 exp=49：percent=98 / 还差 1（破壳门槛 50）', egg14);
+    const egg15 = store.getExpProgress(50, 0, false);
     assert(egg15.isEgg === true && egg15.percent === 100 && egg15.needExp === 0,
-        '未孵化但 exp 已达 15：蛋态 percent 封顶 100、needExp=0（仍等破壳）', egg15);
+        '未孵化但 exp 已达 50：蛋态 percent 封顶 100、needExp=0（仍等破壳）', egg15);
     assert(egg15.levelNextExp === thr[1], '蛋态进度按破壳阈值（LEVEL_THRESHOLDS[1]）计算，不是普通级阈值', egg15.levelNextExp);
 
-    const lv1a = store.getExpProgress(15, 1, true);
-    assert(lv1a.isEgg === false && lv1a.levelMinExp === 15 && lv1a.levelNextExp === 35 && lv1a.levelSpan === 20 &&
-        lv1a.percent === 0 && lv1a.needExp === 20,
-        '普通级 Lv.1 exp=15：本级区间 15→35、percent=0、needExp=20', lv1a);
-    const lv1b = store.getExpProgress(20, 1, true);
-    assert(lv1b.progressInLevel === 5 && lv1b.percent === 25 && lv1b.needExp === 15,
-        '普通级 Lv.1 exp=20：本级进度 5/20 → 25%、needExp=15', lv1b);
-    const lv1c = store.getExpProgress(16, 1, true);
-    assert(lv1c.percent === 5 && lv1c.needExp === 19, '普通级 Lv.1 exp=16：1/20 不足 5% 时按教学规范抬到 5%', lv1c);
-    const lv1d = store.getExpProgress(34, 1, true);
-    assert(lv1d.percent === 95 && lv1d.needExp === 1, '普通级 Lv.1 exp=34（35 的前一级）：percent=95 / needExp=1', lv1d);
-    const lv2 = store.getExpProgress(35, 2, true);
-    assert(lv2.levelMinExp === 35 && lv2.levelNextExp === 60 && lv2.levelSpan === 25 && lv2.percent === 0 && lv2.needExp === 25,
-        '普通级 Lv.2 exp=35：本级区间 35→60、percent=0、needExp=25', lv2);
+    const lv1a = store.getExpProgress(50, 1, true);
+    assert(lv1a.isEgg === false && lv1a.levelMinExp === 50 && lv1a.levelNextExp === 150 && lv1a.levelSpan === 100 &&
+        lv1a.percent === 0 && lv1a.needExp === 100,
+        '普通级 Lv.1 exp=50：本级区间 50→150、percent=0、needExp=100', lv1a);
+    const lv1b = store.getExpProgress(70, 1, true);
+    assert(lv1b.progressInLevel === 20 && lv1b.percent === 20 && lv1b.needExp === 80,
+        '普通级 Lv.1 exp=70：本级进度 20/100 → 20%、needExp=80', lv1b);
+    const lv1c = store.getExpProgress(51, 1, true);
+    assert(lv1c.percent >= 1 && lv1c.needExp === 99, '普通级 Lv.1 exp=51：进度 1/100、needExp=99', lv1c);
+    const lv1d = store.getExpProgress(149, 1, true);
+    assert(lv1d.percent === 99 && lv1d.needExp === 1, '普通级 Lv.1 exp=149（150 的前一级）：percent=99 / needExp=1', lv1d);
+    const lv2 = store.getExpProgress(150, 2, true);
+    assert(lv2.levelMinExp === 150 && lv2.levelNextExp === 250 && lv2.levelSpan === 100 && lv2.percent === 0 && lv2.needExp === 100,
+        '普通级 Lv.2 exp=150：本级区间 150→250、percent=0、needExp=100', lv2);
     assert(store.getExpProgress(10, 0, true).isEgg === true,
         'isHatched=true 但 level=0 时仍按蛋态呈现（0 级 = 蛋形态，core 既有契约）', store.getExpProgress(10, 0, true));
 
-    const max = store.getExpProgress(1250, 20, true);
-    assert(max.isMax === true && max.percent === 100 && max.needExp === 0 && max.levelSpan === 0 && max.levelMinExp === 1250,
-        '满级 Lv.20 exp=1250：percent=100 / needExp=0 / 区间跨度 0', max);
+    const max = store.getExpProgress(1950, 20, true);
+    assert(max.isMax === true && max.percent === 100 && max.needExp === 0 && max.levelSpan === 0 && max.levelMinExp === 1950,
+        '满级 Lv.20 exp=1950：percent=100 / needExp=0 / 区间跨度 0', max);
     const max2 = store.getExpProgress(999999, 20, true);
     assert(max2.isMax === true && max2.percent === 100 && max2.needExp === 0 && max2.totalExp === 999999,
         '满级 Lv.20 exp=999999：依旧 percent=100 / needExp=0（封顶不溢出）', max2);
 
     // ===================== 3. 0~20 边界（等级封顶） =====================
     console.log('\n[3] 0~20 边界：等级封顶 20、经验 0 与极大值');
-    assert(store.calcLevel(1250) === 20 && store.calcLevel(1249) === 19, '阈值点 1250 → Lv.20、1249 → Lv.19', { a: store.calcLevel(1250), b: store.calcLevel(1249) });
+    assert(store.calcLevel(1950) === 20 && store.calcLevel(1949) === 19, '阈值点 1950 → Lv.20、1949 → Lv.19', { a: store.calcLevel(1950), b: store.calcLevel(1949) });
     assert(store.calcLevel(999999) === 20, 'exp=999999 等级封顶在 Lv.20（不越界）', store.calcLevel(999999));
     assert(store.calcLevel(1e12) === 20 && store.calcLevel(0) === 0, 'exp=1e12 仍封顶 20 / exp=0 为 Lv.0', { big: store.calcLevel(1e12) });
     const cap = store.getExpProgress(999999, store.calcLevel(999999), true);

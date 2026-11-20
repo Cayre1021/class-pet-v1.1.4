@@ -438,7 +438,7 @@ ul{margin:0;padding:0;list-style:none}
 .draw-stage{position:relative;height:236px;margin-top:var(--s3);display:grid;place-items:end center;overflow:visible;
   border-radius:10px;background:radial-gradient(ellipse at 50% 18%,rgba(255,212,94,.34),rgba(255,212,94,0) 62%)}
 .slot{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:132px;height:44px;
-  background:var(--surface-2);border:1.5px solid var(--ink);border-radius:8px 8px 12px 12px;z-index:3}
+  background:var(--surface-2);border:1.5px solid var(--ink);border-radius:8px 8px 12px 12px;z-index:5}
 .slot::after{content:'';position:absolute;left:10px;right:10px;top:6px;height:3px;border-radius:2px;background:rgba(17,17,17,.35)}
 .ticket{
   position:absolute;left:50%;bottom:52px;transform:translateX(-50%) translateY(28px);width:180px;min-height:96px;padding-bottom:6px;
@@ -450,8 +450,9 @@ ul{margin:0;padding:0;list-style:none}
   background:var(--tape);border-left:1px solid var(--tape-edge);border-right:1px solid var(--tape-edge)}
 .ticket .tname{font-size:26px;font-weight:900;letter-spacing:.06em;transform:rotate(-1.5deg)}
 .ticket .tmeta{font-size:11.5px;font-weight:800;color:var(--ink-3);letter-spacing:.04em;margin-top:2px}
-.draw-stage.is-drawing .ticket{transform:translateX(-50%) translateY(-112px)}
-.draw-stage.is-done .ticket{transform:translateX(-50%) translateY(-128px) rotate(-1.4deg)}
+/* 抽签只在签筒范围内上下：不越过抽点弹窗的说明文字行 */
+.draw-stage.is-drawing .ticket{transform:translateX(-50%) translateY(-16px)}
+.draw-stage.is-done .ticket{transform:translateX(-50%) translateY(-32px) rotate(-1.4deg)}
 .spot{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity .3s linear;
   background:radial-gradient(ellipse at 50% 20%,rgba(255,255,255,.92),rgba(255,255,255,0) 62%)}
 .draw-stage.is-done .spot{opacity:1}
@@ -591,8 +592,6 @@ body.is-shaking{animation:shakeIt .3s cubic-bezier(.36,.07,.19,.97)}
         <button class="menu-item" type="button" role="menuitem" id="btn-sound"><span>音效</span><span class="k" id="sound-label">开</span></button>
         <button class="menu-item" type="button" role="menuitem" id="btn-full"><span>全屏</span><span class="k">F11</span></button>
         <button class="menu-item" type="button" role="menuitem" id="btn-coach"><span>重播引导</span><span class="k">?</span></button>
-        <div class="menu-sep"></div>
-        <button class="menu-item" type="button" role="menuitem" id="btn-reset"><span>重置演示数据</span><span class="k">全部还原</span></button>
       </div>
     </div>
     <a class="btn" id="btn-teacher" href="v3_teacher_desk.html" title="前往教师操作台" aria-label="前往教师操作台">
@@ -707,16 +706,6 @@ body.is-shaking{animation:shakeIt .3s cubic-bezier(.36,.07,.19,.97)}
   </div>
 </div>
 
-<div class="mask" id="mask-reset" hidden>
-  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="reset-title" style="width:440px">
-    <h2 id="reset-title">重置演示数据</h2>
-    <p class="dlg-sub">所有等级、经验、印章与主题都会还原为初始模拟数据，此操作不可撤销。</p>
-    <div class="dlg-actions">
-      <button class="btn" type="button" id="reset-cancel">取消</button>
-      <button class="btn btn-primary" type="button" id="reset-ok">确定重置</button>
-    </div>
-  </div>
-</div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-msg"></span></div>
 <div class="coach" id="coach" role="note">
@@ -1088,7 +1077,7 @@ function renderBand(){
   var html = '';
   html += chipHtml('all', '全班', st.all.count, st.all.exp, st.all.exp / maxExp);
   for (var g = 1; g <= groups; g++) html += chipHtml(String(g), g + '组', st[g].count, st[g].exp, st[g].exp / maxExp);
-  html += '<span class="band-hint">' + bandHintText(st.all.count, gcount) + '</span>';
+
   elBand.innerHTML = html;
   function chipHtml(key, label, count, exp, ratio){
     var on = state.group === key ? ' is-on' : '';
@@ -2212,21 +2201,7 @@ function openDetail(){
   openMask('mask-detail', 'fab');
   setTimeout(function(){ $('detail-ok').focus(); }, 30);
 }
-function resetAll(){
-  if (DATA_MODE === 'demo') state.students = buildStudents();
-  else state.students = (DATA_MODE === 'live' && VM) ? vmStudents(VM) : [];
-  state.selectedId = null;
-  state.group = 'all';
-  state.sort = 'no';
-  lastExpShown = {};
-  setInspector(false);
-  $('sort-label').textContent = '学号升序';
-  hideMask($('mask-reset'));
-  applyTheme('orange', false);
-  renderAll();
-  toast(DATA_MODE === 'demo' ? '演示数据已重置'
-    : (DATA_MODE === 'live' ? '已重新载入真实数据（未写库）' : '班级数据仍未加载'));
-}
+/* 第7条：按负责人指令彻底删除「重置演示数据」（原 D5 的"仅演示模式保留"被覆盖） */
 
 /* ============================================================
    16 · 引导 coach-mark
@@ -2405,10 +2380,7 @@ function bind(){
     closeTools();
   });
   $('btn-coach').addEventListener('click', function(){ showCoach(4200); closeTools(); });
-  $('btn-reset').addEventListener('click', function(){ closeTools(); openMask('mask-reset', 'btn-tools'); });
-  $('reset-cancel').addEventListener('click', function(){ hideMask($('mask-reset')); });
-  $('reset-ok').addEventListener('click', resetAll);
-  $('mask-reset').addEventListener('click', function(e){ if (e.target === this) hideMask(this); });
+
 
   elBand.addEventListener('click', function(e){
     var b = e.target.closest('[data-group]'); if (!b) return;
