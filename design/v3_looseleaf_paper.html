@@ -195,6 +195,26 @@ ul{margin:0;padding:0;list-style:none}
   transform:skewX(-12deg);opacity:.7;border-radius:3px;
 }
 .band-hint{margin-left:auto;font-size:var(--t-xs);color:var(--ink-2);white-space:nowrap;padding-right:2px}
+
+/* 宠物互动（第2条）：点宠物 → 冒出三个圆圈；有表情图就换表情，没有就只出气泡 */
+.pet-stage{position:relative}
+.interact-ring{position:absolute;inset:0;z-index:6;pointer-events:none}
+.interact-btn{position:absolute;pointer-events:auto;width:44px;height:44px;border-radius:50%;
+  border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);
+  display:grid;place-items:center;font-size:17px;line-height:1;cursor:pointer;
+  box-shadow:0 2px 0 rgba(17,17,17,.18);transition:transform .16s ease}
+.interact-btn:hover{transform:translateY(-2px)}
+.interact-btn:active{transform:translateY(0) scale(.96)}
+.interact-btn[aria-disabled="true"]{opacity:.42;cursor:not-allowed;transform:none}
+.interact-btn .ic-cool{position:absolute;right:-4px;bottom:-4px;min-width:18px;height:18px;border-radius:9px;
+  background:var(--ink);color:var(--surface);font-size:10.5px;font-weight:900;display:grid;place-items:center;padding:0 3px}
+.pet-bubble{position:absolute;left:50%;top:4px;transform:translate(-50%,-100%);max-width:230px;
+  background:var(--surface);border:1.5px solid var(--ink);border-radius:12px 10px 13px 11px;
+  padding:7px 10px;font-size:12.5px;font-weight:800;line-height:1.45;color:var(--ink);
+  box-shadow:0 3px 0 rgba(17,17,17,.16);z-index:7;pointer-events:none;white-space:normal}
+.pet-bubble::after{content:'';position:absolute;left:50%;bottom:-6px;width:10px;height:10px;transform:translateX(-50%) rotate(45deg);
+  background:var(--surface);border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+@media (prefers-reduced-motion: reduce){.interact-btn{transition:none}}
 .gchip .gnum{color:var(--ink-2)}
 
 /* ---------- 主内容 ---------- */
@@ -955,6 +975,142 @@ function petSrc(s){
   return '../electron-app/src/assets/pets/' + s.species + '/' + s.species + '-stage' + demoStageOf(s.level) + '.png';
 }
 function speciesLabel(s){ return s.speciesName || ((SPECIES[s.species] && SPECIES[s.species].name) || '神秘宠物蛋'); }
+
+/* ============================================================
+   第2条 · 宠物互动：点宠物 → 三个圆圈（摸摸 / 喂食 / 玩耍）
+   - 不加经验、不写库；每个互动按学生 20 秒冷却
+   - 有表情图（<species>-stage<N>-<expr>.png）就换脸，缺图只出气泡
+   ============================================================ */
+var PET_ACTIONS = [
+  { key: 'pat', emoji: '🤚', label: '摸摸头' },
+  { key: 'feed', emoji: '🍎', label: '喂点吃的' },
+  { key: 'play', emoji: '🎾', label: '一起玩' }
+];
+var PET_LINES = {
+  pat: ['呼噜呼噜…好舒服呀', '眼睛都眯起来啦', '再摸一下下嘛', '开心得耳朵都软了', '蹭蹭你的手心'],
+  feed: ['吧唧吧唧，真好吃！', '吃饱饱，脑子转得快', '还有吗还有吗？', '谢谢你的小零食', '满血复活啦'],
+  play: ['看我的飞天扑击！', '再来一次再来一次！', '跑得比体育委员还快', '嘿咻！接住啦', '玩累了也不困']
+};
+var PET_COOLDOWN_MS = 20000;
+var petCool = {};
+var petRingFor = null;
+var petBubbleFor = null;
+var petExprTimer = null;
+
+function petKey(s, action) { return String(s.id) + '|' + action; }
+function petCoolLeft(s, action) {
+  var until = petCool[petKey(s, action)] || 0;
+  return Math.max(0, Math.ceil((until - Date.now()) / 1000));
+}
+function petStageNo(s) { return s.isEgg ? 0 : (Number(s.stage) || demoStageOf(s.level) || 1); }
+function petExprPath(s, expr) {
+  if (s.isEgg) return null;
+  var sp = s.image ? String(s.species || '') : String(s.species || '');
+  if (!sp || sp === 'egg') return null;
+  var st = petStageNo(s);
+  if (!st) return null;
+  var base = s.image ? s.image.replace(/[^\/]+$/, '') : ('../electron-app/src/assets/pets/' + sp + '/');
+  return base + sp + '-stage' + st + '-' + expr + '.png';
+}
+function petCloseRing() {
+  if (petRingFor && petRingFor.parentNode) petRingFor.parentNode.removeChild(petRingFor);
+  petRingFor = null;
+}
+function petCloseBubble() {
+  if (petBubbleFor && petBubbleFor.parentNode) petBubbleFor.parentNode.removeChild(petBubbleFor);
+  petBubbleFor = null;
+}
+function petOpenRing(stageEl, s) {
+  if (petRingFor && petRingFor.getAttribute('data-owner') === String(s.id) && stageEl.contains(petRingFor)) { petCloseRing(); return; }
+  petCloseRing();
+  var ring = document.createElement('div');
+  ring.className = 'interact-ring';
+  ring.setAttribute('data-owner', String(s.id));
+  var pos = [['left:4px;top:12%'], ['right:4px;top:12%'], ['left:50%;bottom:6%;transform:translateX(-50%)']];
+  PET_ACTIONS.forEach(function (a, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'interact-btn';
+    b.setAttribute('data-pet-action', a.key);
+    b.setAttribute('aria-label', a.label);
+    b.setAttribute('title', a.label);
+    b.style.cssText = pos[i] + ';';
+    b.innerHTML = '<span aria-hidden="true">' + a.emoji + '</span>';
+    var left = petCoolLeft(s, a.key);
+    if (left > 0) { b.setAttribute('aria-disabled', 'true'); b.insertAdjacentHTML('beforeend', '<span class="ic-cool">' + left + '</span>'); }
+    ring.appendChild(b);
+  });
+  stageEl.appendChild(ring);
+  petRingFor = ring;
+  sfx('ink');
+}
+function petReact(stageEl, s, action) {
+  var left = petCoolLeft(s, action);
+  if (left > 0) { toast('再等 ' + left + ' 秒就能' + (action === 'pat' ? '摸摸' : action === 'feed' ? '喂食' : '一起玩') + '啦'); return; }
+  petCool[petKey(s, action)] = Date.now() + PET_COOLDOWN_MS;
+  var btn = stageEl.querySelector('.interact-btn[data-pet-action="' + action + '"]');
+  if (btn) {
+    btn.setAttribute('aria-disabled', 'true');
+    if (!btn.querySelector('.ic-cool')) btn.insertAdjacentHTML('beforeend', '<span class="ic-cool">' + Math.ceil(PET_COOLDOWN_MS / 1000) + '</span>');
+  }
+  var lines = PET_LINES[action] || PET_LINES.pat;
+  var text = lines[Math.floor(Math.random() * lines.length)];
+  petCloseBubble();
+  var bub = document.createElement('div');
+  bub.className = 'pet-bubble';
+  bub.textContent = text;
+  stageEl.appendChild(bub);
+  petBubbleFor = bub;
+  clearTimeout(petExprTimer);
+  petExprTimer = setTimeout(function () { petCloseBubble(); }, 2600);
+  sfx(action === 'feed' ? 'stamp' : action === 'play' ? 'levelup' : 'ink');
+  // 有表情图就换脸，2.5 秒后还原；缺图静默退回
+  var expr = petExprPath(s, action);
+  var img = stageEl.querySelector('img');
+  if (expr && img && !s.isEgg) {
+    var probe = new Image();
+    var original = img.getAttribute('src');
+    probe.onload = function () {
+      img.setAttribute('src', expr);
+      setTimeout(function () { img.setAttribute('src', original); }, 2500);
+    };
+    probe.onerror = function () { /* 缺图：只出气泡 */ };
+    probe.src = expr;
+  }
+  // 冷却倒计时显示
+  var tick = setInterval(function () {
+    var remain = petCoolLeft(s, action);
+    var coolEl = btn && btn.querySelector('.ic-cool');
+    if (!btn || !btn.isConnected || remain <= 0) {
+      clearInterval(tick);
+      if (btn) { btn.removeAttribute('aria-disabled'); if (coolEl) coolEl.remove(); }
+      return;
+    }
+    if (coolEl) coolEl.textContent = String(remain);
+  }, 1000);
+}
+/* 事件委托：卡片里的宠物、检查器里的宠物都能点 */
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest ? e.target.closest('.interact-btn') : null;
+  if (btn) {
+    e.stopPropagation(); e.preventDefault();
+    var ring = btn.closest('.interact-ring');
+    var stage = ring && ring.parentNode;
+    var s = stage ? byId(Number(stage.getAttribute('data-stu') || (ring.getAttribute('data-owner')))) : null;
+    var stu = stage ? byId(Number(ring.getAttribute('data-owner'))) : null;
+    if (stu && stage) petReact(stage, stu, btn.getAttribute('data-pet-action'));
+    return;
+  }
+  var img = e.target.closest ? e.target.closest('.pet-stage img, #ins-pet') : null;
+  if (img) {
+    var stageEl = img.closest('.pet-stage') || img.parentNode;
+    var owner = stageEl.closest('[data-id]');
+    var stu2 = owner ? byId(Number(owner.getAttribute('data-id'))) : (state.selectedId ? byId(state.selectedId) : null);
+    if (stu2 && stageEl) { e.stopPropagation(); petOpenRing(stageEl, stu2); }
+    return;
+  }
+  if (petRingFor && !e.target.closest('.interact-ring')) petCloseRing();
+}, true);
 window.__v3PetFallback = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' +
   '<g fill="none" stroke="#111" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
