@@ -1,0 +1,20 @@
+{
+  "v3_portal.html": {
+    "broken": 0,
+    "imgs": 4,
+    "doc": "837/837",
+    "errors": []
+  },
+  "v3_looseleaf_paper.html": {
+    "broken": 0,
+    "imgs": 32,
+    "doc": "837/837",
+    "errors": []
+  },
+  "v3_teacher_desk.html": {
+    "broken": 0,
+    "imgs": 32,
+    "doc": "837/837",
+    "errors": []
+  }
+}

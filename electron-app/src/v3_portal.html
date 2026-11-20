@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="orange">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>班级电子宠物 · 教师登录 / 注册</title>
+<style>
+/* ============================================================
+   班级电子宠物 V3 · 教师登录 / 注册 + 入口选择
+   皮肤唯一来源：design/v3_looseleaf_paper.html
+   token 块、纸纹(--grain/--fiber)、墨线微抖滤镜(#inkWob/#inkWobSm)
+   均原样搬用；本页只加布局与表单零件。零外链。
+   ============================================================ */
+:root{
+  /* 纸与墨 */
+  --paper:#F4F3EF; --canvas:#FAF9F5; --surface:#FFFFFF; --surface-2:#FBF9F4;
+  --ink:#111111; --ink-2:#555555; --ink-3:#6E6E69;
+  /* 主色（沿用正式教师台 C 版） */
+  --accent:#267853; --accent-ink:#FFFFFF; --accent-soft:#DFF3E7;
+  --sun:#FFD45E; --mint:#72C59A; --sky:#82B8F5; --coral:#FF8D78;
+  /* 学科 */
+  --sub-yuwen:#FF8D78; --sub-shuxue:#82B8F5; --sub-yingyu:#FFD45E;
+  /* 线、圆角、阴影 */
+  --line:2px; --line-soft:1.5px;
+  --r-card:14px; --r-btn:10px; --r-pill:999px;
+  --shadow-pop:0 4px 0 var(--ink);         /* 浮起元素 */
+  --shadow-soft:0 10px 30px rgba(17,17,17,.10);
+  /* 8pt 节奏 */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:40px; --s8:56px;
+  /* 字号 */
+  --t-xs:12px; --t-sm:13px; --t-md:14px; --t-lg:16px; --t-xl:20px; --t-2xl:24px; --t-3xl:28px; --t-name:22px;
+
+  /* —— 纸感语汇（本页新增，不改动上面的契约 token） —— */
+  --pen:1.5px; --pen-h:2.5px;
+  --ink-hair:rgba(17,17,17,.14);
+  --tape:rgba(247,244,234,.74); --tape-edge:rgba(140,135,120,.42);
+  --hl:var(--sun);
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.085'/%3E%3C/svg%3E");
+  --fiber:repeating-linear-gradient(0deg, rgba(17,17,17,.026) 0 1px, rgba(17,17,17,0) 1px 4px);
+  --rad-a:15px 11px 14px 12px; --rad-b:12px 15px 11px 14px;
+  --ins-w:0px;
+  --sh-lift:0 6px 0 rgba(17,17,17,.9), 0 14px 24px rgba(17,17,17,.10);
+  /* 校验红：由 --coral 压墨所得（暖纸朱红），不引入调色板外色相 */
+  --err:#A22E14;
+}
+html[data-theme="orange"]{ --accent:#B84B1B; --accent-soft:#FBE3D3; --paper:#FBF3EA; --canvas:#FDF7F0; --surface:#FFFDFA; --surface-2:#FCF4EB; }
+
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{height:100%}
+body{
+  margin:0;background:var(--canvas);color:var(--ink);
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,sans-serif;
+  font-size:var(--t-md);line-height:1.45;
+  overflow:hidden;-webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:var(--grain),var(--fiber);background-size:140px 140px,auto;
+  opacity:.9;
+}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+h1,h2,p{margin:0}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.svgdefs{position:absolute;width:0;height:0;overflow:hidden}
+
+/* ---------- 纸张与墨线原子（搬自 v3_looseleaf_paper） ---------- */
+.marker{position:relative;display:inline-block;isolation:isolate}
+.marker::before{
+  content:'';position:absolute;left:-5px;right:-5px;top:24%;bottom:10%;z-index:-1;
+  background:var(--hl);opacity:.62;mix-blend-mode:multiply;
+  transform:skewX(-10deg) rotate(-.7deg);
+  border-radius:3px 7px 4px 6px;
+}
+.tape{
+  position:absolute;width:78px;height:22px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,253,246,.9),var(--tape));
+  border-left:1px solid var(--tape-edge);border-right:1px solid var(--tape-edge);
+  box-shadow:0 1px 2px rgba(17,17,17,.10);
+  clip-path:polygon(0 8%,4% 0,97% 4%,100% 46%,96% 100%,3% 95%);
+  transform:rotate(-3.4deg);
+}
+.tape.r{transform:rotate(2.6deg)}
+
+/* ============================== 双栏骨架 46 / 54 ============================== */
+.shell{
+  position:relative;z-index:1;height:100vh;height:100dvh;
+  display:grid;grid-template-columns:46% 54%;
+  overflow:hidden;
+}
+
+/* ============================== 左栏：品牌 + 宠物拼贴 ============================== */
+.brandpane{
+  position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;
+  padding:clamp(20px,3.4vh,44px) clamp(22px,3vw,52px) clamp(12px,2vh,22px);
+  overflow:hidden;
+}
+.brandpane::after{
+  content:'';position:absolute;top:4%;bottom:4%;right:0;width:2px;
+  background:var(--ink);opacity:.16;filter:url(#inkWobSm);
+}
+.brand{display:flex;align-items:center;gap:clamp(12px,1.2vw,18px);position:relative;flex:none}
+.brand-mark{
+  width:clamp(50px,4.2vw,66px);aspect-ratio:1/1;flex:none;display:grid;place-items:center;
+  background:var(--sun);border:var(--line) solid var(--ink);
+  border-radius:16px 12px 15px 13px;transform:rotate(-4deg);
+  box-shadow:0 4px 0 var(--ink);
+}
+.brand-mark svg{width:70%;height:70%}
+.title{
+  font-size:clamp(25px,2.25vw,34px);font-weight:900;letter-spacing:.05em;white-space:nowrap;
+  transform:rotate(-1.2deg);text-shadow:0 .6px 0 rgba(17,17,17,.18);
+}
+.squig{display:block;width:100%;height:7px;margin-top:2px}
+.tagline{
+  margin-top:clamp(8px,1.2vh,12px);color:var(--ink-2);font-size:clamp(13px,.98vw,15px);
+  font-weight:600;max-width:30ch;line-height:1.6;
+}
+
+/* 宠物拼贴 */
+.crew{
+  position:relative;flex:1 1 auto;min-height:0;min-width:0;
+  display:grid;grid-template-columns:1.04fr .96fr;grid-template-rows:1fr 1fr;
+  margin:clamp(10px,2vh,24px) -6px clamp(2px,.8vh,10px);
+}
+.pet{
+  position:relative;margin:0;min-width:0;min-height:0;
+  display:grid;place-items:center;z-index:1;
+}
+.pet .halo{
+  position:absolute;width:84%;aspect-ratio:1/1;border-radius:50%;
+  background:var(--accent-soft);opacity:.9;z-index:0;filter:url(#inkWobSm);
+}
+.pet::after{
+  content:'';position:absolute;width:88%;aspect-ratio:1/1;z-index:1;
+  border:2px dashed rgba(17,17,17,.30);border-radius:50%;filter:url(#inkWobSm);
+}
+.pet img{
+  position:relative;z-index:2;width:118%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 8px 8px rgba(17,17,17,.14));
+}
+.pet figcaption{
+  position:absolute;left:0;bottom:6%;z-index:3;
+  font-size:var(--t-xs);font-weight:900;letter-spacing:.02em;
+  padding:2px 9px;background:var(--sun);border:var(--line-soft) solid var(--ink);
+  border-radius:var(--r-pill);box-shadow:0 2px 0 var(--ink);transform:rotate(-3deg);
+  white-space:nowrap;
+}
+.p1{transform:translate(4%,-4%) rotate(-5deg)}
+.p2{transform:translate(-3%,3%) rotate(4.5deg)}
+.p3{transform:translate(5%,-1%) rotate(3.5deg)}
+.p4{transform:translate(-4%,5%) rotate(-3.5deg)}
+.p1 figcaption{bottom:10%}
+.p3 figcaption{bottom:2%}
+.crew > .tape{width:64px;height:19px}
+.crew .tape.t1{left:6%;top:2%;transform:rotate(-13deg)}
+.crew .tape.t2{right:8%;top:44%;transform:rotate(11deg)}
+.verinfo{
+  flex:none;display:flex;align-items:center;gap:var(--s2);
+  font-size:12px;color:var(--ink-3);font-weight:700;letter-spacing:.04em;
+  padding-top:clamp(6px,1vh,12px);
+}
+.verinfo::before{content:'';flex:0 0 26px;height:1.5px;background:var(--ink);opacity:.3;filter:url(#inkWobSm)}
+
+/* ============================== 右栏 ============================== */
+.formpane{
+  position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;
+  padding:clamp(14px,2.6vh,32px) clamp(18px,2.8vw,48px);
+  overflow:hidden;
+}
+/* 右上角：已登录身份 + 退出 / 切换账号 */
+.whoami{
+  flex:none;display:flex;align-items:center;justify-content:flex-end;gap:var(--s2);
+  margin-bottom:clamp(8px,1.2vh,14px);min-height:0;
+}
+.who-chip{
+  display:inline-flex;align-items:center;gap:7px;max-width:100%;
+  padding:4px 13px;font-size:var(--t-sm);font-weight:900;letter-spacing:.02em;
+  background:var(--surface);border:var(--line) solid var(--ink);
+  border-radius:var(--r-pill);box-shadow:0 2px 0 var(--ink);transform:rotate(-1deg);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.who-chip::before{
+  content:'';width:7px;height:7px;flex:none;border-radius:50%;
+  background:var(--accent);border:1.2px solid var(--ink);
+}
+.cardwrap{flex:1 1 auto;min-height:0;display:grid;place-items:center}
+
+/* ---------- 纸感卡片：不对称圆角 + 墨线描边 + 硬阴影 ---------- */
+.card{
+  position:relative;width:min(100%,560px);max-height:100%;
+  display:flex;flex-direction:column;
+  padding:clamp(18px,2.4vh,26px) clamp(18px,1.9vw,26px) clamp(16px,2.2vh,24px);
+  background:var(--surface);background-image:var(--grain);background-size:140px 140px;
+  border-radius:18px 13px 20px 15px;
+  box-shadow:0 5px 0 rgba(17,17,17,.92), 0 16px 26px rgba(17,17,17,.10);
+}
+.card::before{
+  content:'';position:absolute;inset:-1px;border:var(--line) solid var(--ink);
+  border-radius:inherit;filter:url(#inkWob);pointer-events:none;
+}
+.card::after{
+  content:'';position:absolute;inset:3px -3px -3px 3px;border:1px solid rgba(17,17,17,.30);
+  border-radius:inherit;filter:url(#inkWobSm);opacity:.5;pointer-events:none;
+}
+.card > *{position:relative;z-index:1}
+.card > .tape{left:34px;top:-12px;transform:rotate(-3.6deg);width:82px}
+/* ---------- 卡片抬头：马克笔斜块高亮 ---------- */
+.card-head{flex:none;display:flex;flex-direction:column;gap:1px;margin-bottom:clamp(8px,1.4vh,14px)}
+.card-title{
+  font-size:clamp(20px,1.75vw,25px);font-weight:900;letter-spacing:.05em;
+  transform:rotate(-1deg);align-self:flex-start;
+}
+.card-sub{font-size:var(--t-sm);color:var(--ink-2);font-weight:700;margin-top:3px}
+
+/* ---------- tab：两枚贴纸标签 ---------- */
+.tabset{
+  position:relative;flex:none;display:flex;align-items:flex-end;gap:10px;
+  padding-bottom:2px;border-bottom:var(--line) solid var(--ink);
+}
+.tab{
+  position:relative;z-index:1;margin-bottom:-2px;
+  padding:9px 18px 10px;background:var(--surface);
+  border:var(--line) solid var(--ink);border-radius:12px 10px 11px 9px;
+  font-size:var(--t-lg);font-weight:900;letter-spacing:.08em;color:var(--ink-3);
+  transform-origin:50% 100%;transform:rotate(-1.2deg);
+  box-shadow:0 2px 0 var(--ink);
+  transition:transform .16s ease,box-shadow .16s ease,background-color .16s ease,color .16s ease;
+}
+.tab:hover{color:var(--ink);background:var(--surface-2)}
+.tab[aria-selected="true"]{
+  z-index:2;color:var(--ink);background:var(--sun);
+  transform:scale(1.06) rotate(-1.8deg);box-shadow:0 3px 0 var(--ink);
+}
+
+/* ---------- 表单分组节奏 20 / 24 ---------- */
+.panels{flex:1 1 auto;min-height:0}
+.panel{display:flex;flex-direction:column;padding-top:clamp(14px,2.1vh,20px)}
+.group{display:flex;flex-direction:column;gap:14px}
+.group-label{
+  font-size:10.5px;font-weight:900;letter-spacing:.18em;color:var(--ink-3);
+  display:flex;align-items:center;gap:7px;
+}
+.group-label::after{content:'';flex:1 1 auto;height:1px;background:rgba(17,17,17,.16)}
+
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lab{
+  align-self:flex-start;display:inline-flex;align-items:center;gap:4px;
+  padding:1px 9px 2px;background:var(--surface);
+  border:var(--line-soft) solid var(--ink);border-radius:var(--r-pill);
+  font-size:12px;font-weight:900;letter-spacing:.05em;color:var(--ink-2);
+  box-shadow:0 1px 0 rgba(17,17,17,.55);
+}
+.field.is-bad .lab{border-color:var(--err);color:var(--err)}
+.control{
+  position:relative;display:flex;align-items:center;
+  transition:transform .15s ease,box-shadow .15s ease;border-radius:13px;
+}
+.field:focus-within .control{transform:translate(-1px,-2px);box-shadow:0 4px 0 var(--ink)}
+input[type=text]{
+  width:100%;height:clamp(44px,4.8vh,46px);padding:0 var(--s3);
+  background:var(--surface-2);border:var(--line) solid rgba(17,17,17,.58);
+  border-radius:12px 10px 12px 11px;
+  font-size:var(--t-md);font-weight:700;color:var(--ink);
+  transition:background-color .14s,border-color .14s;
+}
+input::placeholder{color:var(--ink-3);font-weight:500;letter-spacing:.02em}
+input:hover{background:var(--surface)}
+input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;background:var(--surface)}
+.field:focus-within input{border-color:var(--ink)}
+.field.is-bad input{border-color:var(--err);background:var(--surface)}
+.msg{
+  min-height:15px;font-size:11.5px;font-weight:800;color:var(--err);
+  display:flex;align-items:center;gap:4px;letter-spacing:.01em;line-height:1.25;
+}
+.msg:not(:empty)::before{content:'';width:6px;height:6px;flex:none;border-radius:50%;background:var(--err)}
+
+/* ---------- 分段选择：执教科目 ---------- */
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.seg label{position:relative;display:flex;min-width:0}
+.seg input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.seg span{
+  flex:1;display:flex;align-items:center;justify-content:center;height:clamp(36px,4.2vh,40px);
+  border:var(--line) solid rgba(17,17,17,.5);border-radius:11px 9px 12px 10px;
+  background:var(--surface);color:var(--ink-2);
+  font-size:var(--t-md);font-weight:900;letter-spacing:.1em;
+  transition:transform .14s ease,background-color .14s ease,box-shadow .14s ease,border-color .14s ease,color .14s ease;
+}
+.seg label:hover span{background:var(--surface-2);color:var(--ink)}
+.seg input:checked + span{
+  background:var(--sun);border-color:var(--ink);color:var(--ink);
+  box-shadow:0 3px 0 var(--ink);transform:translateY(-2px) rotate(-1deg);
+}
+.seg input:focus-visible + span{outline:3px solid var(--accent);outline-offset:2px}
+.field.is-bad .seg span{border-color:var(--err)}
+.field.is-bad .seg input:checked + span{border-color:var(--ink)}
+
+/* 自定义科目输入 */
+.customslot{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.customslot.is-bad input{border-color:var(--err)}
+.customslot input{background:var(--surface)}
+
+/* 表单级内联提示 */
+.form-msg{
+  min-height:16px;font-size:12px;font-weight:800;color:var(--err);
+  display:flex;align-items:center;gap:5px;line-height:1.3;margin-top:2px;
+}
+.form-msg:not(:empty)::before{content:'';width:7px;height:7px;flex:none;border-radius:50%;background:var(--err)}
+
+/* ---------- 按钮：主 = 实心墨边 3px 硬阴影；次 = 线框 ---------- */
+.btn-primary{
+  margin-top:clamp(12px,1.8vh,18px);height:clamp(44px,4.9vh,48px);width:100%;flex:none;
+  border:var(--line) solid var(--ink);border-radius:12px 10px 12px 11px;
+  background:var(--accent);color:var(--accent-ink);
+  font-size:var(--t-lg);font-weight:900;letter-spacing:.14em;
+  box-shadow:0 3px 0 var(--ink);
+  transition:transform .12s ease,box-shadow .12s ease,filter .12s ease;
+}
+.btn-primary:hover{transform:translate(-1px,-2px);box-shadow:0 5px 0 var(--ink);filter:brightness(1.06)}
+.btn-primary:active{transform:translate(0,2px);box-shadow:0 1px 0 var(--ink)}
+.btn-primary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.btn-ghost{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:none;
+  height:40px;padding:0 15px;
+  border:var(--line) solid var(--ink);border-radius:10px 8px 10px 9px;
+  background:var(--surface);color:var(--ink);font-size:var(--t-sm);font-weight:900;letter-spacing:.04em;
+  box-shadow:0 2px 0 var(--ink);
+  transition:transform .12s ease,box-shadow .12s ease,background-color .12s ease;
+}
+.btn-ghost:hover{transform:translate(-1px,-1px);box-shadow:0 3px 0 var(--ink);background:var(--surface-2)}
+.btn-ghost:active{transform:translate(0,1px);box-shadow:0 1px 0 var(--ink)}
+.btn-ghost:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+.card-note{
+  display:flex;align-items:center;gap:7px;margin-top:clamp(10px,1.5vh,14px);
+  font-size:11.5px;font-weight:700;color:var(--ink-3);letter-spacing:.02em;
+}
+.card-note::before{content:'';flex:0 0 16px;height:1.5px;background:var(--ink);opacity:.26;filter:url(#inkWobSm)}
+
+/* ---------- 选择入口 ---------- */
+.done{padding-top:clamp(10px,1.6vh,14px)}
+.eyebrow{
+  font-size:var(--t-xs);font-weight:900;letter-spacing:.16em;color:var(--accent);
+  display:flex;align-items:center;gap:7px;
+}
+.eyebrow::before{content:'';width:18px;height:2px;background:var(--accent);filter:url(#inkWobSm)}
+.gate-title{font-size:clamp(21px,1.9vw,27px);font-weight:900;letter-spacing:.04em;transform:rotate(-.8deg);margin-top:2px}
+.gate-sub{font-size:var(--t-sm);color:var(--ink-2);font-weight:700;margin-top:1px}
+.gates{display:grid;gap:clamp(10px,1.6vh,14px);margin-top:clamp(12px,1.8vh,18px)}
+.gate{
+  position:relative;display:flex;align-items:center;gap:var(--s3);min-width:0;
+  padding:clamp(11px,1.7vh,16px) clamp(12px,1.3vw,16px);
+  text-decoration:none;color:var(--ink);
+  background:var(--surface-2);border:var(--line) solid var(--ink);
+  border-radius:14px 11px 14px 12px;box-shadow:0 5px 0 var(--ink);
+  transition:transform .13s ease,box-shadow .13s ease,background-color .13s ease;
+}
+.gate:hover{transform:translate(-2px,-3px);box-shadow:0 8px 0 var(--ink);background:var(--accent-soft)}
+.gate:active{transform:translate(0,2px);box-shadow:0 2px 0 var(--ink)}
+.gate:focus-visible{outline:3px solid var(--accent);outline-offset:3px;background:var(--accent-soft)}
+.gate-icon{
+  width:clamp(44px,4.4vh,54px);height:clamp(44px,4.4vh,54px);flex:none;
+  display:grid;place-items:center;background:var(--sun);
+  border:var(--line) solid var(--ink);border-radius:13px 10px 12px 11px;
+  box-shadow:0 3px 0 var(--ink);
+  transition:transform .2s cubic-bezier(.2,.7,.4,1.4);
+}
+.gate-icon svg{width:60%;height:60%}
+.gate.b .gate-icon{background:var(--mint)}
+.gate:hover .gate-icon,.gate:focus-visible .gate-icon{transform:rotate(-9deg) scale(1.05)}
+.gate-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.gate-body strong{font-size:clamp(17px,1.5vw,21px);font-weight:900;letter-spacing:.05em}
+.gate-body span{font-size:var(--t-sm);color:var(--ink-2);font-weight:700}
+.gate-arrow{margin-left:auto;flex:none;width:24px;height:24px;transition:transform .16s ease}
+.gate:hover .gate-arrow,.gate:focus-visible .gate-arrow{transform:translateX(4px)}
+@media (prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms !important;animation-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<svg class="svgdefs" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="inkWob" x="-12%" y="-12%" width="124%" height="124%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.013" numOctaves="2" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="inkWobSm" x="-14%" y="-14%" width="128%" height="128%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.021" numOctaves="2" seed="5" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="1.7" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<main class="shell">
+  <!-- ================= 左栏 ================= -->
+  <section class="brandpane" aria-label="班级电子宠物">
+    <header class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 20c0-4 2.4-7 6-7s6 3 6 7c0 3.4-2.4 6-6 6s-6-2.6-6-6z" fill="#FFF6DC"/>
+          <ellipse cx="11.5" cy="12.5" rx="2.6" ry="3.2" transform="rotate(-18 11.5 12.5)" fill="#FFF6DC"/>
+          <ellipse cx="18" cy="9" rx="2.6" ry="3.2" fill="#FFF6DC"/>
+          <ellipse cx="24.8" cy="9.4" rx="2.6" ry="3.2" transform="rotate(14 24.8 9.4)" fill="#FFF6DC"/>
+          <ellipse cx="29.5" cy="14.4" rx="2.6" ry="3.2" transform="rotate(26 29.5 14.4)" fill="#FFF6DC"/>
+        </svg>
+      </span>
+      <div>
+        <h1 class="title"><span class="marker">班级电子宠物</span></h1>
+        <svg class="squig" viewBox="0 0 240 8" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M2 5.4c22-2.4 44 2 66-1s46 1.6 68-.4 48 1.2 102-1.6" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" filter="url(#inkWobSm)"/>
+        </svg>
+      </div>
+    </header>
+    <p class="tagline">把每一天的认真，养成教室里一点点长大的小家伙。</p>
+
+    <div class="crew" role="img" aria-label="四只已成长到较高阶段的班级宠物：猫、狗、兔子、狐狸">
+      <span class="tape t1" aria-hidden="true"></span>
+      <span class="tape t2" aria-hidden="true"></span>
+
+      <figure class="pet p1">
+        <span class="halo" aria-hidden="true"></span>
+        <img src="assets/pets/cat/cat-stage5.png" alt="" draggable="false">
+        <figcaption>猫 · Lv.5</figcaption>
+      </figure>
+      <figure class="pet p2">
+        <span class="halo" aria-hidden="true"></span>
+        <img src="assets/pets/dog/dog-stage4.png" alt="" draggable="false">
+        <figcaption>狗 · Lv.4</figcaption>
+      </figure>
+      <figure class="pet p3">
+        <span class="halo" aria-hidden="true"></span>
+        <img src="assets/pets/bunny/bunny-stage5.png" alt="" draggable="false">
+        <figcaption>兔 · Lv.5</figcaption>
+      </figure>
+      <figure class="pet p4">
+        <span class="halo" aria-hidden="true"></span>
+        <img src="assets/pets/fox/fox-stage4.png" alt="" draggable="false">
+        <figcaption>狐狸 · Lv.4</figcaption>
+      </figure>
+    </div>
+
+    <p class="verinfo">版本 v3 · 演示原型</p>
+  </section>
+
+  <!-- ================= 右栏 ================= -->
+  <section class="formpane" aria-label="教师登录与入口">
+    <div class="whoami" id="whoami" hidden>
+      <span class="who-chip" id="who-chip"></span>
+      <button class="btn-ghost" type="button" id="logout">退出</button>
+      <button class="btn-ghost" type="button" id="switch">切换账号</button>
+    </div>
+
+    <div class="cardwrap">
+      <div class="card" id="authCard">
+        <span class="tape" aria-hidden="true"></span>
+
+        <div class="card-head" id="cardHead">
+          <h2 class="card-title"><span class="marker" id="cardTitle">教师登录</span></h2>
+          <p class="card-sub" id="cardSub">输入注册时留下的班级与姓名</p>
+        </div>
+
+        <div class="tabset" id="tabset" role="tablist" aria-label="教师登录或注册">
+          <button class="tab" type="button" id="tab-login" role="tab" aria-selected="true" aria-controls="panel-login">登录</button>
+          <button class="tab" type="button" id="tab-register" role="tab" aria-selected="false" aria-controls="panel-register" tabindex="-1">注册</button>
+        </div>
+
+        <div class="panels">
+          <!-- 登录：班级 + 教师名字 -->
+          <form class="panel" id="panel-login" role="tabpanel" aria-labelledby="tab-login" novalidate>
+            <div class="group">
+              <p class="group-label">本机教师档案</p>
+              <div class="field" id="f-lg-class">
+                <label class="lab" for="lg-class">班级信息</label>
+                <div class="control">
+                  <input id="lg-class" name="class" type="text" autocomplete="off"
+                         placeholder="例如 三年级二班" aria-describedby="lg-class-msg" aria-invalid="false">
+                </div>
+                <p class="msg" id="lg-class-msg" role="status" aria-live="polite"></p>
+              </div>
+              <div class="field" id="f-lg-name">
+                <label class="lab" for="lg-name">教师名字</label>
+                <div class="control">
+                  <input id="lg-name" name="teacherName" type="text" autocomplete="off"
+                         placeholder="例如 李青" aria-describedby="lg-name-msg" aria-invalid="false">
+                </div>
+                <p class="msg" id="lg-name-msg" role="status" aria-live="polite"></p>
+              </div>
+              <p class="form-msg" id="lg-form-msg" role="status" aria-live="polite"></p>
+            </div>
+            <button class="btn-primary" type="submit">登录</button>
+            <p class="card-note">登录只比对本机档案，不会联网</p>
+          </form>
+
+          <!-- 注册：班级 + 教师名字 + 执教科目 -->
+          <form class="panel" id="panel-register" role="tabpanel" aria-labelledby="tab-register" hidden novalidate>
+            <div class="group">
+              <p class="group-label">建立班级档案 · 保存在本机</p>
+              <div class="field" id="f-rg-class">
+                <label class="lab" for="rg-class">班级信息</label>
+                <div class="control">
+                  <input id="rg-class" name="class" type="text" autocomplete="off"
+                         placeholder="例如 三年级二班" aria-describedby="rg-class-msg" aria-invalid="false">
+                </div>
+                <p class="msg" id="rg-class-msg" role="status" aria-live="polite"></p>
+              </div>
+              <div class="field" id="f-rg-name">
+                <label class="lab" for="rg-name">教师名字</label>
+                <div class="control">
+                  <input id="rg-name" name="teacherName" type="text" autocomplete="off"
+                         placeholder="例如 李青" aria-describedby="rg-name-msg" aria-invalid="false">
+                </div>
+                <p class="msg" id="rg-name-msg" role="status" aria-live="polite"></p>
+              </div>
+              <div class="field" id="f-rg-subject">
+                <span class="lab" id="rg-subject-lab">执教科目</span>
+                <div class="seg" id="rg-subject" role="radiogroup" aria-labelledby="rg-subject-lab" aria-invalid="false">
+                  <label><input type="radio" name="subject" value="语文"><span>语文</span></label>
+                  <label><input type="radio" name="subject" value="数学"><span>数学</span></label>
+                  <label><input type="radio" name="subject" value="英语"><span>英语</span></label>
+                  <label><input type="radio" name="subject" value="自定义"><span>自定义</span></label>
+                </div>
+                <p class="msg" id="rg-subject-msg" role="status" aria-live="polite"></p>
+                <div class="customslot" id="f-rg-custom" hidden>
+                  <div class="control">
+                    <input id="rg-custom" name="subjectCustom" type="text" autocomplete="off"
+                           placeholder="例如 科学" aria-label="自定义科目" aria-describedby="rg-custom-msg" aria-invalid="false">
+                  </div>
+                  <p class="msg" id="rg-custom-msg" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+            </div>
+            <button class="btn-primary" type="submit">注册并登录</button>
+            <p class="card-note">档案只保存在这台设备的浏览器里</p>
+          </form>
+
+          <!-- 选择入口 -->
+          <div class="panel done" id="panel-done" hidden>
+            <h2 class="gate-title">选择入口</h2>
+            <p class="gate-sub">同一份班级数据，两种进入方式。</p>
+
+            <div class="gates">
+              <a class="gate a" href="v3_looseleaf_paper.html">
+                <span class="gate-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2.6" y="4.2" width="18.8" height="12.6" rx="1.8" fill="#FFFDF8"/>
+                    <path d="M8 20h8M12 16.8V20"/>
+                    <path d="M6.4 10.6l1.5 1.6 2-3.1"/>
+                    <path d="M12 9.4h4.4M12 12.4h4.4"/>
+                  </svg>
+                </span>
+                <span class="gate-body">
+                  <strong>学生大屏</strong>
+                  <span>课堂投影用</span>
+                </span>
+                <svg class="gate-arrow" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 12h14M12.6 6.2L18.6 12l-6 5.8"/>
+                </svg>
+              </a>
+
+              <a class="gate b" href="v3_teacher_desk.html">
+                <span class="gate-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2.8" y="4" width="18.4" height="13.6" rx="1.8" fill="#FFFDF8"/>
+                    <path d="M2.8 8.2h18.4"/>
+                    <path d="M7.4 12.4h3.2M7.4 15h6"/>
+                    <path d="M15.6 11.2v5M14 14.2l1.6 2.2 1.7-2.2"/>
+                  </svg>
+                </span>
+                <span class="gate-body">
+                  <strong>教师操作台</strong>
+                  <span>赋分、考勤、台账</span>
+                </span>
+                <svg class="gate-arrow" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 12h14M12.6 6.2L18.6 12l-6 5.8"/>
+                </svg>
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var PROFILE_KEY = 'classpet.teacher.profile.v3';
+  var SESSION_KEY = 'classpet.teacher.session.v3';
+  var SWITCH_KEY = 'classpet.teacher.switched.v3';
+  function switchedAccount() { try { return localStorage.getItem(SWITCH_KEY) === '1'; } catch (e) { return false; } }
+  function clearSwitched() { try { localStorage.removeItem(SWITCH_KEY); } catch (e) {} }
+
+  /* ---------- 本机档案：只存 班级 / 姓名 / 科目 ---------- */
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} }
+  function lsDel(k) { try { window.localStorage.removeItem(k); } catch (e) {} }
+
+  function readProfile() {
+    var raw = lsGet(PROFILE_KEY);
+    if (!raw) { return null; }
+    var p;
+    try { p = JSON.parse(raw); } catch (e) { return null; }
+    if (!p || typeof p !== 'object') { return null; }
+    var clean = {
+      'class': p['class'] || p.schoolClass || '',
+      name: p.name || p.teacherName || '',
+      subject: p.subject || ''
+    };
+    if (!clean['class'] && !clean.name) { return null; }
+    var keys = Object.keys(p);
+    var tidy = keys.length === 3 && keys.indexOf('class') >= 0 && keys.indexOf('name') >= 0 && keys.indexOf('subject') >= 0;
+    if (!tidy) { lsSet(PROFILE_KEY, JSON.stringify(clean)); }   /* 旧版本字段在此清掉 */
+    return clean;
+  }
+  function saveProfile(p) {
+    lsSet(PROFILE_KEY, JSON.stringify({ 'class': p['class'], name: p.name, subject: p.subject }));
+  }
+  function hasSession() { return lsGet(SESSION_KEY) === '1'; }
+  function setSession(on) { if (on) { lsSet(SESSION_KEY, '1'); } else { lsDel(SESSION_KEY); } }
+
+  var cardHead = $('cardHead');
+  var cardTitle = $('cardTitle');
+  var cardSub = $('cardSub');
+  var tabset = $('tabset');
+  var tabLogin = $('tab-login');
+  var tabRegister = $('tab-register');
+  var panelLogin = $('panel-login');
+  var panelRegister = $('panel-register');
+  var panelDone = $('panel-done');
+  var whoami = $('whoami');
+  var whoChip = $('who-chip');
+  var lgFormMsg = $('lg-form-msg');
+
+  /* ---------- tab 切换 ---------- */
+  function selectTab(which, focus) {
+    var isLogin = which === 'login';
+    tabLogin.setAttribute('aria-selected', String(isLogin));
+    tabRegister.setAttribute('aria-selected', String(!isLogin));
+    tabLogin.tabIndex = isLogin ? 0 : -1;
+    tabRegister.tabIndex = isLogin ? -1 : 0;
+    panelLogin.hidden = !isLogin;
+    panelRegister.hidden = isLogin;
+    cardTitle.textContent = isLogin ? '教师登录' : '教师注册';
+    cardSub.textContent = isLogin ? '输入注册时留下的班级与姓名' : '三项信息，之后自动登录';
+    if (focus) { (isLogin ? tabLogin : tabRegister).focus(); }
+  }
+  tabLogin.addEventListener('click', function () { clearFormMsg(); selectTab('login', false); });
+  tabRegister.addEventListener('click', function () { selectTab('register', false); });
+  [tabLogin, tabRegister].forEach(function (tab, i) {
+    tab.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        selectTab(i === 0 ? 'register' : 'login', true);
+      } else if (e.key === 'Home') { e.preventDefault(); selectTab('login', true); }
+      else if (e.key === 'End') { e.preventDefault(); selectTab('register', true); }
+    });
+  });
+
+  /* ---------- 视图切换 ---------- */
+  function showAuth(which) {
+    whoami.hidden = true;
+    cardHead.hidden = false;
+    tabset.hidden = false;
+    panelDone.hidden = true;
+    selectTab(which || 'login', false);
+  }
+  function showEntry(profile) {
+    whoami.hidden = false;
+    whoChip.textContent = profile['class'] + ' · ' + profile.name + ' · ' + profile.subject;
+    whoChip.title = whoChip.textContent;
+    cardHead.hidden = true;
+    tabset.hidden = true;
+    panelLogin.hidden = true;
+    panelRegister.hidden = true;
+    panelDone.hidden = false;
+    var first = panelDone.querySelector('.gate');
+    if (first) { first.focus(); }
+  }
+
+  /* ---------- 预填：档案一直留在输入框里 ---------- */
+  function prefill(p) {
+    $('lg-class').value = p['class'];
+    $('lg-name').value = p.name;
+    $('rg-class').value = p['class'];
+    $('rg-name').value = p.name;
+    var hit = false;
+    Array.prototype.forEach.call(document.querySelectorAll('#rg-subject input'), function (r) {
+      r.checked = (r.value === p.subject);
+      if (r.checked) { hit = true; }
+    });
+    $('rg-custom').value = '';
+    if (p.subject && !hit) {
+      var customRadio = document.querySelector('#rg-subject input[value="自定义"]');
+      if (customRadio) { customRadio.checked = true; }
+      $('rg-custom').value = p.subject;
+      $('f-rg-custom').hidden = false;
+    } else {
+      $('f-rg-custom').hidden = true;
+    }
+  }
+
+  /* ---------- 校验 ---------- */
+  var RULES = {
+    'lg-class': function (v) { return v.trim() ? '' : '请输入班级信息'; },
+    'lg-name': function (v) { return v.trim() ? '' : '请输入教师名字'; },
+    'rg-class': function (v) { return v.trim() ? '' : '请输入班级信息'; },
+    'rg-name': function (v) { return v.trim() ? '' : '请输入教师名字'; }
+  };
+  function paint(id, text) {
+    var input = $(id);
+    var msg = $(id + '-msg');
+    var field = $('f-' + id);
+    if (!msg) { return !text; }
+    msg.textContent = text;
+    if (input && input.setAttribute) { input.setAttribute('aria-invalid', text ? 'true' : 'false'); }
+    if (field) { field.classList.toggle('is-bad', !!text); }
+    return !text;
+  }
+  function checkField(id) { return paint(id, RULES[id]($(id).value)); }
+
+  function subjectPick() {
+    var picked = document.querySelector('#rg-subject input:checked');
+    return picked ? picked.value : '';
+  }
+  function subjectValue() {
+    var pick = subjectPick();
+    if (pick === '自定义') { return $('rg-custom').value.trim(); }
+    return pick;
+  }
+  function validateSubject() {
+    var pick = subjectPick();
+    if (!pick) {
+      paint('rg-custom', '');
+      return paint('rg-subject', '请选择执教科目');
+    }
+    if (pick === '自定义') {
+      paint('rg-subject', '');
+      return paint('rg-custom', $('rg-custom').value.trim() ? '' : '请输入执教科目');
+    }
+    paint('rg-subject', '');
+    paint('rg-custom', '');
+    return true;
+  }
+  function syncCustomSlot() {
+    var show = subjectPick() === '自定义';
+    $('f-rg-custom').hidden = !show;
+    if (!show) { paint('rg-custom', ''); }
+  }
+
+  var touched = {};
+  Object.keys(RULES).forEach(function (id) {
+    var input = $(id);
+    input.addEventListener('input', function () {
+      var msg = $(id + '-msg');
+      if (msg.textContent || touched[id]) { checkField(id); }
+      if (id === 'lg-class' || id === 'lg-name') { clearFormMsg(); repaintLoginBad(); }
+    });
+  });
+  $('rg-custom').addEventListener('input', function () {
+    var msg = $('rg-custom-msg');
+    if (msg.textContent || touched['rg-custom']) { paint('rg-custom', $('rg-custom').value.trim() ? '' : '请输入执教科目'); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#rg-subject input'), function (radio) {
+    radio.addEventListener('change', function () {
+      touched['rg-subject'] = true;
+      syncCustomSlot();
+      validateSubject();
+    });
+  });
+
+  function focusFirstBad(form) {
+    var bad = form.querySelector('.field.is-bad input, .customslot.is-bad input');
+    if (bad) { bad.focus(); }
+  }
+  function clearFormMsg() { lgFormMsg.textContent = ''; }
+  function clearLoginPair() {
+    ['f-lg-class', 'f-lg-name'].forEach(function (k) { $(k).classList.remove('is-bad'); });
+    ['lg-class', 'lg-name'].forEach(function (k) { $(k).setAttribute('aria-invalid', 'false'); });
+  }
+  function repaintLoginBad() {
+    ['lg-class', 'lg-name'].forEach(function (k) {
+      $('f-' + k).classList.toggle('is-bad', !!$(k + '-msg').textContent);
+    });
+  }
+  function markLoginBad() {
+    ['f-lg-class', 'f-lg-name'].forEach(function (k) { $(k).classList.add('is-bad'); });
+    ['lg-class', 'lg-name'].forEach(function (k) { $(k).setAttribute('aria-invalid', 'true'); });
+  }
+
+  /* ---------- 提交：登录（班级 + 姓名与本机档案完全一致才放行） ---------- */
+  panelLogin.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearFormMsg();
+    var ok = true;
+    ['lg-class', 'lg-name'].forEach(function (id) {
+      touched[id] = true;
+      if (!checkField(id)) { ok = false; }
+    });
+    if (!ok) { focusFirstBad(panelLogin); return; }
+
+    var profile = readProfile();
+    var wantClass = $('lg-class').value.trim();
+    var wantName = $('lg-name').value.trim();
+    if (!profile) {
+      lgFormMsg.textContent = '本机还没有教师档案，请先注册';
+      markLoginBad();
+      $('lg-class').focus();
+      return;
+    }
+    if (profile['class'] !== wantClass || profile.name !== wantName) {
+      lgFormMsg.textContent = '班级或姓名与本机档案不一致';
+      markLoginBad();
+      $('lg-class').focus();
+      return;
+    }
+    clearSwitched();
+    setSession(true);
+    showEntry(profile);
+  });
+
+  /* ---------- 提交：注册（写档案 + 自动登录 + 预填） ---------- */
+  panelRegister.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var ok = true;
+    ['rg-class', 'rg-name'].forEach(function (id) {
+      touched[id] = true;
+      if (!checkField(id)) { ok = false; }
+    });
+    touched['rg-subject'] = true;
+    if (!validateSubject()) { ok = false; }
+    if (!ok) { focusFirstBad(panelRegister); return; }
+
+    var profile = {
+      'class': $('rg-class').value.trim(),
+      name: $('rg-name').value.trim(),
+      subject: subjectValue()
+    };
+    saveProfile(profile);
+    clearSwitched();
+    setSession(true);
+    prefill(profile);
+    showEntry(profile);
+  });
+
+  /* ---------- 退出：回登录页，输入框里的档案保留 ---------- */
+  $('logout').addEventListener('click', function () {
+    setSession(false);
+    clearFormMsg();
+    clearLoginPair();
+    showAuth('login');
+    tabLogin.focus();
+  });
+
+  /* ---------- 切换账号：清空预填，焦点落到班级输入框 ---------- */
+  $('switch').addEventListener('click', function () {
+    setSession(false);
+    try { localStorage.setItem(SWITCH_KEY, '1'); } catch (e) {}
+    ['lg-class', 'lg-name', 'rg-class', 'rg-name', 'rg-custom'].forEach(function (id) { $(id).value = ''; });
+    Array.prototype.forEach.call(document.querySelectorAll('#rg-subject input'), function (r) { r.checked = false; });
+    $('f-rg-custom').hidden = true;
+    ['rg-class', 'rg-name', 'rg-subject', 'rg-custom', 'lg-class', 'lg-name'].forEach(function (id) {
+      paint(id, '');
+      var field = $('f-' + id);
+      if (field) { field.classList.remove('is-bad'); }
+    });
+    clearFormMsg();
+    clearLoginPair();
+    touched = {};
+    showAuth('login');
+    $('lg-class').focus();
+  });
+
+  /* ---------- 启动：有档案就预填；有会话直接进选择入口 ---------- */
+  (function boot() {
+    var profile = readProfile();
+    if (profile && !switchedAccount()) { prefill(profile); }
+    if (profile && hasSession()) {
+      showEntry(profile);
+    } else {
+      showAuth('login');
+    }
+  })();
+})();
+</script>
+</body>
+</html>
