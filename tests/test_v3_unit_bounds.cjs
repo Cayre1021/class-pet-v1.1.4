@@ -188,10 +188,18 @@ const tick = () => new Promise(r => setTimeout(r, 0));
 
     const sc = await store2.v3Score({ studentIds: [STU_A], delta: 45, reason: '补到破壳线', subjectCode: 'chinese' });
     assert(sc.ok === true && !!sc.operationId, '门禁③前置：语文再 +45 落库（合计 50）', sc);
-    assert(Number(petRow(STU_A, 'subj_chinese').exp) === 50, '经验达标 = 破壳阈值 50', petRow(STU_A, 'subj_chinese').exp);
+    const at50 = petRow(STU_A, 'subj_chinese');
+    assert(Number(at50.exp) === 50, '经验达标 = 破壳阈值 50', at50.exp);
+    assert(at50.species_code === 'egg' && Number(at50.visual_stage) === 0 && !at50.hatched_at,
+        '★ 到 50 经验也不会自动孵化：仍是蛋、stage=0、hatched_at 为空（必须由用户点破壳）',
+        { sp: at50.species_code, st: at50.visual_stage, hatched: at50.hatched_at });
+    const vmAt50 = await store2.getV3ViewModel();
+    const stuAt50 = vmAt50.students.filter(s => s.id === STU_A)[0];
+    assert(stuAt50.petsBySubject.chinese.isEgg === true, '50 经验时 ViewModel 仍显示为蛋', stuAt50.petsBySubject.chinese.isEgg);
     h = await store2.v3Hatch({ studentId: STU_A, subjectCode: 'chinese', speciesCode: 'cat', nickname: '单元小猫' });
     assert(h.ok === true && h.subjectCode === 'chinese', '门禁③：经验达标 + 学科已解锁 → 破壳放行', h);
     const hatchedRow = petRow(STU_A, 'subj_chinese');
+    assert(!!hatchedRow.hatched_at, '破壳后写入显式孵化标记 hatched_at', hatchedRow.hatched_at);
     assert(hatchedRow.species_code === 'cat' && Number(hatchedRow.visual_stage) >= 1,
         '门禁③放行后库里写入物种与形态（cat / stage>=1）', { sp: hatchedRow.species_code, st: hatchedRow.visual_stage });
 

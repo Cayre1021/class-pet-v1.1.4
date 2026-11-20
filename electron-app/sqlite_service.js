@@ -153,6 +153,7 @@ class SQLiteService {
             exp INTEGER DEFAULT 0,
             level INTEGER DEFAULT 1,
             visual_stage INTEGER DEFAULT 0,
+            hatched_at INTEGER,
             pending_stage INTEGER,
             is_display INTEGER DEFAULT 1,
             teacher_positive_exp_total INTEGER DEFAULT 0,
@@ -208,6 +209,26 @@ class SQLiteService {
         );
         `;
         this.db.run(ddl);
+        this.ensurePetsHatchColumn();
+    }
+
+    // 老库补列：hatched_at 是"是否已孵化"的显式记录（不再靠 visual_stage 推断）
+    ensurePetsHatchColumn() {
+        if (this._hatchColChecked) return true;
+        try {
+            const cols = this.query("PRAGMA table_info(pets)").map(c => c.name);
+            if (cols.indexOf('hatched_at') < 0) {
+                this.db.run("ALTER TABLE pets ADD COLUMN hatched_at INTEGER");
+                this.db.run("UPDATE pets SET hatched_at = COALESCE(created_at, ?) WHERE visual_stage >= 1 AND species_code IS NOT NULL AND species_code <> 'egg'", [Date.now()]);
+                this.saveToDiskSync();
+                console.log('[SQLiteService] pets 已补 hatched_at 列，并把历史已显示的宠物标记为已孵化');
+            }
+            this._hatchColChecked = true;
+            return true;
+        } catch (e) {
+            console.warn('[SQLiteService] 补 hatched_at 失败:', e && e.message);
+            return false;
+        }
     }
 
     query(sql, params = []) {
@@ -243,6 +264,7 @@ class SQLiteService {
 
     // 核心业务：全量加载状态（兼容前端 runtime 格式）
     loadAllState(classId = 'c_class02_01') {
+        this.ensurePetsHatchColumn();
         const studentsRows = this.query("SELECT * FROM students WHERE class_id = ? ORDER BY student_no ASC", [classId]);
         const petsRows = this.query("SELECT * FROM pets WHERE class_id = ?", [classId]);
         const rulesRows = this.query("SELECT * FROM behavior_rules WHERE class_id = ? ORDER BY sort_order ASC", [classId]);
@@ -330,6 +352,7 @@ class SQLiteService {
 
     // 核心业务：单人/批量赋分事务并记录真实审计流水 (全面支持多学科宠物独立记分)
     recordScoreOperation({ classId = 'c_class02_01', teacherId = 't_liu_01', studentIds, delta, reason, ruleId = null, subjectCode = null }) {
+        this.ensurePetsHatchColumn();
         const opId = 'op_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
         const now = Date.now();
 
@@ -382,9 +405,9 @@ class SQLiteService {
                 // 视觉形态阶段进阶计算 (只升不降)
                 // 注意：蛋（species_code='egg'）在破壳前 stage 必须保持 0 —— 否则"0 经验加 5 分"会被抬成 stage 1，
                 // 看起来就像孵化了。破壳是 hatchStudentPet 的唯一职责。
-                const isEggPet = String(pet.species_code || 'egg') === 'egg';
+                const isHatchedRow = pet.hatched_at !== null && pet.hatched_at !== undefined;
                 let stageAfter = Number(pet.visual_stage) || 0;
-                if (!isEggPet) {
+                if (isHatchedRow) {   /* 只有已孵化的宠物才进化形态；蛋永远 stage 0，直到老师/学生点破壳 */
                     const stageThresh = this.query("SELECT stage FROM class_visual_stages WHERE class_id = ? AND min_level <= ? ORDER BY stage DESC LIMIT 1", [classId, levelAfter]);
                     if (stageThresh.length > 0 && stageThresh[0].stage > stageAfter) {
                         stageAfter = stageThresh[0].stage;
@@ -525,6 +548,7 @@ class SQLiteService {
 
     // 核心业务：破壳认领或自选学科宠物形态
     hatchStudentPet({ classId = 'c_class02_01', studentId, subjectCode = 'chinese', speciesCode = 'cat', nickname = '' }) {
+        this.ensurePetsHatchColumn();
         const now = Date.now();
         const realId = this.normalizeStudentId(studentId);
         const subId = subjectCode === 'math' ? 'subj_math' : (subjectCode === 'english' ? 'subj_english' : 'subj_chinese');
@@ -537,7 +561,11 @@ class SQLiteService {
         if (stuRows.length === 0) return { success: false, error: 'NO_STUDENT:学生不存在或不属于该班级' };
         if (existing.length > 0) {
             const ex = existing[0];
-            const already = (Number(ex.visual_stage) || 0) >= 1 && String(ex.species_code || 'egg') !== 'egg';
+            // 是否已孵化只看显式标记（老库无该列时退回旧规则）
+            const hasCol = Object.prototype.hasOwnProperty.call(ex, 'hatched_at');
+            const already = hasCol
+                ? (ex.hatched_at !== null && ex.hatched_at !== undefined)
+                : ((Number(ex.visual_stage) || 0) >= 1 && String(ex.species_code || 'egg') !== 'egg');
             if (already) return { success: false, error: 'ALREADY_HATCHED:该学科宠物已经破壳认领' };
         }
         const threshRow = this.query("SELECT min_exp FROM class_level_thresholds WHERE class_id = ? AND level = 1", [classId])[0];
@@ -554,14 +582,15 @@ class SQLiteService {
             targetPetId = existing[0].id;
             this.execute(`
                 UPDATE pets 
-                SET species_code = ?, nickname = ?, exp = MAX(15, exp), visual_stage = MAX(1, visual_stage), level = MAX(1, level), updated_at = ?
+                SET species_code = ?, nickname = ?, exp = MAX(15, exp), visual_stage = MAX(1, visual_stage), level = MAX(1, level),
+                    hatched_at = COALESCE(hatched_at, ?), updated_at = ?
                 WHERE id = ?;
-            `, [speciesCode, nickname || '宠物', now, targetPetId]);
+            `, [speciesCode, nickname || '宠物', now, now, targetPetId]);
         } else {
             this.execute(`
-                INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, '#FFAA00', 15, 1, 1, ?, ?);
-            `, [petId, classId, realId, speciesCode, subId, nickname || '宠物', now, now]);
+                INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, hatched_at, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, '#FFAA00', 15, 1, 1, ?, ?, ?);
+            `, [petId, classId, realId, speciesCode, subId, nickname || '宠物', now, now, now]);
         }
 
         // 破壳后自动同步设定为当前大屏主展示宠物

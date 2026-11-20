@@ -945,7 +945,11 @@ class ClassPetStore {
         const derived = v3StageForLevel(level, stages);
         const storedStage = row ? Math.max(0, Math.min(5, Number(row.visual_stage) || 0)) : 0;
         const visualStage = Math.max(Number(derived.stage) || 0, storedStage);
-        const isHatched = visualStage >= 1 && speciesCode !== 'egg';
+        // 是否已孵化 = 显式记录（pets.hatched_at），不再靠 stage/物种推断；老库缺列时退回旧规则
+        const hasHatchCol = row && Object.prototype.hasOwnProperty.call(row, 'hatched_at');
+        const isHatched = hasHatchCol
+            ? (row.hatched_at !== null && row.hatched_at !== undefined)
+            : (visualStage >= 1 && speciesCode !== 'egg');
         const shownSpecies = isHatched ? speciesCode : 'egg';
         const progress = this.getExpProgress(exp, level, isHatched);
         const catalog = PET_SPECIES_CATALOG[shownSpecies];
