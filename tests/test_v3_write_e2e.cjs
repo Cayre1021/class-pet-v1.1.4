@@ -38,7 +38,7 @@ function registerIpc() {
     h('db:undoScore', (operationId) => svc.undoOperation(operationId));
     h('db:getStudentAuditLogs', (studentId) => svc.getStudentAuditLogs(studentId));
     h('db:hatchPet', (payload) => svc.hatchStudentPet(payload));
-    h('db:saveStudent', (p) => svc.saveStudent(p.student, p.classId || 'c_class02_01'));
+    h('db:saveStudent', (p) => svc.saveStudent(p.student, p.classId || 'c_class02_01', p.options));
     h('db:importStudents', (p) => svc.importStudents(p.students, p.classId || 'c_class02_01'));
     h('db:saveAllStudents', (p) => svc.saveAllStudents(p.students, p.classId || 'c_class02_01'));
     h('db:archiveStudent', (p) => svc.archiveStudent(p.studentId, p.isArchived, p.classId));
@@ -210,7 +210,9 @@ app.whenReady().then(async () => {
     const newRow = q("SELECT * FROM students WHERE id = ?", [created.studentId])[0];
     assert(!!newRow && newRow.name === '端到端乙' && String(newRow.group_name).indexOf('3') >= 0, '新增学生落库（姓名/小组）', newRow && { name: newRow.name, g: newRow.group_name });
     const dupTry = await callCore("c.v3CreateStudent({ name: '端到端乙' })");
-    assert(dupTry && dupTry.ok === false && dupTry.reason === 'duplicate-name', '同名新增被库侧拦截', dupTry);
+    assert(dupTry && dupTry.ok === true && dupTry.no !== created.no && dupTry.studentId !== created.studentId, '同名新增获得独立 ID 和学号', dupTry);
+    const dupNo = await callCore("c.v3CreateStudent({ name: '端到端丙', no: " + JSON.stringify('000' + created.no) + " })");
+    assert(dupNo && dupNo.ok === false && dupNo.reason === 'duplicate-no', '跨 preload 和 IPC 拒绝等价重复学号', dupNo);
 
     const petBeforeEdit = q("SELECT * FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [created.studentId])[0];
     const prof = await callCore("c.v3SaveStudentProfile({ studentId: " + JSON.stringify(created.studentId) + ", name: '端到端乙改', group: 2 })");
@@ -218,6 +220,48 @@ app.whenReady().then(async () => {
     const petAfterEdit = q("SELECT * FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [created.studentId])[0];
     assert(String(petAfterEdit.exp) === String(petBeforeEdit.exp) && petAfterEdit.species_code === petBeforeEdit.species_code && String(petAfterEdit.level) === String(petBeforeEdit.level),
         '编辑只改姓名/小组，物种与经验不变（D12=A）', { before: [petBeforeEdit.species_code, petBeforeEdit.exp, petBeforeEdit.level], after: [petAfterEdit.species_code, petAfterEdit.exp, petAfterEdit.level] });
+
+    const importCsv = async (csv, expectedToast) => {
+        await m.js(`(() => {
+            const input = document.querySelector('#file-input');
+            const files = new DataTransfer();
+            files.items.add(new File([${JSON.stringify(csv)}], 'qa-roster.csv', { type: 'text/csv' }));
+            input.files = files.files;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        })()`);
+        for (let i = 0; i < 50; i++) {
+            const toast = await m.js("document.querySelector('#toast-text').textContent");
+            if (toast.includes(expectedToast)) return toast;
+            await sleep(100);
+        }
+        return m.js("document.querySelector('#toast-text').textContent");
+    };
+    const readRoster = () => q("SELECT * FROM students WHERE class_id = ? ORDER BY id", [CLASS]);
+    const readPets = () => q("SELECT * FROM pets WHERE class_id = ? ORDER BY id", [CLASS]);
+    const rosterBeforeCsv = readRoster();
+    const petsBeforeCsv = readPets();
+    const rejected = await importCsv('学号,姓名,小组\n9800,不应写入,1\n1,重复甲,1\n01,重复乙,2', '文件里学号重复');
+    assert(rejected.includes('文件里学号重复') && rejected.includes('数据未改动') &&
+        JSON.stringify(readRoster()) === JSON.stringify(rosterBeforeCsv) && JSON.stringify(readPets()) === JSON.stringify(petsBeforeCsv),
+        'CSV 含 1 和 01 时整份拒绝且零写入', rejected);
+
+    const originalName = '端到端甲';
+    const original = rosterBeforeCsv.find(s => s.id === eggId);
+    const originalPets = () => q("SELECT id, species_code, nickname, exp, level, visual_stage FROM pets WHERE student_id = ? ORDER BY id", [eggId]);
+    const beforeSameName = originalPets();
+    const imported = await importCsv('学号,姓名,小组\n,' + originalName + ',2\n9902,' + originalName + ',3', '已导入 2 人');
+    const sameNameRows = readRoster().filter(s => s.name === originalName);
+    assert(imported.includes('已导入 2 人') && sameNameRows.length === 3 &&
+        sameNameRows.some(s => s.id === eggId && s.student_no === original.student_no) &&
+        sameNameRows.some(s => s.id !== eggId && s.student_no === '9902') &&
+        sameNameRows.some(s => s.student_no === '9903') && JSON.stringify(originalPets()) === JSON.stringify(beforeSameName),
+        'CSV 同名新增及空号分配保留原学生学号与宠物', imported);
+    const merged = await importCsv('学号,姓名,小组,等级,经验\n000' + original.student_no + ',端到端甲改,4,99,99999', '已导入 1 人');
+    const updated = readRoster().find(s => s.id === eggId);
+    assert(merged.includes('已导入 1 人') && updated.student_no === original.student_no &&
+        updated.name === '端到端甲改' && updated.group_name === '第4组' &&
+        JSON.stringify(originalPets()) === JSON.stringify(beforeSameName),
+        'CSV 等价学号更新原学生，等级经验和宠物不被覆盖', merged);
 
     // 4.5 备份恢复：错误版本被拒且数据不变；正确备份恢复成功
     const vmNow = await callCore("c.getV3ViewModel()");

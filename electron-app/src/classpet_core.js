@@ -1220,22 +1220,17 @@ class ClassPetStore {
         if (!db || typeof db.saveStudent !== 'function') return { ok: false, reason: 'no-bridge' };
         const cleanName = String(name || '').trim();
         if (!cleanName) return { ok: false, reason: 'bad-name', message: '姓名不能为空' };
-        const cleanNo = String(no === undefined || no === null || String(no).trim() === '' ? '' : no).replace(/\D/g, '');
+        const cleanNo = String(no ?? '').trim();
         const vm = await this.getV3ViewModel();
-        if (vm.students.some(s => s.name === cleanName)) return { ok: false, reason: 'duplicate-name', message: '本班已有同名学生：' + cleanName };
-        if (cleanNo && vm.students.some(s => String(s.no) === cleanNo.padStart(2, '0'))) {
-            return { ok: false, reason: 'duplicate-no', message: '学号 ' + cleanNo + ' 已被占用' };
-        }
-        const nextNo = cleanNo || String(Math.max(0, ...vm.students.map(s => Number(s.no) || 0)) + 1);
         const id = 'st_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
         let res;
         try {
-            res = await db.saveStudent({ id: id, student_no: nextNo.padStart(2, '0'), name: cleanName, group: Number(group) || 1, pets: {} }, vm.classId);
+            res = await db.saveStudent({ id: id, student_no: cleanNo, name: cleanName, group: Number(group) || 1, pets: {} }, vm.classId, { strictStudentNo: true });
         } catch (e) {
             return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200) };
         }
-        if (!res || res.success !== true) return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认' };
-        return { ok: true, studentId: id, no: nextNo.padStart(2, '0'), name: cleanName, group: Number(group) || 1 };
+        if (!res || res.success !== true) return { ok: false, reason: res?.reason || 'db-failed', error: res?.error || '数据库未确认' };
+        return { ok: true, studentId: id, no: res.studentNo, name: cleanName, group: Number(group) || 1 };
     }
 
     // 4.1 编辑学生：只改姓名/小组，绝不碰等级、经验、物种
@@ -1247,9 +1242,6 @@ class ClassPetStore {
         const vm = await this.getV3ViewModel();
         const hit = vm.students.filter(s => s.id === String(studentId))[0];
         if (!hit) return { ok: false, reason: 'not-found', message: '学生不存在' };
-        if (name !== undefined && String(name).trim() !== hit.name && vm.students.some(s => s.name === String(name).trim())) {
-            return { ok: false, reason: 'duplicate-name', message: '本班已有同名：' + String(name).trim() };
-        }
         const patch = {};
         if (name !== undefined) patch.name = String(name).trim();
         if (group !== undefined) patch.group = group;

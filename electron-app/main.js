@@ -148,9 +148,9 @@ ipcMain.handle('db:hatchPet', async (event, payload) => {
     }
 });
 
-ipcMain.handle('db:saveStudent', async (event, { student, classId }) => {
+ipcMain.handle('db:saveStudent', async (event, { student, classId, options }) => {
     try {
-        return sqliteService.saveStudent(student, classId || 'c_class02_01');
+        return sqliteService.saveStudent(student, classId || 'c_class02_01', options);
     } catch (err) {
         console.error('[Main IPC] db:saveStudent 失败:', err);
         return { success: false, error: err.message };

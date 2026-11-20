@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         undoScore: (operationId) => ipcRenderer.invoke('db:undoScore', operationId),
         getStudentAuditLogs: (studentId) => ipcRenderer.invoke('db:getStudentAuditLogs', studentId),
         hatchPet: (payload) => ipcRenderer.invoke('db:hatchPet', payload),
-        saveStudent: (student, classId) => ipcRenderer.invoke('db:saveStudent', { student, classId }),
+        saveStudent: (student, classId, options) => ipcRenderer.invoke('db:saveStudent', { student, classId, options }),
         importStudents: (students, classId) => ipcRenderer.invoke('db:importStudents', { students, classId }),
         saveAllStudents: (students, classId) => ipcRenderer.invoke('db:saveAllStudents', { students, classId }),
         archiveStudent: (studentId, isArchived, classId) => ipcRenderer.invoke('db:archiveStudent', { studentId, isArchived, classId }),

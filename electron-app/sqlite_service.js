@@ -682,11 +682,16 @@ class SQLiteService {
     }
 
     // 核心业务：保存/更新单个学生及其 3 科萌宠档案
-    saveStudent(student, classId = 'c_class02_01') {
+    saveStudent(student, classId = 'c_class02_01', options) {
         if (!student || !student.id) return { success: false, error: '无效的学生对象' };
+        const strictNo = options?.strictStudentNo === true;
         const now = Date.now();
-        const rawNo = student.student_no !== undefined ? student.student_no : (student.no !== undefined ? student.no : '01');
-        const no = String(rawNo).padStart(2, '0');
+        const rawNo = student.student_no !== undefined ? student.student_no : (student.no !== undefined ? student.no : (strictNo ? '' : '01'));
+        const requestedNo = strictNo ? String(rawNo ?? '').trim() : String(rawNo);
+        if (strictNo && requestedNo && !/^\d+$/.test(requestedNo)) {
+            return { success: false, reason: 'bad-no', error: '学号必须为数字' };
+        }
+        const no = (strictNo ? requestedNo.replace(/^0+(?=\d)/, '') : requestedNo).padStart(2, '0');
         const name = student.name || '未命名';
         const rawGroup = student.group !== undefined ? student.group : (student.group_name !== undefined ? student.group_name : 1);
         const groupNum = typeof rawGroup === 'number' ? rawGroup : (parseInt(String(rawGroup).replace(/\D/g, ''), 10) || 1);
@@ -703,10 +708,28 @@ class SQLiteService {
                 VALUES (?, 't_teacher', '实验小学', '教学班级', '教学班级', 'subj_chinese', 20, ?, ?);
             `, [classId, now, now]);
 
-            // 2. 避免 UNIQUE (class_id, student_no) 冲突：若该学号已被其他学生占用，自动顺延
+            // V3 显式学号冲突直接拒绝，留空才分配新号；旧调用保留自动顺延。
             let safeNo = no;
-            const conflict = this.query("SELECT id FROM students WHERE class_id = ? AND student_no = ? AND id != ? LIMIT 1", [classId, safeNo, student.id]);
-            if (conflict.length > 0) {
+            const existing = this.query("SELECT id, class_id, student_no FROM students WHERE id = ? LIMIT 1", [student.id]);
+            if (strictNo && existing.length && existing[0].class_id !== classId) {
+                this.db.run('ROLLBACK;');
+                return { success: false, error: '学生不属于当前班级' };
+            }
+            const conflict = strictNo
+                ? (requestedNo && this.query(
+                    "SELECT id FROM students WHERE class_id = ? AND id != ? AND trim(student_no) <> '' AND trim(student_no) NOT GLOB '*[^0-9]*' AND ltrim(trim(student_no), '0') = ? LIMIT 1",
+                    [classId, student.id, no.replace(/^0+/, '')]
+                ).length > 0)
+                : this.query("SELECT id FROM students WHERE class_id = ? AND student_no = ? AND id != ? LIMIT 1", [classId, safeNo, student.id]).length > 0;
+            if (strictNo && conflict) {
+                this.db.run('ROLLBACK;');
+                return { success: false, reason: 'duplicate-no', error: '学号 ' + requestedNo + ' 已被占用' };
+            }
+            if (strictNo && requestedNo && existing.length && /^\d+$/.test(String(existing[0].student_no).trim()) &&
+                String(existing[0].student_no).trim().replace(/^0+/, '') === no.replace(/^0+/, '')) {
+                safeNo = existing[0].student_no;
+            }
+            if (conflict || (strictNo && !requestedNo)) {
                 const maxRow = this.query("SELECT MAX(CAST(student_no AS INTEGER)) as max_no FROM students WHERE class_id = ?", [classId]);
                 const maxVal = (maxRow && maxRow[0] && maxRow[0].max_no) ? parseInt(maxRow[0].max_no, 10) : 0;
                 safeNo = (maxVal + 1).toString().padStart(2, '0');
@@ -716,7 +739,6 @@ class SQLiteService {
 
             const targetDisplaySub = student.activeSubject || 'chinese';
             const displayPetId = 'pet_' + student.id + '_' + targetDisplaySub.charAt(0);
-            const existing = this.query("SELECT id FROM students WHERE id = ? LIMIT 1", [student.id]);
             if (existing.length > 0) {
                 this.db.run(`
                     UPDATE students 
@@ -746,13 +768,14 @@ class SQLiteService {
                 const nickname = p.name || (spCode === 'egg' ? '神秘宠物蛋' : sub.defaultName);
                 const isDisplay = (student.activeSubject ? student.activeSubject === sub.key : sub.key === 'chinese') ? 1 : 0;
 
-                const existingPet = this.query("SELECT id FROM pets WHERE id = ? OR (student_id = ? AND subject_id = ?) LIMIT 1", [pId, student.id, sub.subId]);
+                const existingPet = this.query("SELECT id, species_code, nickname FROM pets WHERE id = ? OR (student_id = ? AND subject_id = ?) LIMIT 1", [pId, student.id, sub.subId]);
                 if (existingPet.length > 0) {
+                    const savedNickname = strictNo && !p.name && existingPet[0].species_code === spCode ? existingPet[0].nickname : nickname;
                     this.db.run(`
                         UPDATE pets
                         SET species_code = ?, nickname = ?, exp = ?, level = ?, visual_stage = ?, is_display = ?, updated_at = ?
                         WHERE id = ?;
-                    `, [spCode, nickname, pExp, pLevel, pStage, isDisplay, now, existingPet[0].id]);
+                    `, [spCode, savedNickname, pExp, pLevel, pStage, isDisplay, now, existingPet[0].id]);
                 } else {
                     this.db.run(`
                         INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, is_display, created_at, updated_at)
