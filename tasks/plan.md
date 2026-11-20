@@ -264,3 +264,15 @@
 - 假设（G8）：阈值弹窗真实态沿用单值输入，按「L0=0、L1=破壳门槛、L(n)=L(n-1)+步长」生成 21 级（PRD「线性参数快捷生成」口径）；6 阶段原样透传。破壳物种沿用页面既有物种轮转（页面无选种 UI），并在写库前排除 `'egg'`。
 - 未验证：真实应用启动路径（未在正式库上启动 app，避免任何写入风险）；真机投影/触屏/音效；教师台赋分台 13 条规则在 <1440×900 的几何；`?audit=1` 在真实数据态下未跑（该走位刻意不带 data-audit）。
 - 回滚：`git revert` 批次 3 提交；数据库未写入（`database/` 全程干净），无需数据回滚。备份：`scratch/batch3/classpet.sqlite.bak-*`。
+
+## 2026-11-19：V3 批次 4 · 管理能力（新增/编辑学生、台账、CSV、JSON 备份）+ 入口切换
+
+- 负责人决定（2026-11-19）：**默认启动页切到 `v3_portal.html`**（离线档案，D13=A）；学生大屏**不新增撤销入口**（撤销留在教师台）。
+- 入口（Lead）：`main.js` `startPage` 默认 `v3_portal.html`（老门户仍可 `CLASSPET_START_PAGE=portal_auth.html`）。新增 `tests/probe_app_boot.cjs` 用真实 `main.js` 启动验证：落在 V3 门户、0 报错、**数据库哈希与 mtime 未变**（启动不写库）。
+- 服务层（Lead）：`getClassLedger`（本堂课+今日台账，带学生/学科/撤销状态/前后经验）、`updateStudentProfile`（只改姓名/组）、`restoreClassBackup`（学生+宠物+阈值+形态+规则**单事务**，失败回滚）。
+- 核心（Lead）：`v3Ledger` / `v3CreateStudent`（同名/同学号拦截、无学号自动续号）/ `v3SaveStudentProfile` / `v3RestoreBackup`（kind+version+重复 id/学号+阈值单调校验）；preload 与 main.js 补 3 个 IPC 通道（共 17 个，无重复）。
+- 教师台（子代理 + Lead 复核）：4.1 新增/编辑（等级经验只读，D12=A）；4.2 考勤说明「当日开关、不落历史」；4.3 台账 7 列 + 本堂课/今日两档，仅最后一笔带撤销；4.4 CSV 转义 + 公式注入防护 + 往返一致，导入只应用 学号/姓名/小组/物种；4.5 JSON 备份 `kind`+`version` 校验 + 恢复失败不留半套。
+- **Lead 安全修正**：CSV 导入原走 `db.importStudents`（整班删除重建，CSV 漏行会真删学生）→ 改为逐人 `db.saveStudent` upsert（不删除文件中未出现的成员），并在写前拦截文件内学号/姓名重复；中途失败会刷新界面并如实播报已写入人数。
+- 验证（2026-11-19 真跑）：`node --check` core/service/main/preload 通过；`test_v3_viewmodel` 24/24、`test_v3_real_db` 12/12、`test_v3_writes` 31/31、`test_v3_manage` 20/20；`test_v3_write_e2e` **31/31**（含批次 4 台账/新增编辑/备份恢复，全部走真 preload+IPC+真服务+临时库）；5 个回归脚本全绿；`audit_all` 与批次 2 基线零差异；`probe_src_copy` 三页 0 破图 0 报错；启动探针如上。
+- 未验证：CSV/JSON 在真实 Electron 原生文件对话框与真实下载路径下的点验（探针里拦了 `URL.createObjectURL`/`a.click()`）；真实库上 CSV 导入后旧台账行对学生名的对照；小分辨率下 7 列台账宽度；真机投影/触屏/音效；真实数据态画面观感。
+- 回滚：`git revert` 本批提交；数据库未写入，无需数据回滚。

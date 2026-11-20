@@ -211,6 +211,33 @@ ipcMain.handle('db:saveBehaviorRules', async (event, { rules, classId }) => {
     }
 });
 
+ipcMain.handle('db:getClassLedger', async (event, { classId, fromTs, toTs }) => {
+    try {
+        return sqliteService.getClassLedger(classId || 'c_class02_01', fromTs, toTs);
+    } catch (err) {
+        console.error('[Main IPC] db:getClassLedger 失败:', err);
+        return [];
+    }
+});
+
+ipcMain.handle('db:updateStudentProfile', async (event, { studentId, patch, classId }) => {
+    try {
+        return sqliteService.updateStudentProfile(studentId, patch || {}, classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:updateStudentProfile 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('db:restoreClassBackup', async (event, { classId, payload }) => {
+    try {
+        return sqliteService.restoreClassBackup(classId || 'c_class02_01', payload);
+    } catch (err) {
+        console.error('[Main IPC] db:restoreClassBackup 失败:', err);
+        return { success: false, error: err.message };
+    }
+});
+
 ipcMain.handle('db:query', async (event, { sql, params }) => {
     try {
         return sqliteService.query(sql, params);
@@ -237,8 +264,11 @@ app.whenReady().then(async () => {
         console.error('[Main] SQLite 初始化发生异常:', e);
     }
 
-    const startPage = process.env.CLASSPET_START_PAGE || 'portal_auth.html';
-    const startTitle = startPage.includes('display') ? 'Class Pet - 班级电子宠物管理系统 (学生大屏)' : 'Class Pet - 班级电子宠物管理系统 (主控制台)';
+    // 默认启动页 = V3 门户（离线档案：班级+姓名，D13=A）；老门户口令流程仍可用 CLASSPET_START_PAGE=portal_auth.html 启动
+    const startPage = process.env.CLASSPET_START_PAGE || 'v3_portal.html';
+    const startTitle = startPage.includes('display') || startPage.includes('looseleaf')
+        ? 'Class Pet - 班级电子宠物管理系统 (学生大屏)'
+        : (startPage.includes('teacher') ? 'Class Pet - 班级电子宠物管理系统 (教师控制台)' : 'Class Pet - 班级电子宠物管理系统 (主控制台)');
     createMainWindow(startPage, startTitle);
 
     // 注册全局 F11 全屏切换快捷键 (支持教室一体机全屏使用)

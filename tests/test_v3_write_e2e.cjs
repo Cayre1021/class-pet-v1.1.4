@@ -45,6 +45,9 @@ function registerIpc() {
     h('db:deleteStudent', (p) => svc.deleteStudent(p.studentId, p.classId));
     h('db:saveThresholds', (p) => svc.saveThresholds(p.thresholds, p.stages, p.classId || 'c_class02_01'));
     h('db:saveBehaviorRules', (p) => svc.saveBehaviorRules(p.rules, p.classId || 'c_class02_01'));
+    h('db:getClassLedger', (p) => svc.getClassLedger(p.classId || 'c_class02_01', p.fromTs, p.toTs));
+    h('db:updateStudentProfile', (p) => svc.updateStudentProfile(p.studentId, p.patch || {}, p.classId || 'c_class02_01'));
+    h('db:restoreClassBackup', (p) => svc.restoreClassBackup(p.classId || 'c_class02_01', p.payload));
     h('db:query', (p) => svc.query(p.sql, p.params || []));
     h('db:execute', (p) => svc.execute(p.sql, p.params || []));
 }
@@ -186,6 +189,59 @@ app.whenReady().then(async () => {
     const disp = q("SELECT display_pet_id FROM students WHERE id = ?", [eggId])[0];
     assert(disp && disp.display_pet_id === hatched.id, '破壳后展示宠由库里更新', disp);
     paper.win.close();
+
+    // ================= 批次 4：台账 / 新增编辑 / 备份恢复（页面上下文 → 真库） =================
+    console.log('\n[批次4] 台账 / 新增编辑 / 备份恢复');
+    const m = await openPage('v3_teacher_desk.html');
+    const callCore = (expr) => m.js('(async function(){ var c = window.classPetRuntime; return await ' + expr + '; })()');
+
+    // 4.3 台账
+    const led = await callCore("c.v3Ledger({ fromTs: Date.now() - 24*3600*1000, toTs: Date.now() + 60000 })");
+    assert(led && led.ok === true && Array.isArray(led.rows), '页面上下文能取到真实台账', { n: led && led.rows && led.rows.length });
+    const ledOps = q("SELECT COUNT(DISTINCT id) AS n FROM score_operations WHERE class_id = ?", [CLASS])[0].n;
+    assert(led.rows.length > 0 && ledOps > 0, '台账行来自真实 score_operations/score_entries', { rows: led.rows.length, ops: ledOps });
+    const sample = led.rows[0];
+    assert(sample && typeof sample.subjectLabel === 'string' && typeof sample.undone === 'boolean' && sample.createdAt > 0,
+        '台账行带学科/撤销状态/真实时间', sample);
+
+    // 4.1 新增 + 编辑（编辑绝不改经验）
+    const created = await callCore("c.v3CreateStudent({ name: '端到端乙', group: 3 })");
+    assert(created && created.ok === true, '页面上下文新增学生成功', created);
+    const newRow = q("SELECT * FROM students WHERE id = ?", [created.studentId])[0];
+    assert(!!newRow && newRow.name === '端到端乙' && String(newRow.group_name).indexOf('3') >= 0, '新增学生落库（姓名/小组）', newRow && { name: newRow.name, g: newRow.group_name });
+    const dupTry = await callCore("c.v3CreateStudent({ name: '端到端乙' })");
+    assert(dupTry && dupTry.ok === false && dupTry.reason === 'duplicate-name', '同名新增被库侧拦截', dupTry);
+
+    const petBeforeEdit = q("SELECT * FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [created.studentId])[0];
+    const prof = await callCore("c.v3SaveStudentProfile({ studentId: " + JSON.stringify(created.studentId) + ", name: '端到端乙改', group: 2 })");
+    assert(prof && prof.ok === true, '编辑学生资料成功', prof);
+    const petAfterEdit = q("SELECT * FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [created.studentId])[0];
+    assert(String(petAfterEdit.exp) === String(petBeforeEdit.exp) && petAfterEdit.species_code === petBeforeEdit.species_code && String(petAfterEdit.level) === String(petBeforeEdit.level),
+        '编辑只改姓名/小组，物种与经验不变（D12=A）', { before: [petBeforeEdit.species_code, petBeforeEdit.exp, petBeforeEdit.level], after: [petAfterEdit.species_code, petAfterEdit.exp, petAfterEdit.level] });
+
+    // 4.5 备份恢复：错误版本被拒且数据不变；正确备份恢复成功
+    const vmNow = await callCore("c.getV3ViewModel()");
+    const backup = {
+        kind: 'classpet-class-backup', version: 1,
+        students: vmNow.students.map(s => ({
+            id: s.id, no: s.no, name: s.name, group: s.group,
+            pets: {
+                chinese: { id: s.petsBySubject.chinese.petId, species: s.petsBySubject.chinese.speciesCode, exp: s.petsBySubject.chinese.exp, level: s.petsBySubject.chinese.level, visualStage: s.petsBySubject.chinese.visualStage },
+                math: { id: s.petsBySubject.math.petId, species: s.petsBySubject.math.speciesCode, exp: s.petsBySubject.math.exp, level: s.petsBySubject.math.level, visualStage: s.petsBySubject.math.visualStage },
+                english: { id: s.petsBySubject.english.petId, species: s.petsBySubject.english.speciesCode, exp: s.petsBySubject.english.exp, level: s.petsBySubject.english.level, visualStage: s.petsBySubject.english.visualStage }
+            }
+        })),
+        thresholds: vmNow.thresholds, stages: vmNow.stages, rules: vmNow.rules
+    };
+    const countBefore = q("SELECT COUNT(*) AS n FROM students WHERE class_id = ?", [CLASS])[0].n;
+    const badVer = await callCore("c.v3RestoreBackup(" + JSON.stringify(Object.assign({}, backup, { version: 7 })) + ")");
+    assert(badVer && badVer.ok === false && badVer.reason === 'bad-version', '错误版本备份被拒', badVer);
+    assert(q("SELECT COUNT(*) AS n FROM students WHERE class_id = ?", [CLASS])[0].n === countBefore, '被拒的恢复没有改动数据');
+    const restore = await callCore("c.v3RestoreBackup(" + JSON.stringify(backup) + ")");
+    assert(restore && restore.ok === true, '合法备份在真库恢复成功', restore);
+    const restoredCount = q("SELECT COUNT(*) AS n FROM students WHERE class_id = ?", [CLASS])[0].n;
+    assert(restoredCount === backup.students.length, '恢复后学生数与备份一致', { db: restoredCount, bak: backup.students.length });
+    m.win.close();
 
     // ================= 收尾：正式库原件未被修改 =================
     assert(fs.statSync(srcDb).mtimeMs === srcMtime, 'database/classpet.sqlite 原件未被修改');

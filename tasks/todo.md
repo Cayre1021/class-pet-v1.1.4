@@ -175,3 +175,15 @@
 - [ ] 待负责人确认：学生大屏是否要新增「撤销」入口（本页原本没有，未擅自加）。
 - [ ] 待批次 4：新增/编辑学生、CSV/JSON 导入导出、台账/考勤（教师台这些入口在真实态仍是明确只读提示）。
 - [ ] 待人工：真机投影/触屏/音效；真实数据态画面观感（本会话无图像能力，不声称视觉通过）。
+
+## feature/v3-hifi-prototypes：批次 4 管理能力 + 入口切换（2026-11-19）
+
+- [x] 默认启动页切 `v3_portal.html`，真实启动探针验证（0 报错、库未变）。
+- [x] 服务层：getClassLedger / updateStudentProfile / restoreClassBackup（单事务）。
+- [x] 核心：v3Ledger / v3CreateStudent / v3SaveStudentProfile / v3RestoreBackup + 3 个 IPC 通道。
+- [x] 教师台：新增/编辑学生（等级经验只读）、考勤说明、台账两档+撤销状态、CSV（转义/防注入/往返）、JSON 备份恢复。
+- [x] CSV 导入由「整班重建」改为逐人 upsert（不删除未出现成员）。
+- [x] 测试：test_v3_manage 20/20、test_v3_write_e2e 31/31（含批次 4）。
+- [ ] 待人工：原生文件对话框/真实下载点验；小分辨率台账宽度；真机投影/触屏/音效。
+- [ ] 待批次 5：三页存储键统一、renderLanes 保焦点、弹层焦点陷阱/inert、计时器清 interval、抽点与 Space 冲突。
+- [ ] 待批次 6：单测/集成/e2e 齐套、对齐表/回归报告/变更日志/教师手册。

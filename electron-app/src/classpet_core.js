@@ -1167,6 +1167,132 @@ class ClassPetStore {
         return { allowed: true, reason: 'OK', message: '', pet: pet };
     }
 
+    // ========== 批次 4：管理能力（新增/编辑学生、台账、整包恢复） ==========
+
+    // 4.3 台账：本堂课 + 今日（D10=A），带学生、学科、撤销状态与真实时间
+    async v3Ledger({ fromTs = null, toTs = null } = {}) {
+        const db = safeElectronDB();
+        if (!db || typeof db.getClassLedger !== 'function') return { ok: false, reason: 'no-bridge', rows: [] };
+        const vm = await this.getV3ViewModel();
+        let rows;
+        try { rows = await db.getClassLedger(vm.classId, fromTs, toTs); }
+        catch (e) { return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200), rows: [] }; }
+        if (!Array.isArray(rows)) return { ok: false, reason: 'db-failed', error: '台账查询未返回数组', rows: [] };
+        const subjectLabel = r => {
+            if (r === 'subj_math') return '数学';
+            if (r === 'subj_english') return '英语';
+            return '语文';
+        };
+        return {
+            ok: true,
+            rows: rows.map(r => ({
+                operationId: String(r.operation_id || ''),
+                createdAt: Number(r.created_at) || 0,
+                points: Number(r.points) || 0,
+                actionName: r.action_name || '',
+                ruleId: r.rule_id || null,
+                undone: !!r.undone_at,
+                undoneAt: r.undone_at ? Number(r.undone_at) : null,
+                studentId: r.student_id ? String(r.student_id) : null,
+                studentName: r.student_name || '',
+                studentNo: r.student_no || '',
+                groupName: r.group_name || '',
+                subjectCode: r.pet_subject_id === 'subj_math' ? 'math' : (r.pet_subject_id === 'subj_english' ? 'english' : 'chinese'),
+                subjectLabel: subjectLabel(r.pet_subject_id),
+                expBefore: r.exp_before === null || r.exp_before === undefined ? null : Number(r.exp_before),
+                expAfter: r.exp_after === null || r.exp_after === undefined ? null : Number(r.exp_after),
+                levelAfter: r.level_after === null || r.level_after === undefined ? null : Number(r.level_after)
+            }))
+        };
+    }
+
+    // 4.1 新增学生：先校验学号/姓名，再交给 saveStudent（初始为三科蛋）
+    async v3CreateStudent({ no, name, group } = {}) {
+        const db = safeElectronDB();
+        if (!db || typeof db.saveStudent !== 'function') return { ok: false, reason: 'no-bridge' };
+        const cleanName = String(name || '').trim();
+        if (!cleanName) return { ok: false, reason: 'bad-name', message: '姓名不能为空' };
+        const cleanNo = String(no === undefined || no === null || String(no).trim() === '' ? '' : no).replace(/\D/g, '');
+        const vm = await this.getV3ViewModel();
+        if (vm.students.some(s => s.name === cleanName)) return { ok: false, reason: 'duplicate-name', message: '本班已有同名学生：' + cleanName };
+        if (cleanNo && vm.students.some(s => String(s.no) === cleanNo.padStart(2, '0'))) {
+            return { ok: false, reason: 'duplicate-no', message: '学号 ' + cleanNo + ' 已被占用' };
+        }
+        const nextNo = cleanNo || String(Math.max(0, ...vm.students.map(s => Number(s.no) || 0)) + 1);
+        const id = 'st_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+        let res;
+        try {
+            res = await db.saveStudent({ id: id, student_no: nextNo.padStart(2, '0'), name: cleanName, group: Number(group) || 1, pets: {} }, vm.classId);
+        } catch (e) {
+            return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200) };
+        }
+        if (!res || res.success !== true) return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认' };
+        return { ok: true, studentId: id, no: nextNo.padStart(2, '0'), name: cleanName, group: Number(group) || 1 };
+    }
+
+    // 4.1 编辑学生：只改姓名/小组，绝不碰等级、经验、物种
+    async v3SaveStudentProfile({ studentId, name, group } = {}) {
+        const db = safeElectronDB();
+        if (!db || typeof db.updateStudentProfile !== 'function') return { ok: false, reason: 'no-bridge' };
+        if (!studentId) return { ok: false, reason: 'bad-student' };
+        if (name !== undefined && !String(name).trim()) return { ok: false, reason: 'bad-name', message: '姓名不能为空' };
+        const vm = await this.getV3ViewModel();
+        const hit = vm.students.filter(s => s.id === String(studentId))[0];
+        if (!hit) return { ok: false, reason: 'not-found', message: '学生不存在' };
+        if (name !== undefined && String(name).trim() !== hit.name && vm.students.some(s => s.name === String(name).trim())) {
+            return { ok: false, reason: 'duplicate-name', message: '本班已有同名：' + String(name).trim() };
+        }
+        const patch = {};
+        if (name !== undefined) patch.name = String(name).trim();
+        if (group !== undefined) patch.group = group;
+        let res;
+        try { res = await db.updateStudentProfile(hit.id, patch, vm.classId); }
+        catch (e) { return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200) }; }
+        if (!res || res.success !== true) return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认' };
+        return { ok: true, studentId: hit.id, name: res.name, group: res.group };
+    }
+
+    // 4.5 整包恢复：kind + version 校验、重复 ID 拒绝、一次事务（失败不半套）
+    async v3RestoreBackup(payload) {
+        const db = safeElectronDB();
+        if (!db || typeof db.restoreClassBackup !== 'function') return { ok: false, reason: 'no-bridge' };
+        if (!payload || typeof payload !== 'object') return { ok: false, reason: 'bad-payload', message: '备份内容不是对象' };
+        if (payload.kind !== 'classpet-class-backup') return { ok: false, reason: 'bad-kind', message: '不是班级备份文件（缺少 kind=classpet-class-backup）' };
+        if (Number(payload.version) !== 1) return { ok: false, reason: 'bad-version', message: '备份版本不支持：' + payload.version };
+        if (!Array.isArray(payload.students) || payload.students.length === 0) return { ok: false, reason: 'bad-payload', message: '备份里没有学生名单' };
+        const ids = new Set(), nos = new Set();
+        for (const st of payload.students) {
+            const id = st && st.id ? String(st.id) : '';
+            if (!id) return { ok: false, reason: 'bad-payload', message: '有学生缺少 id' };
+            if (ids.has(id)) return { ok: false, reason: 'duplicate-id', message: '备份里 id 重复：' + id };
+            ids.add(id);
+            const no = String(st.no !== undefined ? st.no : (st.student_no !== undefined ? st.student_no : ''));
+            if (no) {
+                if (nos.has(no)) return { ok: false, reason: 'duplicate-no', message: '备份里学号重复：' + no };
+                nos.add(no);
+            }
+        }
+        if (payload.thresholds !== undefined) {
+            if (!Array.isArray(payload.thresholds) || payload.thresholds.length !== 21) {
+                return { ok: false, reason: 'bad-thresholds', message: '备份里的经验阈值不是 21 级' };
+            }
+            for (let i = 1; i < 21; i++) {
+                if (Number(payload.thresholds[i]) < Number(payload.thresholds[i - 1])) {
+                    return { ok: false, reason: 'bad-thresholds', message: '备份里的阈值第 ' + i + ' 级小于上一级' };
+                }
+            }
+        }
+        if (payload.stages !== undefined && (!Array.isArray(payload.stages) || payload.stages.length !== 6)) {
+            return { ok: false, reason: 'bad-stages', message: '备份里的形态阶梯不是 6 段' };
+        }
+        const vm = await this.getV3ViewModel();
+        let res;
+        try { res = await db.restoreClassBackup(vm.classId, payload); }
+        catch (e) { return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200) }; }
+        if (!res || res.success !== true) return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认' };
+        return { ok: true, count: res.count || payload.students.length };
+    }
+
     /**
      * 批次 3.1 赋分：全部等数据库确认（D18=A）。成功只以 recordScore 的 success 为准，不改本地缓存。
      * 返回 { ok, operationId, entries, delta, subjectCode, skipped:[{studentId,reason,message}] }

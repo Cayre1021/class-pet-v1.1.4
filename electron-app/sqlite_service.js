@@ -570,6 +570,117 @@ class SQLiteService {
         return { success: true, studentId, realId, subjectCode, speciesCode };
     }
 
+    // 批次 4.3 本堂课 + 今日台账：一条操作一笔流水，带学生、学科、撤销状态、真实时间
+    getClassLedger(classId = 'c_class02_01', fromTs = null, toTs = null) {
+        const where = ["op.class_id = ?"];
+        const params = [classId];
+        if (fromTs !== null && fromTs !== undefined) { where.push("op.created_at >= ?"); params.push(Number(fromTs)); }
+        if (toTs !== null && toTs !== undefined) { where.push("op.created_at < ?"); params.push(Number(toTs)); }
+        const sql = `SELECT op.id AS operation_id, op.created_at, op.points, op.action_name, op.rule_id, op.undone_at,
+                            ent.student_id, ent.pet_id, ent.exp_before, ent.exp_after, ent.level_before, ent.level_after,
+                            st.name AS student_name, st.student_no, st.group_name,
+                            p.subject_id AS pet_subject_id
+                     FROM score_operations op
+                     LEFT JOIN score_entries ent ON ent.operation_id = op.id
+                     LEFT JOIN students st ON st.id = ent.student_id
+                     LEFT JOIN pets p ON p.id = ent.pet_id
+                     WHERE ${where.join(' AND ')}
+                     ORDER BY op.created_at DESC, op.rowid DESC`;
+        return this.query(sql, params);
+    }
+
+    // 批次 4.1 只改姓名/小组（绝不碰等级、经验、物种）
+    updateStudentProfile(studentId, { name, group } = {}, classId = 'c_class02_01') {
+        const realId = this.normalizeStudentId(studentId);
+        const rows = this.query("SELECT * FROM students WHERE id = ? AND class_id = ? LIMIT 1", [realId, classId]);
+        if (rows.length === 0) return { success: false, error: 'NO_STUDENT:学生不存在或不属于该班级' };
+        const cur = rows[0];
+        const nextName = (name !== undefined && String(name).trim()) ? String(name).trim() : cur.name;
+        let groupNum = Number(String(cur.group_name || '1').replace(/\D/g, '')) || 1;
+        if (group !== undefined && group !== null && String(group).trim() !== '') {
+            groupNum = parseInt(String(group).replace(/\D/g, ''), 10) || 1;
+        }
+        const now = Date.now();
+        try {
+            this.db.run('BEGIN TRANSACTION;');
+            this.db.run("UPDATE students SET name = ?, group_name = ?, updated_at = ? WHERE id = ? AND class_id = ?",
+                [nextName, '第' + groupNum + '组', now, realId, classId]);
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            return { success: true, studentId: realId, name: nextName, group: groupNum };
+        } catch (err) {
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            console.error('[SQLiteService] updateStudentProfile 失败:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    // 批次 4.5 整包恢复：学生/宠物/阈值/形态/规则在同一个事务里，失败不半套
+    restoreClassBackup(classId, payload) {
+        if (!payload || !Array.isArray(payload.students)) return { success: false, error: 'BAD_PAYLOAD:缺少学生名单' };
+        const now = Date.now();
+        try {
+            this.db.run('BEGIN TRANSACTION;');
+
+            this.db.run("DELETE FROM pets WHERE class_id = ?;", [classId]);
+            this.db.run("DELETE FROM students WHERE class_id = ?;", [classId]);
+
+            const subjects = [
+                { key: 'chinese', subId: 'subj_chinese', defaultName: '神秘宠物蛋' },
+                { key: 'math', subId: 'subj_math', defaultName: '神秘宠物蛋 (待破壳)' },
+                { key: 'english', subId: 'subj_english', defaultName: '神秘宠物蛋 (待破壳)' }
+            ];
+            for (let idx = 0; idx < payload.students.length; idx++) {
+                const student = payload.students[idx] || {};
+                if (!student.id) throw new Error('BAD_STUDENT:第 ' + (idx + 1) + ' 条缺少 id');
+                const no = String(student.no !== undefined ? student.no : (student.student_no !== undefined ? student.student_no : idx + 1)).padStart(2, '0');
+                const groupNum = typeof student.group === 'number' ? student.group : (parseInt(String(student.group || student.group_name || 1).replace(/\D/g, ''), 10) || 1);
+                this.db.run(`INSERT INTO students (id, class_id, student_no, name, group_name, note, display_pet_id, archived_at, created_at, updated_at)
+                             VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?);`,
+                    [student.id, classId, no, student.name || '未命名', '第' + groupNum + '组', student.displayPetId || null, student.isArchived ? now : null, now, now]);
+
+                for (const sub of subjects) {
+                    const p = (student.pets && student.pets[sub.key]) || {};
+                    const pId = p.id || ('pet_' + student.id + '_' + sub.key.charAt(0));
+                    const spCode = p.species || p.speciesCode || 'egg';
+                    const nickname = p.name || (spCode === 'egg' ? sub.defaultName : sub.defaultName);
+                    this.db.run(`INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, is_display, created_at, updated_at)
+                                 VALUES (?, ?, ?, ?, ?, ?, '#FFAA00', ?, ?, ?, ?, ?, ?);`,
+                        [pId, classId, student.id, spCode, sub.subId, nickname, Number(p.exp) || 0, Number(p.level) || 0, Number(p.visualStage) || 0, p.isDisplay ? 1 : 0, now, now]);
+                }
+            }
+
+            if (Array.isArray(payload.thresholds) && payload.thresholds.length === 21) {
+                this.db.run("DELETE FROM class_level_thresholds WHERE class_id = ?", [classId]);
+                for (let l = 0; l <= 20; l++) {
+                    this.db.run("INSERT INTO class_level_thresholds (class_id, level, min_exp) VALUES (?, ?, ?)", [classId, l, Number(payload.thresholds[l]) || 0]);
+                }
+            }
+            if (Array.isArray(payload.stages) && payload.stages.length === 6) {
+                this.db.run("DELETE FROM class_visual_stages WHERE class_id = ?", [classId]);
+                payload.stages.forEach(st => {
+                    this.db.run("INSERT INTO class_visual_stages (class_id, stage, min_level, code) VALUES (?, ?, ?, ?)",
+                        [classId, Number(st.stage), Number(st.minLevel), st.code || ('form' + st.stage)]);
+                });
+            }
+            if (Array.isArray(payload.rules)) {
+                this.db.run("DELETE FROM behavior_rules WHERE class_id = ?", [classId]);
+                payload.rules.forEach((r, i) => {
+                    this.db.run("INSERT INTO behavior_rules (id, class_id, name, points, type, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        [r.id || ('rule_' + (i + 1)), classId, r.name, Number(r.points) || 0, r.type === 'negative' ? 'negative' : 'positive', i + 1, now]);
+                });
+            }
+
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            return { success: true, count: payload.students.length };
+        } catch (err) {
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            console.error('[SQLiteService] restoreClassBackup 失败，已回滚:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
     // 核心业务：保存/更新单个学生及其 3 科萌宠档案
     saveStudent(student, classId = 'c_class02_01') {
         if (!student || !student.id) return { success: false, error: '无效的学生对象' };

@@ -26,6 +26,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         archiveStudent: (studentId, isArchived, classId) => ipcRenderer.invoke('db:archiveStudent', { studentId, isArchived, classId }),
         deleteStudent: (studentId, classId) => ipcRenderer.invoke('db:deleteStudent', { studentId, classId }),
         saveThresholds: (thresholds, stages, classId) => ipcRenderer.invoke('db:saveThresholds', { thresholds, stages, classId }),
+        getClassLedger: (classId, fromTs, toTs) => ipcRenderer.invoke('db:getClassLedger', { classId, fromTs, toTs }),
+        updateStudentProfile: (studentId, patch, classId) => ipcRenderer.invoke('db:updateStudentProfile', { studentId, patch, classId }),
+        restoreClassBackup: (classId, payload) => ipcRenderer.invoke('db:restoreClassBackup', { classId, payload }),
         saveBehaviorRules: (rules, classId) => ipcRenderer.invoke('db:saveBehaviorRules', { rules, classId }),
         query: (sql, params) => ipcRenderer.invoke('db:query', { sql, params }),
         execute: (sql, params) => ipcRenderer.invoke('db:execute', { sql, params })

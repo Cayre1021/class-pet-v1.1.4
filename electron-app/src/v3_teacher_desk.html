@@ -1084,6 +1084,7 @@ html.theme-fade *::after{
   };
   var SPECIES_ORDER = ['cat', 'dog', 'bunny', 'hamster', 'bird', 'deer', 'fish', 'fox'];
   var SUBJECTS = ['语文', '数学', '英语'];
+  var PET_SUBJECT_KEYS = ['chinese', 'math', 'english'];
   var EGG_PATH = 'assets/pets/shared/egg.png';
   /* 演示态（浏览器直开、无 preload）专用：等级→形态的演示阈值表，逐级取值与旧公式一致 */
   var DEMO_STAGE_MIN_LEVEL = [1, 3, 5, 7, 9];
@@ -2189,7 +2190,118 @@ html.theme-fade *::after{
     }).join('');
     return '<table class="table"><thead><tr><th>时间</th><th>学生</th><th>规则</th><th>学科</th><th>分值</th><th>操作</th></tr></thead><tbody>' + rows + '</tbody></table>';
   }
+  /* 4.3 真实数据态台账：直接查班级库（D10=A：本堂课 / 今日两档） */
+  var sessionStartTs = Date.now();   /* 本堂课起算点 = 页面打开时刻 */
+  var ledgerRows = [];
+  var ledgerRange = 'session';
+  function todayStartTs() { var d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  function ledgerRangeFrom() { return ledgerRange === 'today' ? todayStartTs() : sessionStartTs; }
+  function ledgerTime(ts) {
+    var d = new Date(Number(ts) || 0);
+    return ledgerRange === 'today'
+      ? pad2(d.getHours()) + ':' + pad2(d.getMinutes())
+      : pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  }
+  async function fetchLedger() {
+    var core = await v3Core(['v3Ledger']);
+    if (!core) { v3NoBridge('台账查询'); return null; }
+    var res;
+    try { res = await core.v3Ledger({ fromTs: ledgerRangeFrom(), toTs: Date.now() }); }
+    catch (e) { res = { ok: false, reason: 'db-failed', error: String((e && e.message) || e) }; }
+    if (!res || res.ok !== true) { toast(v3FailText(res, '台账查询'), 'warn'); return null; }
+    ledgerRows = res.rows || [];
+    return ledgerRows;
+  }
+  function ledgerFilteredRows(filter) {
+    if (filter && String(filter).indexOf('stu:') === 0) {
+      var sid = String(filter).slice(4);
+      return ledgerRows.filter(function (r) { return r.studentId === sid; });
+    }
+    return ledgerRows;
+  }
+  function ledgerRowsHTML(filter) {
+    var rows = ledgerFilteredRows(filter);
+    if (!rows.length) return '<div class="empty-state">台账为空。<br>' + (ledgerRange === 'today' ? '今天' : '本堂课') + '还没有赋分记录。</div>';
+    var lastId = (state.vm && state.vm.lastOperation) ? String(state.vm.lastOperation.id) : '';
+    var body = rows.map(function (r) {
+      var canUndo = !r.undone && lastId && String(r.operationId) === lastId;   /* D11=A 只撤最后一笔 */
+      return '<tr class="' + (r.undone ? 'is-undone' : '') + '">' +
+        '<td class="num">' + ledgerTime(r.createdAt) + '</td>' +
+        '<td class="num">' + esc(r.studentNo || '') + '</td>' +
+        '<td>' + esc(r.studentName || '') + '</td>' +
+        '<td>' + esc(r.actionName || '—') + '</td>' +
+        '<td>' + esc(r.subjectLabel || '') + '</td>' +
+        '<td class="num"><b>' + (r.points > 0 ? '+' : '') + r.points + '</b></td>' +
+        '<td>' + (r.undone ? '已撤销' : (canUndo ? '<button class="link-btn" data-undo-op="' + esc(r.operationId) + '">撤销</button>' : '有效')) + '</td>' +
+        '</tr>';
+    }).join('');
+    return '<table class="table"><thead><tr><th>时间</th><th>学号</th><th>姓名</th><th>规则 / 事由</th><th>学科</th><th>分值</th><th>状态</th></tr></thead><tbody>' + body + '</tbody></table>';
+  }
+  function openRealLedgerDialog() {
+    closeDataMenu();
+    var filterValue = 'range:session';   /* 供「导出台账 CSV」使用，避免依赖 onMount 作用域 */
+    var options = ['<option value="range:session">本堂课</option>', '<option value="range:today">今日</option>']
+      .concat(state.students.map(function (s) {
+        return '<option value="stu:' + esc(s.dbId) + '">' + stuNo(s) + ' ' + esc(s.name) + '</option>';
+      })).join('');
+    openDialog({
+      title: '赋分台账',
+      wide: true,
+      sub: '班级库 · 只撤最后一笔',
+      body: '<p class="note">台账直接来自班级库（按时间倒序，一条记录一行）。范围可选「本堂课」（页面打开至今）或「今日」（00:00 至今）；撤销只对最后一笔开放。</p>' +
+        '<div class="form-row"><div class="field"><label for="ledger-filter">范围 / 学生</label><select id="ledger-filter">' + options + '</select></div>' +
+        '<div class="field"><label>记录数</label><input id="ledger-count" value="读取中…" readonly></div></div>' +
+        '<div id="ledger-table"><div class="empty-state">正在读取班级库…</div></div>',
+      actions: [
+        { label: '导出台账 CSV', onClick: function () {
+            var rows = ledgerFilteredRows(filterValue);
+            if (!rows.length) { toast('台账为空，没有可导出的记录', 'warn'); return; }
+            var lines = [csvLine(['时间', '学号', '姓名', '规则 / 事由', '学科', '分值', '状态'])];
+            rows.forEach(function (r) {
+              lines.push(csvLine([ledgerTime(r.createdAt), r.studentNo, r.studentName, r.actionName, r.subjectLabel, (r.points > 0 ? '+' : '') + r.points, r.undone ? '已撤销' : '有效']));
+            });
+            if (downloadFile('赋分台账-' + Date.now() + '.csv', lines.join('\n'), 'text/csv;charset=utf-8')) toast('台账 CSV 已导出（班级库数据）');
+          } },
+        { label: '清空台账', danger: true, onClick: function () {
+            state.history = []; state.lastOp = null;   /* 只清本页台账记忆，班级库记录保留 */
+            renderDock();
+            toast('已清空本页台账记忆（班级库记录不受影响）');
+          } }
+      ],
+      onMount: function (body) {
+        var sel = body.querySelector('#ledger-filter');
+        var table = body.querySelector('#ledger-table');
+        var count = body.querySelector('#ledger-count');
+        function paint() {
+          filterValue = sel.value;
+          table.innerHTML = ledgerRowsHTML(filterValue);
+          count.value = ledgerFilteredRows(filterValue).length + ' 笔';
+        }
+        async function reload() {
+          table.innerHTML = '<div class="empty-state">正在读取班级库…</div>';
+          var rows = await fetchLedger();
+          if (!rows) { table.innerHTML = '<div class="empty-state">台账读取失败，班级库未确认。</div>'; count.value = '—'; return; }
+          paint();
+        }
+        sel.addEventListener('change', function () {
+          if (String(sel.value).indexOf('range:') === 0) {
+            ledgerRange = sel.value.slice(6);
+            reload();
+            return;
+          }
+          paint();
+        });
+        table.addEventListener('click', function (e) {
+          var b = e.target.closest('[data-undo-op]');
+          if (!b) return;
+          undoLastReal(b.getAttribute('data-undo-op')).then(function (ok) { if (ok) reload(); });
+        });
+        reload();
+      }
+    });
+  }
   function openLedgerDialog() {
+    if (isRealMode()) { openRealLedgerDialog(); return; }   /* 真实数据态：台账查班级库（4.3） */
     closeDataMenu();
     var options = ['<option value="all">全部学生</option>'].concat(state.students.map(function (s) {
       return '<option value="' + s.id + '">' + stuNo(s) + ' ' + esc(s.name) + '</option>';
@@ -2244,7 +2356,178 @@ html.theme-fade *::after{
     });
   }
 
+  /* 4.4 CSV 往返：出口加引号转义 + 公式注入防护，入口支持引号包裹的逗号/换行 */
+  function csvCell(v) {
+    var s = (v === undefined || v === null) ? '' : String(v);
+    if (/^[=+@\t\r]/.test(s) || (/^-/.test(s) && !/^-?\d+(\.\d+)?$/.test(s))) s = "'" + s;   /* 公式注入防护 */
+    if (/[",\r\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function csvLine(arr) { return arr.map(csvCell).join(','); }
+  function parseCSV(text) {
+    var s = String(text === undefined || text === null ? '' : text).replace(/^\ufeff/, '');
+    var rows = [], row = [], cell = '', i = 0, inQ = false;
+    while (i < s.length) {
+      var c = s.charAt(i);
+      if (inQ) {
+        if (c === '"') {
+          if (s.charAt(i + 1) === '"') { cell += '"'; i += 2; continue; }
+          inQ = false; i += 1; continue;
+        }
+        cell += c; i += 1; continue;
+      }
+      if (c === '"') { inQ = true; i += 1; continue; }
+      if (c === ',') { row.push(cell); cell = ''; i += 1; continue; }
+      if (c === '\r') { i += 1; continue; }
+      if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; i += 1; continue; }
+      cell += c; i += 1;
+    }
+    if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (v) { return String(v).trim() !== ''; }); });
+  }
+  function resolveSpeciesCode(raw, fallback) {
+    var v = String(raw === undefined || raw === null ? '' : raw).trim();
+    if (!v) return fallback || 'egg';
+    var low = v.toLowerCase();
+    if (low === 'egg' || v === '蛋' || v.indexOf('宠物蛋') >= 0 || v === '待破壳') return 'egg';
+    if (SPECIES[low]) return low;
+    var byName = SPECIES_ORDER.filter(function (k) { return SPECIES[k].name === v; })[0];
+    if (byName) return byName;
+    var list = (state.vm && state.vm.students) || [];
+    for (var i = 0; i < list.length; i++) {
+      var pets = list[i].petsBySubject || {};
+      var keys = Object.keys(pets);
+      for (var j = 0; j < keys.length; j++) {
+        var p = pets[keys[j]];
+        if (p && p.speciesName === v && p.speciesCode) return String(p.speciesCode);
+      }
+    }
+    return fallback || 'egg';
+  }
+  function findVmStudent(no, name) {
+    var list = (state.vm && state.vm.students) || [];
+    var norm = String(no === undefined || no === null ? '' : no).replace(/\D/g, '');
+    if (norm) {
+      var byNo = list.filter(function (x) { return Number(String(x.no || '').replace(/\D/g, '')) === Number(norm); })[0];
+      if (byNo) return byNo;
+    }
+    return list.filter(function (x) { return x.name === name; })[0] || null;
+  }
+  function displayedSubjectOf(vmStu) {
+    var d = vmStu && vmStu.displayPetId;
+    var pets = (vmStu && vmStu.petsBySubject) || {};
+    if (!d) return 'chinese';
+    return Object.keys(pets).filter(function (k) { return pets[k] && pets[k].petId === d; })[0] || 'chinese';
+  }
+  /* 真实态导入：整班替换走 db.importStudents；等级/经验来自现有学生，不取 CSV 列（D12=A） */
+  async function importRealRoster(text) {
+    if (v3Busy) return false;
+    var rows = parseCSV(text);
+    if (!rows.length) { toast('导入失败：文件为空（数据未改动）', 'warn'); return false; }
+    if (rows[0] && /姓名/.test(String(rows[0][1] || rows[0].join(',')))) rows.shift();
+    var db = window.electronAPI && window.electronAPI.db;
+    if (!db || typeof db.saveStudent !== 'function') { toast('导入失败：班级库通道不可用（no-bridge）', 'warn'); return false; }
+    var classId = (state.vm && state.vm.classId) || '';
+    var stamp = Date.now().toString(36);
+    var payload = [], absentNos = [], skipped = 0;
+    rows.forEach(function (cols, idx) {
+      var no = String(cols[0] === undefined ? '' : cols[0]).trim();
+      var name = String(cols[1] === undefined ? '' : cols[1]).trim();
+      if (!name) { skipped += 1; return; }
+      var group = clamp(Number(cols[2]) || 1, 1, 4);
+      var speciesRaw = String(cols[5] === undefined ? '' : cols[5]).trim();
+      var statusRaw = String(cols[6] === undefined ? '' : cols[6]).trim();
+      var prev = findVmStudent(no, name);
+      var prevPets = (prev && prev.petsBySubject) || {};
+      var pets = {};
+      PET_SUBJECT_KEYS.forEach(function (code) {
+        var p = prevPets[code] || {};
+        pets[code] = {
+          id: p.petId || undefined,
+          species: p.speciesCode || 'egg',
+          exp: Number(p.exp) || 0,
+          level: Number(p.level) || 0,
+          visualStage: Number(p.visualStage) || 0
+        };
+      });
+      var target = prev ? displayedSubjectOf(prev) : 'chinese';
+      pets[target].species = resolveSpeciesCode(speciesRaw, pets[target].species);
+      if (/缺勤|请假/.test(statusRaw)) { if (no) absentNos.push(no); }
+      payload.push({
+        id: prev ? String(prev.id) : ('st_imp_' + stamp + '_' + idx),
+        student_no: no,
+        name: name,
+        group: group,
+        isArchived: false,
+        pets: pets
+      });
+    });
+    if (!payload.length) { toast('导入失败：没有解析到有效学生行（数据未改动）', 'warn'); return false; }
+    /* 写前校验：学号/姓名重复一律拒单，避免半套与错配 */
+    var seenNo = {}, seenName = {}, dupMsg = '';
+    payload.forEach(function (p) {
+      var noKey = String(p.student_no || '').replace(/\D/g, '');
+      var nameKey = String(p.name || '');
+      if (noKey) { if (seenNo[noKey]) dupMsg = '文件里学号重复：' + p.student_no; seenNo[noKey] = 1; }
+      if (nameKey) { if (seenName[nameKey]) dupMsg = dupMsg || ('文件里姓名重复：' + nameKey); seenName[nameKey] = 1; }
+    });
+    if (dupMsg) { toast('导入失败：' + dupMsg + '（数据未改动）', 'warn'); return false; }
+    /* 逐人 upsert：已有学生按库内 id 更新，新学生新增；绝不删除未出现在文件里的学生 */
+    var okCount = 0, failMsg = '';
+    v3Busy = true;
+    for (var pi = 0; pi < payload.length; pi++) {
+      var one;
+      try { one = await db.saveStudent(payload[pi], classId); }
+      catch (e) { one = { success: false, error: String((e && e.message) || e) }; }
+      if (one && one.success === true) okCount += 1;
+      else { failMsg = (one && one.error) || '班级库未确认'; break; }
+    }
+    v3Busy = false;
+    if (failMsg) {
+      await v3Refresh();
+      toast('导入中断：已写入 ' + okCount + ' 人，第 ' + (okCount + 1) + ' 人失败（' + failMsg + '）；界面已按库刷新', 'warn');
+      return false;
+    }
+    var refreshed = await v3Refresh();
+    if (!refreshed) return true;
+    if (absentNos.length) {   /* 状态列=缺勤 只作当日开关，不写库（D9=A） */
+      state.students.forEach(function (s) {
+        if (absentNos.some(function (no) { return Number(String(no).replace(/\D/g, '')) === Number(String(s.no).replace(/\D/g, '')); })) s.isAbsent = true;
+      });
+      renderLanes(); renderDock(); renderBatch();
+    }
+    toast('已导入 ' + okCount + ' 人（班级库已确认）' + (skipped ? '；跳过 ' + skipped + ' 行无姓名' : '') + '；等级/经验由赋分产生，导入时忽略；文件里没有的学生不会被删除');
+    return true;
+  }
+  function openRealExcelDialog() {
+    closeDataMenu();
+    openDialog({
+      title: 'Excel 导入导出',
+      sub: '班级库 · 导入整班覆盖',
+      body: '<p class="note">导出为 CSV（Excel / WPS 可直接打开），字段自带引号转义与公式注入防护；导入 CSV 会<b>整班替换</b>班级库名单。列顺序：学号, 姓名, 小组, 等级, 经验, 物种, 状态。</p>' +
+        '<div class="rule-list">' +
+          '<div class="rule-item"><span>导出班级名单</span><span class="val">' + state.students.length + ' 人 · CSV</span></div>' +
+          '<div class="rule-item"><span>导入名单（覆盖）</span><span class="val">CSV / TXT</span></div>' +
+        '</div>' +
+        '<p class="note warn" style="margin-top:12px">导入只应用学号、姓名、小组、物种、状态；等级/经验由赋分产生，导入时忽略（保持班级库现有数值与三科宠物）。</p>',
+      actions: [
+        { label: '导出名单 CSV', primary: true, onClick: function () {
+            var lines = [csvLine(['学号', '姓名', '小组', '等级', '经验', '物种', '状态'])];
+            state.students.forEach(function (s) {
+              lines.push(csvLine([stuNo(s), s.name, s.group, s.level, s.exp, s.isEgg ? '蛋' : speciesName(s), s.isAbsent ? '缺勤' : '在读']));
+            });
+            if (downloadFile('班级名单-' + Date.now() + '.csv', lines.join('\n'), 'text/csv;charset=utf-8')) toast('名单 CSV 已导出（班级库数据）');
+          } },
+        { label: '导入名单 CSV', onClick: function () {
+            pendingImport = 'roster';
+            $('#file-input').value = '';
+            $('#file-input').click();
+          } }
+      ]
+    });
+  }
   function openExcelDialog() {
+    if (isRealMode()) { openRealExcelDialog(); return; }   /* 真实数据态：CSV 往返走班级库（4.4） */
     closeDataMenu();
     openDialog({
       title: 'Excel 导入导出',
@@ -2376,7 +2659,78 @@ html.theme-fade *::after{
     });
   }
 
+  /* 4.5 真实数据态备份：导出班级库整包（kind+version+students+thresholds+stages+rules），恢复走单事务 */
+  function buildRealBackup() {
+    var vm = state.vm || {};
+    var students = (vm.students || []).map(function (st) {
+      var pets = {};
+      PET_SUBJECT_KEYS.forEach(function (code) {
+        var p = (st.petsBySubject || {})[code] || {};
+        pets[code] = {
+          id: p.petId || null,
+          species: p.speciesCode || 'egg',
+          exp: Number(p.exp) || 0,
+          level: Number(p.level) || 0,
+          visualStage: Number(p.visualStage) || 0
+        };
+      });
+      return { id: String(st.id), no: String(st.no || ''), name: st.name || '', group: Number(st.group) || 1, isArchived: !!st.isArchived, pets: pets };
+    });
+    return {
+      kind: 'classpet-class-backup',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      classId: vm.classId || '',
+      students: students,
+      thresholds: (vm.thresholds || []).map(Number),
+      stages: (vm.stages || []).map(function (st) { return { stage: Number(st.stage), minLevel: Number(st.minLevel), code: st.code || '' }; }),
+      rules: (vm.rules || []).map(function (r) { return { id: r.id, name: r.name, points: Number(r.points) || 0, type: r.type }; })
+    };
+  }
+  async function restoreRealBackup(text) {
+    if (state.mode === 'failed') { toast('班级数据读取失败，暂不能恢复备份（数据未改动）', 'warn'); return false; }
+    if (v3Busy) return false;
+    var payload;
+    try { payload = JSON.parse(String(text)); }
+    catch (e) { toast('恢复失败：备份文件不是合法 JSON（数据未改动）', 'warn'); return false; }
+    var core = await v3Core(['v3RestoreBackup']);
+    if (!core) { v3NoBridge('恢复备份'); return false; }
+    var res;
+    v3Busy = true;
+    try { res = await core.v3RestoreBackup(payload); }
+    catch (e) { res = { ok: false, reason: 'db-failed', error: String((e && e.message) || e) }; }
+    v3Busy = false;
+    if (!res || res.ok !== true) { toast(v3FailText(res, '恢复备份'), 'warn'); return false; }   /* 失败：单事务回滚，现场不变 */
+    var refreshed = await v3Refresh();
+    if (refreshed) toast('已恢复备份：' + (res.count || 0) + ' 人（班级库已确认）');
+    return true;
+  }
+  function openRealBackupDialog() {
+    closeDataMenu();
+    var vm = state.vm || {};
+    var th = (vm.thresholds || []);
+    openDialog({
+      title: '备份与还原',
+      sub: '班级库 · 整包备份',
+      body: '<p class="note">导出班级库整包 JSON（名单 + 三科宠物 + 21 级阈值 + 6 段形态 + 行为规则，kind=classpet-class-backup / version=1）；恢复在班级库里是单个事务，失败不留半套。</p>' +
+        '<div class="rule-list">' +
+          '<div class="rule-item"><span>当前名单</span><span class="val">' + ((vm.students || []).length) + ' 人 · 三科宠物</span></div>' +
+          '<div class="rule-item"><span>经验阈值</span><span class="val">21 级 · LV1 = ' + (Number(th[1]) || 0) + ' EXP</span></div>' +
+          '<div class="rule-item"><span>行为规则</span><span class="val">' + ((vm.rules || []).length) + ' 条</span></div>' +
+        '</div>' +
+        '<p class="note warn" style="margin-top:12px">恢复会整包覆盖班级库名单与阈值；kind / version / 重复 id 不合规时会被拒绝，现场数据保持不变。</p>',
+      actions: [
+        { label: '导出 JSON 备份', primary: true, onClick: function () {
+            var payload = buildRealBackup();
+            if (downloadFile('班级备份-' + Date.now() + '.json', JSON.stringify(payload, null, 2), 'application/json')) toast('JSON 备份已导出（班级库数据）');
+          } },
+        { label: '导入 JSON 备份', onClick: function () { pendingImport = 'backup'; $('#file-input').value = ''; $('#file-input').click(); } },
+        { label: '恢复初始数据', danger: true, onClick: function () { resetData(); closeDialog(); } }
+      ]
+    });
+  }
   function openBackupDialog() {
+    if (isRealMode()) { openRealBackupDialog(); return; }   /* 真实数据态：整包备份走班级库（4.5） */
     closeDataMenu();
     openDialog({
       title: '备份与还原',
@@ -2404,7 +2758,7 @@ html.theme-fade *::after{
   }
 
   function openAddDialog() {
-    if (isRealMode()) { v3ReadonlyNotice('新增学生'); return; }
+    if (isRealMode()) { openRealAddDialog(); return; }   /* 真实数据态：写班级库（4.1） */
     var nextId = state.students.reduce(function (m, s) { return Math.max(m, s.id); }, 0) + 1;
     openDialog({
       title: '新增学生',
@@ -2452,7 +2806,60 @@ html.theme-fade *::after{
     }, 0);
   }
 
+  /* 4.1 真实数据态新增学生：只有班级库确认后才关闭弹窗并重绘 */
+  async function createRealStudent(name, group, no) {
+    if (v3Busy) return false;
+    var core = await v3Core(['v3CreateStudent']);
+    if (!core) { v3NoBridge('新增学生'); return false; }
+    var args = { name: name, group: group };
+    if (String(no || '').trim() !== '') args.no = String(no).trim();
+    var res;
+    v3Busy = true;
+    try { res = await core.v3CreateStudent(args); }
+    catch (e) { res = { ok: false, reason: 'db-failed', error: String((e && e.message) || e) }; }
+    v3Busy = false;
+    if (!res || res.ok !== true) { toast(v3FailText(res, '新增学生'), 'warn'); return false; }
+    var refreshed = await v3Refresh();
+    if (refreshed) toast('已新增学生：' + res.name + '（' + (res.group || 1) + '组 · 学号 ' + res.no + '，班级库已确认）');
+    return true;
+  }
+  function openRealAddDialog() {
+    openDialog({
+      title: '新增学生',
+      sub: '班级库 · 保存后立即生效',
+      body: '<p class="note">姓名与小组会写入班级库；学号留空则由班级库自动取本班最大号 +1。新学生初始为三科宠物蛋，等级与经验由赋分产生，不能直接填写。</p>' +
+        '<div class="form-row">' +
+          '<div class="field"><label for="add-name">姓名 *</label><input id="add-name" maxlength="8" placeholder="如：林一鸣"></div>' +
+          '<div class="field"><label for="add-id">学号（可留空自动）</label><input id="add-id" type="number" min="1" max="99" placeholder="自动"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<div class="field"><label for="add-group">小组</label><select id="add-group"><option value="1">1组</option><option value="2">2组</option><option value="3">3组</option><option value="4">4组</option></select></div>' +
+          '<div class="field"><label for="add-species">宠物物种</label><select id="add-species" disabled>' +
+            SPECIES_ORDER.map(function (k) { return '<option value="' + k + '">' + SPECIES[k].name + '</option>'; }).join('') +
+          '</select></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<div class="field"><label for="add-level">等级</label><input id="add-level" type="number" value="0" readonly></div>' +
+          '<div class="field"><label for="add-exp">初始经验</label><input id="add-exp" type="number" value="0" readonly></div>' +
+        '</div>',
+      actions: [
+        { label: '保存学生', primary: true, onClick: function () {
+            var name = ($('#add-name').value || '').trim();
+            if (!name) { toast('请填写学生姓名', 'warn'); return; }
+            var no = ($('#add-id').value || '').trim();
+            var group = Number($('#add-group').value) || 1;
+            createRealStudent(name, group, no).then(function (ok) { if (ok) closeDialog(); });
+          } }
+      ]
+    });
+    setTimeout(function () {
+      var body = $('#dlg-body');
+      var g = body.querySelector('#add-group');
+      if (g) g.value = String(state.filter === 'all' ? 1 : Number(state.filter));
+    }, 0);
+  }
   function openEditDialog(id) {
+    if (isRealMode()) { openRealEditDialog(id); return; }   /* 真实数据态：写班级库（4.1） */
     var real = isRealMode();
     var s = byId(id);
     if (!s) return;
@@ -2495,6 +2902,59 @@ html.theme-fade *::after{
     });
   }
 
+  /* 4.1 真实数据态编辑学生：只写姓名/小组；等级、经验 readonly（D12=A）；缺勤=当日开关（D9=A） */
+  async function saveRealStudentProfile(s, name, group) {
+    if (v3Busy) return false;
+    var core = await v3Core(['v3SaveStudentProfile']);
+    if (!core) { v3NoBridge('保存学生资料'); return false; }
+    var res;
+    v3Busy = true;
+    try { res = await core.v3SaveStudentProfile({ studentId: s.dbId, name: name, group: group }); }
+    catch (e) { res = { ok: false, reason: 'db-failed', error: String((e && e.message) || e) }; }
+    v3Busy = false;
+    if (!res || res.ok !== true) { toast(v3FailText(res, '保存学生资料'), 'warn'); return false; }
+    return await v3Refresh();
+  }
+  function openRealEditDialog(id) {
+    var s = byId(id);
+    if (!s) return;
+    openDialog({
+      title: '编辑学生 · ' + s.name,
+      sub: '班级库 · 姓名与小组可改，等级经验以班级库为准',
+      body: '<div class="form-row">' +
+          '<div class="field"><label for="edit-name">姓名</label><input id="edit-name" maxlength="8" value="' + esc(s.name) + '"></div>' +
+          '<div class="field"><label for="edit-group">小组</label><select id="edit-group">' +
+            [1, 2, 3, 4].map(function (g) { return '<option value="' + g + '"' + (s.group === g ? ' selected' : '') + '>' + g + '组</option>'; }).join('') +
+          '</select></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<div class="field"><label for="edit-level">等级</label><input id="edit-level" type="number" min="0" max="' + state.maxLevel + '" value="' + s.level + '" readonly></div>' +
+          '<div class="field"><label for="edit-exp">经验</label><input id="edit-exp" type="number" min="0" value="' + s.exp + '" readonly></div>' +
+        '</div>' +
+        '<div class="form-row"><div class="field"><label>状态</label>' +
+          '<label class="switch" style="min-height:38px"><input type="checkbox" id="edit-absent"' + (s.isAbsent ? ' checked' : '') + '><span class="track" aria-hidden="true"></span>缺勤</label>' +
+        '</div></div>' +
+        (s.isEgg ? '<p class="note">该学生处于蛋形态（' + s.exp + ' / ' + s.maxExp + ' EXP）。经验满后可在下方直接破壳。</p>' : '') +
+        '<p class="note">宠物：' + speciesName(s) + ' · 阶段 ' + stageLabel(s) + ' / 5 · 学号 #' + stuNo(s) + '</p>' +
+        '<p class="note warn">姓名与小组保存后写入班级库并立即生效；等级、经验由赋分产生，不可直改。缺勤是<b>当日开关</b>：不写入数据库、不保留历史。</p>',
+      actions: (s.isEgg ? [{ label: '立即破壳', onClick: function () { hatch(s.id); closeDialog(); } }] : []).concat([
+        { label: '保存修改', primary: true, onClick: function () {
+            var name = ($('#edit-name').value || '').trim();
+            if (!name) { toast('姓名不能为空', 'warn'); return; }
+            var group = Number($('#edit-group').value) || s.group;
+            var absent = $('#edit-absent').checked;
+            saveRealStudentProfile(s, name, group).then(function (ok) {
+              if (!ok) return;                                  /* 失败保留弹窗 */
+              var now = byId(s.id);                              /* 刷新后按行号重新取（顺序不变） */
+              if (now) now.isAbsent = absent;                    /* D9=A 当日开关：只在本页生效，不写库 */
+              renderLanes(); renderDock(); renderBatch();
+              closeDialog();
+              toast('已保存 ' + name + ' 的资料（班级库已确认）' + (absent ? ' · 今日缺勤' : ''));
+            });
+          } }
+      ])
+    });
+  }
   function hatch(id) {
     if (isRealMode()) { hatchReal(id); return; }   /* 真实数据态：等班级库确认（D18=A） */
     var s = byId(id);
@@ -2738,21 +3198,24 @@ html.theme-fade *::after{
   $('#file-input').addEventListener('change', function (e) {
     var file = e.target.files && e.target.files[0];
     if (!file) return;
-    if (state.mode !== 'demo') {
-      /* 真实/失败态：导入会覆盖班级库名单的显示，批次 2 不提供本地覆盖 */
-      e.target.value = '';
-      toast('当前显示的是班级库数据（只读），导入仅演示态可用（未写入）', 'warn');
-      return;
-    }
+    var kind = pendingImport;
+    pendingImport = null;
     var reader = new FileReader();
     reader.onload = function () {
+      var text = String(reader.result);
+      if (state.mode !== 'demo') {
+        /* 真实/失败态：走班级库写链路（4.4 / 4.5） */
+        if (state.mode === 'failed') { toast('班级数据读取失败，暂不能导入（数据未改动）', 'warn'); return; }
+        if (kind === 'backup') restoreRealBackup(text);
+        else importRealRoster(text);
+        return;
+      }
       try {
-        if (pendingImport === 'backup') importBackup(String(reader.result));
-        else importRoster(String(reader.result));
+        if (kind === 'backup') importBackup(text);
+        else importRoster(text);
       } catch (err) {
         toast('导入失败：' + err.message + '（数据未改动）', 'warn');
       }
-      pendingImport = null;
     };
     reader.onerror = function () { toast('文件读取失败，请重试', 'warn'); };
     reader.readAsText(file, 'utf-8');
