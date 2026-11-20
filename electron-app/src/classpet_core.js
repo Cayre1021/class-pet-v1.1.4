@@ -604,6 +604,31 @@ class ClassPetStore {
                         prevStudentMap.set(s.id, s);
                     });
                 }
+                // 用数据库里的阈值与形态配置覆盖本地缓存（修：改完阈值重启失效）
+                if (state.thresholds && typeof state.thresholds === 'object') {
+                    const nextT = LEVEL_THRESHOLDS.slice();
+                    Object.keys(state.thresholds).forEach(k => {
+                        const lv = Number(k);
+                        if (Number.isFinite(lv) && lv >= 0 && lv < nextT.length) nextT[lv] = Number(state.thresholds[k]);
+                    });
+                    LEVEL_THRESHOLDS = nextT;
+                    try { localStorage.setItem('classpet_custom_level_thresholds', JSON.stringify(nextT)); } catch (e) {}
+                }
+                if (Array.isArray(state.stages) && state.stages.length) {
+                    const nextS = STAGE_MIN_LEVELS.map(s => Object.assign({}, s));
+                    state.stages.forEach(st => {
+                        const idx = Number(st.stage);
+                        if (Number.isFinite(idx) && idx >= 0 && idx < nextS.length) {
+                            nextS[idx] = { stage: idx, minLevel: Number(st.minLevel), code: st.code || nextS[idx].code, name: nextS[idx].name };
+                        }
+                    });
+                    STAGE_MIN_LEVELS = nextS;
+                    try { localStorage.setItem('classpet_custom_stage_levels', JSON.stringify(nextS)); } catch (e) {}
+                }
+                if (typeof window !== 'undefined') {
+                    window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+                    window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+                }
                 const spKeys = Object.keys(PET_SPECIES_CATALOG);
                 let hadHigherMemoryExp = false;
                 const loadedStudents = state.students.map((stRow, idx) => {

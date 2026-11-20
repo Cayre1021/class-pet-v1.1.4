@@ -366,14 +366,8 @@ class SQLiteService {
                 }
 
                 if (!pet) {
-                    const targetSubId = subId || 'subj_chinese';
-                    const targetCode = targetSubId.replace('subj_', '');
-                    const pId = 'pet_' + sId + '_' + targetCode.charAt(0);
-                    this.db.run(`
-                        INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, created_at, updated_at)
-                        VALUES (?, ?, ?, 'cat', ?, '萌宠', '#FFAA00', 15, 1, 1, ?, ?);
-                    `, [pId, classId, sId, targetSubId, now, now]);
-                    pet = { id: pId, exp: 15, level: 1, visual_stage: 1 };
+                    // 不再凭空造宠物：目标学科没有宠物时拒绝本次赋分，由上层先孵化/认领
+                    throw new Error('NO_PET_FOR_SUBJECT:' + (subId || 'subj_chinese'));
                 }
 
                 const expBefore = pet.exp;
@@ -763,8 +757,9 @@ class SQLiteService {
         try {
             this.db.run('BEGIN TRANSACTION;');
             this.db.run("DELETE FROM class_level_thresholds WHERE class_id = ?", [classId]);
-            for (let l = 1; l <= 20; l++) {
-                const exp = thresholds[l] !== undefined ? thresholds[l] : (l * 20);
+            for (let l = 0; l <= 20; l++) {
+                const fallback = (l === 0 ? 0 : l * 20);
+                const exp = (Array.isArray(thresholds) && thresholds[l] !== undefined) ? Number(thresholds[l]) : fallback;
                 this.db.run("INSERT INTO class_level_thresholds (class_id, level, min_exp) VALUES (?, ?, ?)", [classId, l, exp]);
             }
             if (Array.isArray(stages)) {
