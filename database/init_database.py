@@ -54,12 +54,12 @@ subjects = [
 ]
 conn.executemany("INSERT OR REPLACE INTO subjects (id, class_id, code, name, is_preset, created_at) VALUES (?, ?, ?, ?, ?, ?)", subjects)
 
-# 5. 插入 20 级经验阈值表 (01_schema.md 标准)
+# 5. 插入 20 级经验阈值表（2026-11-20 起：破壳 50，此后每级 +100）
 thresholds = [
-    (0, 0), (1, 15), (2, 35), (3, 60), (4, 90),
-    (5, 125), (6, 165), (7, 210), (8, 260), (9, 315),
-    (10, 375), (11, 440), (12, 510), (13, 585), (14, 665),
-    (15, 750), (16, 840), (17, 935), (18, 1035), (19, 1140), (20, 1250)
+    (0, 0), (1, 50), (2, 150), (3, 250), (4, 350),
+    (5, 450), (6, 550), (7, 650), (8, 750), (9, 850),
+    (10, 950), (11, 1050), (12, 1150), (13, 1250), (14, 1350),
+    (15, 1450), (16, 1550), (17, 1650), (18, 1750), (19, 1850), (20, 1950)
 ]
 for lvl, exp in thresholds:
     conn.execute("INSERT OR REPLACE INTO class_level_thresholds (class_id, level, min_exp) VALUES (?, ?, ?)", (class_id, lvl, exp))

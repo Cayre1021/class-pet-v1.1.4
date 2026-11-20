@@ -53,6 +53,12 @@ app.whenReady().then(async () => {
     await win.loadURL('file://' + path.join(ROOT, 'electron-app', 'src', 'v3_teacher_desk.html').replace(/\\/g, '/'));
     await sleep(2500);
 
+    // 首屏可能弹出「新学科可以解锁了」：先关掉
+    const unlockOpen = await js("(function(){var d=document.getElementById('dlg'); return !!(d && d.open);})()");
+    if (unlockOpen) {
+        await js("(function(){var btns=[].slice.call(document.querySelectorAll('#dlg-foot button')); var b=btns.filter(function(x){return /稍后再说/.test(x.textContent);})[0]||btns[0]; if(b) b.click(); return true;})()");
+        await sleep(400);
+    }
     const rMore = await rectOf('.stu-row .stu-more');
     assert(!!rMore, '找到行内「⋯」按钮', rMore);
     await clickAt(rMore.x, rMore.y);

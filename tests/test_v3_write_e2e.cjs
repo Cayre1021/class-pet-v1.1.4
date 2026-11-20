@@ -87,6 +87,16 @@ app.whenReady().then(async () => {
     console.log('\n[教师台] 选学生 → 点规则按钮 → 落库 → 撤销');
     const t = await openPage('v3_teacher_desk.html');
     assert(t.errors.length === 0, '教师台 0 控制台错误', t.errors);
+    // 首屏可能弹出「新学科可以解锁了」（数学/英语已解锁时只弹一次）：先关掉再继续
+    const dismissUnlock = async () => {
+        const open = await t.js("(function(){var d=document.getElementById('dlg'); return !!(d && d.open && /新学科/.test((document.getElementById('dlg-title')||{}).textContent||''));})()");
+        if (open) {
+            await t.js("(function(){var btns=[].slice.call(document.querySelectorAll('#dlg-foot button')); var b=btns.filter(function(x){return /稍后再说/.test(x.textContent);})[0]||btns[0]; if(b) b.click(); return true;})()");
+            await sleep(400);
+        }
+        return open;
+    };
+    await dismissUnlock();
     const realModeSignal = await t.js("(function(){var b=document.querySelector('#score-grid .score-btn[data-rule-id]');return !!(window.classPetRuntime && b);})()");
     assert(realModeSignal === true, '教师台进入真实数据态（核心已加载 + 规则按钮带库内 ruleId）');
     const geo = await t.js(`(function(){
@@ -94,12 +104,19 @@ app.whenReady().then(async () => {
         var btns = [].slice.call(document.querySelectorAll('#score-grid .score-btn'));
         var last = btns[btns.length - 1];
         if (!box || !last) return null;
-        box.scrollTop = box.scrollHeight;   // 滚到底再测末条按钮是否可点
+        box.scrollTop = box.scrollHeight;   // 滚到底
+        if (last.scrollIntoView) last.scrollIntoView({ block: 'nearest' });   // 外层 dock 也滚到可见
+        var dock = document.getElementById('dock-scroll');
+        if (dock && last.getBoundingClientRect().bottom > innerHeight) dock.scrollTop = dock.scrollHeight;
         var r = last.getBoundingClientRect();
         var hit = document.elementFromPoint(r.left + r.width / 2, Math.min(r.top + r.height / 2, innerHeight - 2));
         return { scrollable: box.scrollHeight > box.clientHeight + 1, btnCount: btns.length,
                  lastInViewport: r.bottom <= innerHeight || box.scrollHeight > box.clientHeight,
-                 centerHit: !!(hit && last.contains(hit)) };
+                 centerHit: !!(hit && last.contains(hit)),
+                 lastRect: { t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height) },
+                 point: { x: Math.round(r.left + r.width / 2), y: Math.round(Math.min(r.top + r.height / 2, innerHeight - 2)) },
+                 hitTag: hit ? (hit.tagName + '.' + (hit.className || '')) : null,
+                 boxRect: { t: Math.round(box.getBoundingClientRect().top), b: Math.round(box.getBoundingClientRect().bottom) } };
     })()`);
     assert(geo && geo.btnCount === 13 && geo.lastInViewport && geo.centerHit,
         '13 条规则在赋分台可容纳/可滚动且末条可点（无裁切）', geo);
