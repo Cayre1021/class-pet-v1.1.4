@@ -1359,7 +1359,24 @@ class ClassPetStore {
         if (!res || res.success !== true) {
             return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认' };
         }
+        // 撤销让经验"变小"，而 loadFromSQLite 有 Math.max(内存,库) 的回写保护逻辑：
+        // 若继续留着撤销前的内存缓存，下次开页会把旧经验写回库（撤销白撤）。这里直接丢弃陈旧缓存，
+        // 让下次读取以库为准。
+        this._v3DropStaleRosterCache();
         return { ok: true, operationId: last.id, revertedCount: res.revertedCount || 0 };
+    }
+
+    // 丢弃本账号的学生名单缓存（撤销后必须），避免旧经验经内存合并回写数据库
+    _v3DropStaleRosterCache() {
+        try { this.students = []; } catch (e) {}
+        try {
+            if (typeof localStorage === 'undefined') return;
+            const key = this.getStorageKey ? this.getStorageKey() : null;
+            if (key) localStorage.removeItem(key);
+            if (this.getActiveAccountId && this.getActiveAccountId() === 'acc_demo_302') {
+                localStorage.removeItem('classpet_v2_students_data');
+            }
+        } catch (e) {}
     }
 
     // 批次 3.3 破壳：门槛（学生 / 未破壳 / 经验 / 学科解锁 / 缺勤）全过才写库

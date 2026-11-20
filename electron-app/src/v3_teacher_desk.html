@@ -3159,6 +3159,8 @@ html.theme-fade *::after{
     });
   }
 
+  /* 注：按已签决策 D1=A 与 DESIGN_SPEC §12 第 1 条，教师台「移组」入口已被负责人确认取消，
+     本函数因此没有调用点（真实态分支保留，勿据"无入口"判定为遗漏）。 */
   function openMoveGroupDialog() {
     if (isRealMode()) { openRealMoveGroupDialog(); return; }   /* 真实数据态：逐个写班级库（只改小组） */
     var n = state.selected.size;
