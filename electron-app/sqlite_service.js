@@ -685,7 +685,10 @@ class SQLiteService {
     saveStudent(student, classId = 'c_class02_01') {
         if (!student || !student.id) return { success: false, error: '无效的学生对象' };
         const now = Date.now();
-        const rawNo = student.student_no !== undefined ? student.student_no : (student.no !== undefined ? student.no : '01');
+        // 学号是否由调用方明确指定：留空/未传才算"自动分配"，明确指定冲突时必须报错而不是静默改号
+        const rawNoInput = student.student_no !== undefined ? student.student_no : student.no;
+        const hasExplicitNo = rawNoInput !== undefined && rawNoInput !== null && String(rawNoInput).trim() !== '';
+        const rawNo = hasExplicitNo ? rawNoInput : '01';
         const no = String(rawNo).padStart(2, '0');
         const name = student.name || '未命名';
         const rawGroup = student.group !== undefined ? student.group : (student.group_name !== undefined ? student.group_name : 1);
@@ -703,10 +706,14 @@ class SQLiteService {
                 VALUES (?, 't_teacher', '实验小学', '教学班级', '教学班级', 'subj_chinese', 20, ?, ?);
             `, [classId, now, now]);
 
-            // 2. 避免 UNIQUE (class_id, student_no) 冲突：若该学号已被其他学生占用，自动顺延
+            // 2. 学号冲突处理：明确指定的学号被占用 -> 直接报错（不静默改号）；留空 -> 自动顺延分配
             let safeNo = no;
             const conflict = this.query("SELECT id FROM students WHERE class_id = ? AND student_no = ? AND id != ? LIMIT 1", [classId, safeNo, student.id]);
             if (conflict.length > 0) {
+                if (hasExplicitNo) {
+                    this.db.run('ROLLBACK;');
+                    return { success: false, error: 'DUPLICATE_STUDENT_NO:学号 ' + safeNo + ' 已被本班其他学生占用（请改用其它学号，或留空由系统分配）' };
+                }
                 const maxRow = this.query("SELECT MAX(CAST(student_no AS INTEGER)) as max_no FROM students WHERE class_id = ?", [classId]);
                 const maxVal = (maxRow && maxRow[0] && maxRow[0].max_no) ? parseInt(maxRow[0].max_no, 10) : 0;
                 safeNo = (maxVal + 1).toString().padStart(2, '0');

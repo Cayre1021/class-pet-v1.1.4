@@ -1222,7 +1222,7 @@ class ClassPetStore {
         if (!cleanName) return { ok: false, reason: 'bad-name', message: '姓名不能为空' };
         const cleanNo = String(no === undefined || no === null || String(no).trim() === '' ? '' : no).replace(/\D/g, '');
         const vm = await this.getV3ViewModel();
-        if (vm.students.some(s => s.name === cleanName)) return { ok: false, reason: 'duplicate-name', message: '本班已有同名学生：' + cleanName };
+        // 同名是正常情况（中文班级常见）：只要学号不同就允许，不做重名拦截
         if (cleanNo && vm.students.some(s => String(s.no) === cleanNo.padStart(2, '0'))) {
             return { ok: false, reason: 'duplicate-no', message: '学号 ' + cleanNo + ' 已被占用' };
         }
@@ -1247,9 +1247,7 @@ class ClassPetStore {
         const vm = await this.getV3ViewModel();
         const hit = vm.students.filter(s => s.id === String(studentId))[0];
         if (!hit) return { ok: false, reason: 'not-found', message: '学生不存在' };
-        if (name !== undefined && String(name).trim() !== hit.name && vm.students.some(s => s.name === String(name).trim())) {
-            return { ok: false, reason: 'duplicate-name', message: '本班已有同名：' + String(name).trim() };
-        }
+        // 改成与他人同名同样允许（学号才是身份，姓名可重复）
         const patch = {};
         if (name !== undefined) patch.name = String(name).trim();
         if (group !== undefined) patch.group = group;

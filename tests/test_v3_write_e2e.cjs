@@ -209,8 +209,12 @@ app.whenReady().then(async () => {
     assert(created && created.ok === true, '页面上下文新增学生成功', created);
     const newRow = q("SELECT * FROM students WHERE id = ?", [created.studentId])[0];
     assert(!!newRow && newRow.name === '端到端乙' && String(newRow.group_name).indexOf('3') >= 0, '新增学生落库（姓名/小组）', newRow && { name: newRow.name, g: newRow.group_name });
+    // 同名不同学号必须允许（中文班级同名常见）；真正要拦的是学号冲突
     const dupTry = await callCore("c.v3CreateStudent({ name: '端到端乙' })");
-    assert(dupTry && dupTry.ok === false && dupTry.reason === 'duplicate-name', '同名新增被库侧拦截', dupTry);
+    assert(dupTry && dupTry.ok === true && dupTry.studentId !== created.studentId,
+        '同名不同学号可以新增（两人 id 不同）', dupTry);
+    const noClash = await callCore("c.v3CreateStudent({ name: '端到端丙', no: " + JSON.stringify(created.no) + " })");
+    assert(noClash && noClash.ok === false && noClash.reason === 'duplicate-no', '学号冲突时新增被拒（duplicate-no）', noClash);
 
     const petBeforeEdit = q("SELECT * FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [created.studentId])[0];
     const prof = await callCore("c.v3SaveStudentProfile({ studentId: " + JSON.stringify(created.studentId) + ", name: '端到端乙改', group: 2 })");

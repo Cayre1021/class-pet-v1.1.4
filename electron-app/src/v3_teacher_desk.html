@@ -2533,14 +2533,13 @@ html.theme-fade *::after{
     }
     return fallback === undefined ? 'egg' : fallback;
   }
-  function findVmStudent(no, name) {
+  /* 只按学号识别本班已有学生：同名不同人是常态，按姓名匹配会把别人改掉。
+     学号为空时视为新学生（不做任何猜测）。 */
+  function findVmStudent(no) {
     var list = (state.vm && state.vm.students) || [];
     var norm = String(no === undefined || no === null ? '' : no).replace(/\D/g, '');
-    if (norm) {
-      var byNo = list.filter(function (x) { return Number(String(x.no || '').replace(/\D/g, '')) === Number(norm); })[0];
-      if (byNo) return byNo;
-    }
-    return list.filter(function (x) { return x.name === name; })[0] || null;
+    if (!norm) return null;
+    return list.filter(function (x) { return Number(String(x.no || '').replace(/\D/g, '')) === Number(norm); })[0] || null;
   }
   function displayedSubjectOf(vmStu) {
     var d = vmStu && vmStu.displayPetId;
