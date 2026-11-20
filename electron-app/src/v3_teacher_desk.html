@@ -1319,6 +1319,7 @@ html.theme-fade *::after{
         stageName: p.stageName || '',
         image: p.image || '',
         isEgg: !!p.isEgg,
+        hatchNeed: Number(p.nextLevelExp) || 50,
         isMax: !!p.isMax,
         isAbsent: !!st.isAbsent,
         fromVm: true,
@@ -3095,6 +3096,11 @@ html.theme-fade *::after{
     if (isRealMode()) { hatchReal(id); return; }   /* 真实数据态：等班级库确认（D18=A） */
     var s = byId(id);
     if (!s || !s.isEgg) return;
+    var need = Number(s.hatchNeed) || 50;          /* 演示态同样执行破壳门槛 */
+    if (Number(s.exp || 0) < need) {
+      toast('破壳需要 ' + need + ' EXP（当前 ' + s.exp + '），还差 ' + (need - s.exp) + ' EXP', 'warn');
+      return;
+    }
     s.isEgg = false;
     s.level = Math.max(2, s.level);
     s.exp = 20;

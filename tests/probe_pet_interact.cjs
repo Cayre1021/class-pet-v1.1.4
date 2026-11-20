@@ -1,6 +1,6 @@
 // probe_pet_interact.cjs —— 第2条宠物互动验收（真 Electron 点击）
 const { app, BrowserWindow } = require('electron');
-const path = require('path'); const os = require('os');
+const path = require('path'); const os = require('os'); const fs = require('fs');
 const ROOT = path.join(__dirname, '..');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 app.setPath('userData', path.join(os.tmpdir(), 'cp-pet-' + Date.now()));
@@ -41,6 +41,21 @@ app.whenReady().then(async () => {
     assert(ring && ring.btns === 3 && ring.keys.join(',') === 'pat,feed,play', '有 3 个按钮（摸摸/喂食/玩耍）', ring);
     assert(ring && ring.flex === 'flex' && ring.sameRow === true, '三个圆圈排成一排（同一行）', ring);
     assert(ring && ring.inspectorOpen === true, '点宠物的同时右侧加分/详情面板也打开（不冲突）', ring);
+    // 第2条追加：只点宠物（不点互动圆圈）也要说话
+    const greet = await js("(function(){var b=document.querySelector('.pet-bubble'); return b?b.textContent.trim():null;})()");
+    assert(typeof greet === 'string' && greet.length >= 4, '只点宠物就弹出反应气泡：' + greet, greet);
+    // 台词库规模：从源码统计（PET_LINES 在 IIFE 内，页面里读不到）
+    const src = fs.readFileSync(path.join(ROOT, 'electron-app', 'src', 'v3_looseleaf_paper.html'), 'utf8');
+    const block = (src.match(/var PET_LINES = \{[\s\S]*?\n\};/) || [''])[0];
+    const groups = ['idle', 'egg', 'pat', 'feed', 'play'];
+    const counts = {};
+    let total = 0;
+    groups.forEach(g2 => {
+        const m = block.match(new RegExp(g2 + '\\s*:\\s*\\[([\\s\\S]*?)\\]'));
+        const n = m ? (m[1].match(/'/g) || []).length / 2 : 0;
+        counts[g2] = n; total += n;
+    });
+    assert(total >= 90, '台词库够老师长期用（共 ' + total + ' 句）', counts);
 
     // 记录经验前后
     const expBefore = await js("(function(){var c=document.querySelector('.pet-card'); return (c.querySelector('.lv-tag')||{}).textContent;})()");

@@ -380,10 +380,15 @@ class SQLiteService {
                 }
 
                 // 视觉形态阶段进阶计算 (只升不降)
-                let stageAfter = pet.visual_stage || 1;
-                const stageThresh = this.query("SELECT stage FROM class_visual_stages WHERE class_id = ? AND min_level <= ? ORDER BY stage DESC LIMIT 1", [classId, levelAfter]);
-                if (stageThresh.length > 0 && stageThresh[0].stage > stageAfter) {
-                    stageAfter = stageThresh[0].stage;
+                // 注意：蛋（species_code='egg'）在破壳前 stage 必须保持 0 —— 否则"0 经验加 5 分"会被抬成 stage 1，
+                // 看起来就像孵化了。破壳是 hatchStudentPet 的唯一职责。
+                const isEggPet = String(pet.species_code || 'egg') === 'egg';
+                let stageAfter = Number(pet.visual_stage) || 0;
+                if (!isEggPet) {
+                    const stageThresh = this.query("SELECT stage FROM class_visual_stages WHERE class_id = ? AND min_level <= ? ORDER BY stage DESC LIMIT 1", [classId, levelAfter]);
+                    if (stageThresh.length > 0 && stageThresh[0].stage > stageAfter) {
+                        stageAfter = stageThresh[0].stage;
+                    }
                 }
 
                 // 2. 写入 entry 明细

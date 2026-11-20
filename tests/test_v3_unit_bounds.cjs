@@ -120,6 +120,8 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     const SQL = await initSqlJs();
     const svc = new SQLiteService();
     svc.SQL = SQL; svc.db = new SQL.Database(fs.readFileSync(tmpDb)); svc.dbPath = tmpDb; svc.isInitialized = true;
+    const mig = svc.migrateLegacyDefaultThresholds();   // 与真实应用启动一致：旧默认迁移到 50/100
+    console.log('  阈值迁移：' + JSON.stringify(mig));
 
     global.window = {
         addEventListener: () => {},
@@ -154,8 +156,8 @@ const tick = () => new Promise(r => setTimeout(r, 0));
 
     // ---------- 4.1 破壳门禁：经验不足 ----------
     let h = await store2.v3Hatch({ studentId: STU_A, subjectCode: 'chinese', speciesCode: 'cat' });
-    assert(h.ok === false && h.reason === 'exp-insufficient' && h.need === 15 && h.current === 0,
-        '门禁①：经验 0 < 15 被拒（exp-insufficient），带 need/current 具体值', h);
+    assert(h.ok === false && h.reason === 'exp-insufficient' && h.need === 50 && h.current === 0,
+        '门禁①：经验 0 < 50 被拒（exp-insufficient），带 need/current 具体值', h);
     let hs = svc.hatchStudentPet({ classId: CLASS, studentId: STU_A, subjectCode: 'chinese', speciesCode: 'cat' });
     assert(hs.success === false && /^EXP_NOT_ENOUGH/.test(String(hs.error)),
         '门禁①服务层：hatchStudentPet 直接返回 EXP_NOT_ENOUGH', hs);
@@ -165,15 +167,28 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     h = await store2.v3Hatch({ studentId: STU_A, subjectCode: 'math', speciesCode: 'dog' });
     assert(h.ok === false && h.reason === 'locked', '门禁②：数学未解锁（语文未满级）被拒（locked）', h);
     // 服务层检查顺序是「经验 → 解锁」，所以先把数学经验抬到达标，才能单独验证 SUBJECT_LOCKED
-    svc.execute("UPDATE pets SET exp = 20 WHERE student_id = ? AND subject_id = 'subj_math'", [STU_A]);
+    svc.execute("UPDATE pets SET exp = 50 WHERE student_id = ? AND subject_id = 'subj_math'", [STU_A]);   // 新默认：数学破壳门槛 50
     hs = svc.hatchStudentPet({ classId: CLASS, studentId: STU_A, subjectCode: 'math', speciesCode: 'dog' });
     assert(hs.success === false && /^SUBJECT_LOCKED/.test(String(hs.error)),
         '门禁②服务层：经验达标但语文未满级时 hatchStudentPet 返回 SUBJECT_LOCKED', hs);
 
     // ---------- 4.3 经验达标且已解锁 → 允许 ----------
-    const sc = await store2.v3Score({ studentIds: [STU_A], delta: 15, reason: '单元测试加分', subjectCode: 'chinese' });
-    assert(sc.ok === true && !!sc.operationId, '门禁③前置：语文 +15 落库（等库确认后成功）', sc);
-    assert(Number(petRow(STU_A, 'subj_chinese').exp) === 15, '经验达标 = 破壳阈值 15', petRow(STU_A, 'subj_chinese').exp);
+    // ★ 关键回归（负责人 2026-11-20 反馈）：小分加分不得把蛋"抬成"已破壳
+    const small = await store2.v3Score({ studentIds: [STU_A], delta: 5, reason: '只加 5 分', subjectCode: 'chinese' });
+    const after5 = petRow(STU_A, 'subj_chinese');
+    assert(small.ok === true && Number(after5.exp) === 5, '加 5 分后经验为 5', after5.exp);
+    assert(after5.species_code === 'egg' && Number(after5.visual_stage) === 0,
+        '加 5 分后仍是蛋：物种=egg、形态阶段=0（不会被抬到 stage1 冒充孵化）', { sp: after5.species_code, st: after5.visual_stage });
+    const vmMid = await store2.getV3ViewModel();
+    const midStu = vmMid.students.filter(s => s.id === STU_A)[0];
+    assert(midStu.petsBySubject.chinese.isEgg === true && midStu.petsBySubject.chinese.eggImage !== false,
+        'ViewModel 仍判为蛋形态', { isEgg: midStu.petsBySubject.chinese.isEgg, img: midStu.petsBySubject.chinese.image });
+    const h5 = await store2.v3Hatch({ studentId: STU_A, subjectCode: 'chinese', speciesCode: 'cat' });
+    assert(h5.ok === false && h5.reason === 'exp-insufficient', '5 经验时点破壳被拒（不会"加 5 分就孵化"）', h5);
+
+    const sc = await store2.v3Score({ studentIds: [STU_A], delta: 45, reason: '补到破壳线', subjectCode: 'chinese' });
+    assert(sc.ok === true && !!sc.operationId, '门禁③前置：语文再 +45 落库（合计 50）', sc);
+    assert(Number(petRow(STU_A, 'subj_chinese').exp) === 50, '经验达标 = 破壳阈值 50', petRow(STU_A, 'subj_chinese').exp);
     h = await store2.v3Hatch({ studentId: STU_A, subjectCode: 'chinese', speciesCode: 'cat', nickname: '单元小猫' });
     assert(h.ok === true && h.subjectCode === 'chinese', '门禁③：经验达标 + 学科已解锁 → 破壳放行', h);
     const hatchedRow = petRow(STU_A, 'subj_chinese');
@@ -195,10 +210,10 @@ const tick = () => new Promise(r => setTimeout(r, 0));
 
     // ---------- 4.6 负分不降级 ----------
     const before = petRow(STU_A, 'subj_chinese');
-    const up = await store2.v3Score({ studentIds: [STU_A], delta: 65, reason: '单元测试跨级加分', subjectCode: 'chinese' });
-    assert(up.ok === true, '负分不降级前置：再 +65 跨级', up);
+    const up = await store2.v3Score({ studentIds: [STU_A], delta: 110, reason: '单元测试跨级加分', subjectCode: 'chinese' });
+    assert(up.ok === true, '负分不降级前置：再 +110 跨级（50→150）', up);
     const afterUp = petRow(STU_A, 'subj_chinese');
-    assert(Number(afterUp.exp) === Number(before.exp) + 65 && Number(afterUp.level) > Number(before.level),
+    assert(Number(afterUp.exp) === Number(before.exp) + 110 && Number(afterUp.level) > Number(before.level),
         '加分后经验与等级都上升（跨到下一级）', { expBefore: before.exp, exp: afterUp.exp, lvBefore: before.level, lv: afterUp.level });
     const down = await store2.v3Score({ studentIds: [STU_A], delta: -200, reason: '单元测试大额扣分', subjectCode: 'chinese' });
     assert(down.ok === true, '大额扣分本身成功（不报错）', down);

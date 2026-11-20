@@ -887,6 +887,7 @@ function buildStudents(){
       id: id, name: NAMES[group - 1][i % 8], group: group,
       species: SPECIES_CYCLE[i % 8],
       level: level, exp: exp, maxExp: demoExpForLevel(level),
+      hatchNeed: 50,
       isEgg: id === 3, isAbsent: id === 7,
       stamps: []
     });
@@ -988,9 +989,42 @@ var PET_ACTIONS = [
   { key: 'play', emoji: '🎾', label: '一起玩' }
 ];
 var PET_LINES = {
-  pat: ['呼噜呼噜…好舒服呀', '眼睛都眯起来啦', '再摸一下下嘛', '开心得耳朵都软了', '蹭蹭你的手心'],
-  feed: ['吧唧吧唧，真好吃！', '吃饱饱，脑子转得快', '还有吗还有吗？', '谢谢你的小零食', '满血复活啦'],
-  play: ['看我的飞天扑击！', '再来一次再来一次！', '跑得比体育委员还快', '嘿咻！接住啦', '玩累了也不困']
+  /* 点宠物（没有选互动）时的随口一句 */
+  idle: [
+    '嘿嘿，你来啦！', '我一直在这儿等你哦', '今天的你看起来很有精神', '要不要摸摸我呀？',
+    '我在攒破壳的能量呢', '窗外有只小鸟飞过去了', '我刚刚打了个小盹儿', '你写的字越来越好看啦',
+    '记得喝口水呀', '坐直一点，背会舒服很多', '这节课我们一起加油', '我喜欢你叫我的名字',
+    '我数了数，今天已经有好多同学被表扬了', '别急，慢慢想，答案会自己冒出来', '我能感觉到你在努力',
+    '累了就看看我，我会对你笑', '今天的阳光真好呀', '我有一个小秘密，等破壳了告诉你',
+    '你的铅笔是不是又短了一截', '我在这里陪着你呢', '我们一起把这道题啃下来', '要不要伸个懒腰？',
+    '我听见下课铃的声音了', '你的同桌刚刚也在偷偷看我', '我梦见自己变成大英雄了', '再坚持一下下就下课啦'
+  ],
+  /* 蛋形态（还没破壳）被点的时候 */
+  egg: [
+    '咚、咚、咚——里面好像有动静', '我在蛋里伸了个懒腰', '还差一点点能量就能出来了',
+    '别敲太用力呀，壳会疼的', '我听见你的声音了！', '再给我加几次油，我就出来见你',
+    '这里好暖和，我有点舍不得', '你猜我会变成什么样子？', '羽毛已经长好啦，就差推开门',
+    '快看，蛋壳上有一道小裂缝', '我在里面练习走路呢', '等我出来，第一件事就是跟你击掌'
+  ],
+  pat: [
+    '呼噜呼噜…好舒服呀', '眼睛都眯起来啦', '再摸一下下嘛', '开心得耳朵都软了', '蹭蹭你的手心',
+    '呜哇，是被摸头杀击中了', '你的手好暖和呀', '再来一次，我保证不躲', '我的尾巴自己不听话地摇起来了',
+    '这样摸我会变乖的', '今天的疲惫都被摸没了', '我要把这份舒服存起来', '别停呀，就一下下',
+    '我宣布你是最会摸头的人', '舒服得想打滚', '脖子这里，对，就是这里', '我快睡着啦…',
+    '被摸得晕乎乎的，好幸福'
+  ],
+  feed: [
+    '吧唧吧唧，真好吃！', '吃饱饱，脑子转得快', '还有吗还有吗？', '谢谢你的小零食', '满血复活啦',
+    '这个味道我记住了', '嚼嚼嚼——好香', '肚子圆滚滚的了', '我把最后一口留给你', '吃完整个人都亮了',
+    '下次能带点别的口味吗', '能量补充完毕，随时可以上课', '嗝——不好意思', '我吃相是不是不太好看',
+    '这可是我最喜欢的东西', '吃完要记得漱口哦', '再吃一口就要飞起来了', '我偷偷藏了一颗给你'
+  ],
+  play: [
+    '看我的飞天扑击！', '再来一次再来一次！', '跑得比体育委员还快', '嘿咻！接住啦', '玩累了也不困',
+    '这次我一定抓住你', '转圈圈好好玩', '我跳得比昨天高了', '要不要比谁先跑到门口', '我藏好了，你来找我呀',
+    '哈哈，被你发现了', '再来三局，不，五局', '运动完记得喝水', '我可是玩游戏的冠军',
+    '轻一点轻一点，我要摔啦', '这样玩最开心了', '下次带同学一起来玩', '我还能再跳十次'
+  ]
 };
 var PET_COOLDOWN_MS = 20000;
 var petCool = {};
@@ -1020,6 +1054,26 @@ function petCloseRing() {
 function petCloseBubble() {
   if (petBubbleFor && petBubbleFor.parentNode) petBubbleFor.parentNode.removeChild(petBubbleFor);
   petBubbleFor = null;
+}
+function petPickLine(kind) {
+  var list = PET_LINES[kind] || PET_LINES.idle;
+  return list[Math.floor(Math.random() * list.length)];
+}
+function petShowBubble(stageEl, text) {
+  if (!stageEl || !text) return;
+  petCloseBubble();
+  var bub = document.createElement('div');
+  bub.className = 'pet-bubble';
+  bub.textContent = text;
+  stageEl.appendChild(bub);
+  petBubbleFor = bub;
+  clearTimeout(petExprTimer);
+  petExprTimer = setTimeout(function () { petCloseBubble(); }, 2600);
+}
+/* 点宠物本体（哪怕不点互动）：也要说一句话 */
+function petGreet(stageEl, s) {
+  if (!stageEl || !s) return;
+  petShowBubble(stageEl, petPickLine(s.isEgg ? 'egg' : 'idle'));
 }
 function petOpenRing(stageEl, s) {
   if (petRingFor && petRingFor.getAttribute('data-owner') === String(s.id) && stageEl.contains(petRingFor)) { petCloseRing(); return; }
@@ -1052,16 +1106,7 @@ function petReact(stageEl, s, action) {
     btn.setAttribute('aria-disabled', 'true');
     if (!btn.querySelector('.ic-cool')) btn.insertAdjacentHTML('beforeend', '<span class="ic-cool">' + Math.ceil(PET_COOLDOWN_MS / 1000) + '</span>');
   }
-  var lines = PET_LINES[action] || PET_LINES.pat;
-  var text = lines[Math.floor(Math.random() * lines.length)];
-  petCloseBubble();
-  var bub = document.createElement('div');
-  bub.className = 'pet-bubble';
-  bub.textContent = text;
-  stageEl.appendChild(bub);
-  petBubbleFor = bub;
-  clearTimeout(petExprTimer);
-  petExprTimer = setTimeout(function () { petCloseBubble(); }, 2600);
+  petShowBubble(stageEl, petPickLine(action));
   sfx(action === 'feed' ? 'stamp' : action === 'play' ? 'levelup' : 'ink');
   // 有表情图就换脸，2.5 秒后还原；缺图静默退回
   var expr = petExprPath(s, action);
@@ -1121,6 +1166,8 @@ document.addEventListener('click', function (e) {
     petRingOwnerId = stu2.id;
     if (typeof selectStudent === 'function') selectStudent(stu2.id, true);
     petAttachRing(stu2.id);          /* 同步挂载：不依赖 rAF（后台/遮挡时 rAF 可能不触发） */
+    var stage2 = document.querySelector('.pet-card[data-id="' + String(stu2.id) + '"] .pet-stage') || stageEl;
+    petGreet(stage2, stu2);          /* 第2条：点宠物就说话（不点互动也算） */
     return;
   }
   if (petRingFor && !e.target.closest('.interact-ring')) petCloseRing();
@@ -1396,9 +1443,14 @@ function renderInspector(skipRoll){
 
 
   if (egg) {
+    var hatchNeed = Number(s.hatchNeed) || 50;
+    var hatchLeft = Math.max(0, hatchNeed - Number(s.exp || 0));
     html += '<div class="ins-sec"><div class="ins-sec-t">破壳区</div><div class="hatch-box">' +
-      '<p>蛋内已积蓄 ' + s.exp + ' EXP，可以破壳了。</p>' +
-      '<button class="btn btn-primary btn-wide" type="button" id="btn-hatch" data-ctrl="hatch">破壳孵化</button>' +
+      '<p>' + (hatchLeft > 0
+        ? ('破壳进度 ' + s.exp + ' / ' + hatchNeed + ' EXP · 还差 ' + hatchLeft + ' EXP')
+        : ('破壳能量已满（' + s.exp + ' / ' + hatchNeed + ' EXP），可以破壳了')) + '</p>' +
+      '<button class="btn btn-primary btn-wide" type="button" id="btn-hatch" data-ctrl="hatch"' +
+        (hatchLeft > 0 ? ' disabled aria-disabled="true" title="还差 ' + hatchLeft + ' EXP 才能破壳"' : '') + '>破壳孵化</button>' +
       '</div></div>';
   }
   if (s.isAbsent) {
@@ -1876,6 +1928,13 @@ function hatchFx(s){
 function hatch(){
   var s = state.selectedId ? byId(state.selectedId) : null;
   if (!s || !s.isEgg) return;
+  /* 破壳门禁（演示态同样执行）：默认 50 EXP，与数据/形态配置一致 */
+  var need = Number(s.hatchNeed) || 50;
+  if (Number(s.exp || 0) < need) {
+    toast('破壳需要 ' + need + ' EXP（当前 ' + s.exp + '），还差 ' + (need - s.exp) + ' EXP，继续加分吧');
+    sfx('ink');
+    return;
+  }
   if (DATA_MODE === 'live') { hatchLive(s); return; }
   if (DATA_MODE !== 'demo') { readonlyHit(); return; }
   var node = cardNode(s.id);
@@ -2758,6 +2817,7 @@ function vmStudents(vm){
       species: pet.speciesCode,
       speciesName: pet.speciesName,
       isEgg: !!pet.isEgg,
+      hatchNeed: Number(pet.nextLevelExp) || 50,
       isMax: !!pet.isMax,
       isAbsent: !!row.isAbsent,
       stageName: pet.stageName,
