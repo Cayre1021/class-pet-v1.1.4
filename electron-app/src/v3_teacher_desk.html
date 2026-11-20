@@ -3148,6 +3148,7 @@ html.theme-fade *::after{
       : '<div class="empty-state">暂无日志。<br>赋分、编辑、破壳都会记入这里。</div>';
     openDialog({
       title: '学生日志 · ' + s.name,
+      sub: '本堂课记录',
       body: '<p class="note">#' + stuNo(s) + ' · ' + s.group + '组 · LV' + s.level + ' · ' + s.exp + ' / ' + s.maxExp + ' EXP · ' + speciesName(s) +
         (isRealStu(s) && !s.isEgg && s.stageName ? ' · ' + esc(s.stageName) : '') +
         (s.isEgg ? ' · 蛋形态' : '') + '</p>' +
@@ -3161,7 +3162,7 @@ html.theme-fade *::after{
     var core = await v3Core(['v3Ledger']);
     if (!core) { v3NoBridge('读取学生日志'); return; }
     var res = null;
-    try { res = await core.v3Ledger({ fromTs: todayStartTs, toTs: Date.now() + 60000 }); }
+    try { res = await core.v3Ledger({ fromTs: todayStartTs(), toTs: Date.now() + 60000 }); }
     catch (e) { res = { ok: false, error: String((e && e.message) || e) }; }
     if (!res || res.ok !== true) {
       toast('读取学生日志失败：' + ((res && (res.error || res.reason)) || '班级库未确认'), 'warn');
@@ -3177,6 +3178,7 @@ html.theme-fade *::after{
     }).join('') : '<div class="empty-state">今天还没有赋分记录。<br>赋分、撤销都会实时记入这里。</div>';
     openDialog({
       title: '学生日志 · ' + s.name,
+      sub: '班级库 · 实时流水',
       body: '<p class="note">#' + stuNo(s) + ' · ' + s.group + '组 · LV' + s.level + ' · ' + s.exp + ' / ' + s.maxExp + ' EXP · ' + speciesName(s) +
         (s.stageName ? ' · ' + esc(s.stageName) : '') + '</p>' +
         '<div class="log-list">' + items + '</div>',

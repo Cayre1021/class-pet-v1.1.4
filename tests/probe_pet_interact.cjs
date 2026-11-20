@@ -20,16 +20,27 @@ app.whenReady().then(async () => {
     assert(errs.length === 0, '页面加载 0 控制台错误', errs);
 
     // 点第一张卡片里的宠物
-    const ring = await js(`(function(){
-        var img = document.querySelector('.pet-card .pet-stage img');
+    const ring = await js(`(async function(){
+        var card = document.querySelector('.pet-card');
+        var img = card && card.querySelector('.pet-stage img');
         if (!img) return { err: 'no-pet-img' };
         img.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await new Promise(function(r){ requestAnimationFrame(function(){ requestAnimationFrame(r); }); });
         var r = document.querySelector('.interact-ring');
         var btns = r ? [].slice.call(r.querySelectorAll('.interact-btn')) : [];
-        return { ring: !!r, btns: btns.length, keys: btns.map(function(b){ return b.getAttribute('data-pet-action'); }) };
+        var box = r && r.getBoundingClientRect();
+        var tops = btns.map(function(b){ return Math.round(b.getBoundingClientRect().top); });
+        var sameRow = tops.length > 1 && Math.max.apply(null, tops) - Math.min.apply(null, tops) <= 2;
+        var inspectorOpen = document.getElementById('inspector') ? !document.getElementById('inspector').hidden : null;
+        var bs = getComputedStyle(r || document.body);
+        return { ring: !!r, btns: btns.length, keys: btns.map(function(b){ return b.getAttribute('data-pet-action'); }),
+                 sameRow: sameRow, flex: bs.display, inspectorOpen: inspectorOpen,
+                 insideCard: !!(r && card && card.contains(r)) };
     })()`);
-    assert(ring && ring.ring === true, '点宠物弹出互动圆环', ring);
-    assert(ring && ring.btns === 3 && ring.keys.join(',') === 'pat,feed,play', '圆环里有 3 个按钮（摸摸/喂食/玩耍）', ring);
+    assert(ring && ring.ring === true, '点宠物弹出互动选项', ring);
+    assert(ring && ring.btns === 3 && ring.keys.join(',') === 'pat,feed,play', '有 3 个按钮（摸摸/喂食/玩耍）', ring);
+    assert(ring && ring.flex === 'flex' && ring.sameRow === true, '三个圆圈排成一排（同一行）', ring);
+    assert(ring && ring.inspectorOpen === true, '点宠物的同时右侧加分/详情面板也打开（不冲突）', ring);
 
     // 记录经验前后
     const expBefore = await js("(function(){var c=document.querySelector('.pet-card'); return (c.querySelector('.lv-tag')||{}).textContent;})()");

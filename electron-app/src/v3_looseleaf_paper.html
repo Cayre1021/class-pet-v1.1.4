@@ -198,8 +198,9 @@ ul{margin:0;padding:0;list-style:none}
 
 /* 宠物互动（第2条）：点宠物 → 冒出三个圆圈；有表情图就换表情，没有就只出气泡 */
 .pet-stage{position:relative}
-.interact-ring{position:absolute;inset:0;z-index:6;pointer-events:none}
-.interact-btn{position:absolute;pointer-events:auto;width:44px;height:44px;border-radius:50%;
+.interact-ring{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);z-index:6;
+  display:flex;gap:10px;pointer-events:none}
+.interact-btn{position:relative;pointer-events:auto;width:44px;height:44px;border-radius:50%;
   border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);
   display:grid;place-items:center;font-size:17px;line-height:1;cursor:pointer;
   box-shadow:0 2px 0 rgba(17,17,17,.18);transition:transform .16s ease}
@@ -1026,7 +1027,6 @@ function petOpenRing(stageEl, s) {
   var ring = document.createElement('div');
   ring.className = 'interact-ring';
   ring.setAttribute('data-owner', String(s.id));
-  var pos = [['left:4px;top:12%'], ['right:4px;top:12%'], ['left:50%;bottom:6%;transform:translateX(-50%)']];
   PET_ACTIONS.forEach(function (a, i) {
     var b = document.createElement('button');
     b.type = 'button';
@@ -1034,7 +1034,6 @@ function petOpenRing(stageEl, s) {
     b.setAttribute('data-pet-action', a.key);
     b.setAttribute('aria-label', a.label);
     b.setAttribute('title', a.label);
-    b.style.cssText = pos[i] + ';';
     b.innerHTML = '<span aria-hidden="true">' + a.emoji + '</span>';
     var left = petCoolLeft(s, a.key);
     if (left > 0) { b.setAttribute('aria-disabled', 'true'); b.insertAdjacentHTML('beforeend', '<span class="ic-cool">' + left + '</span>'); }
@@ -1089,6 +1088,13 @@ function petReact(stageEl, s, action) {
     if (coolEl) coolEl.textContent = String(remain);
   }, 1000);
 }
+var petRingOwnerId = null;
+function petAttachRing(id) {
+  var card = document.querySelector('.pet-card[data-id="' + String(id) + '"]');
+  var stageEl = card ? card.querySelector('.pet-stage') : null;
+  var stu = byId(Number(id));
+  if (stageEl && stu) petOpenRing(stageEl, stu);
+}
 /* 事件委托：卡片里的宠物、检查器里的宠物都能点 */
 document.addEventListener('click', function (e) {
   var btn = e.target.closest ? e.target.closest('.interact-btn') : null;
@@ -1103,10 +1109,15 @@ document.addEventListener('click', function (e) {
   }
   var img = e.target.closest ? e.target.closest('.pet-stage img, #ins-pet') : null;
   if (img) {
+    e.stopPropagation();
     var stageEl = img.closest('.pet-stage') || img.parentNode;
     var owner = stageEl.closest('[data-id]');
     var stu2 = owner ? byId(Number(owner.getAttribute('data-id'))) : (state.selectedId ? byId(state.selectedId) : null);
-    if (stu2 && stageEl) { e.stopPropagation(); petOpenRing(stageEl, stu2); }
+    if (!stu2) return;
+    // 点宠物：同时打开右侧加分/详情面板，再在重绘后的卡片上把互动圆环贴回去
+    if (typeof selectStudent === 'function') selectStudent(stu2.id, true);
+    petRingOwnerId = stu2.id;
+    requestAnimationFrame(function () { petAttachRing(stu2.id); });
     return;
   }
   if (petRingFor && !e.target.closest('.interact-ring')) petCloseRing();
