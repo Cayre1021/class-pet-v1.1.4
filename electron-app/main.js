@@ -263,7 +263,9 @@ app.whenReady().then(async () => {
         try {
             const mig = sqliteService.migrateLegacyDefaultThresholds();
             if (mig && mig.migrated) console.log('[Main] 已把 ' + mig.migrated + ' 个班级的默认经验阈值升级为新默认');
-        } catch (e) { console.error('[Main] 阈值迁移异常:', e); }
+            // 顺序很重要：阈值先迁到 50/100，再按新门槛把"经验不足却被当成已孵化"的宠物退回蛋
+            sqliteService.migrateHatchRuleV3();
+        } catch (e) { console.error('[Main] 阈值/孵化规则迁移异常:', e); }
     } catch (e) {
         console.error('[Main] SQLite 初始化发生异常:', e);
     }

@@ -195,6 +195,10 @@ class SQLiteService {
             created_at INTEGER,
             undone_at INTEGER
         );
+        CREATE TABLE IF NOT EXISTS app_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
         CREATE TABLE IF NOT EXISTS score_entries (
             id TEXT PRIMARY KEY,
             operation_id TEXT,
@@ -212,21 +216,60 @@ class SQLiteService {
         this.ensurePetsHatchColumn();
     }
 
-    // 老库补列：hatched_at 是"是否已孵化"的显式记录（不再靠 visual_stage 推断）
+    // 老库补列 + 一次性订正：hatched_at 是"是否已孵化"的显式记录（不再靠 visual_stage 推断）
     ensurePetsHatchColumn() {
         if (this._hatchColChecked) return true;
         try {
             const cols = this.query("PRAGMA table_info(pets)").map(c => c.name);
             if (cols.indexOf('hatched_at') < 0) {
                 this.db.run("ALTER TABLE pets ADD COLUMN hatched_at INTEGER");
-                this.db.run("UPDATE pets SET hatched_at = COALESCE(created_at, ?) WHERE visual_stage >= 1 AND species_code IS NOT NULL AND species_code <> 'egg'", [Date.now()]);
-                this.saveToDiskSync();
-                console.log('[SQLiteService] pets 已补 hatched_at 列，并把历史已显示的宠物标记为已孵化');
             }
             this._hatchColChecked = true;
             return true;
         } catch (e) {
             console.warn('[SQLiteService] 补 hatched_at 失败:', e && e.message);
+            return false;
+        }
+    }
+
+    // 规则 v3（2026-11-20）：破壳门槛 = 该班第 1 级阈值（迁移后为 50）；经验不够的一律回到蛋。
+    // 必须在“阈值迁移”之后调用；用 app_meta 记标记，只跑一次。
+    migrateHatchRuleV3() {
+        try {
+            const done = this.query("SELECT value FROM app_meta WHERE key = 'hatch_rule_v3'")[0];
+            if (!done) {
+                const now = Date.now();
+                const thresholds = {};
+                this.query("SELECT class_id, min_exp FROM class_level_thresholds WHERE level = 1").forEach(r => {
+                    thresholds[r.class_id] = Number(r.min_exp) || 50;
+                });
+                const pets = this.query("SELECT id, class_id, exp, species_code, visual_stage, created_at FROM pets");
+                let backToEgg = 0, kept = 0;
+                this.db.run('BEGIN TRANSACTION;');
+                pets.forEach(p => {
+                    const need = thresholds[p.class_id] || 50;
+                    const exp = Number(p.exp) || 0;
+                    if (exp < need) {
+                        /* 经验没到破壳线：无论历史 stage 是多少，都应是蛋，等用户点破壳 */
+                        this.db.run("UPDATE pets SET hatched_at = NULL, visual_stage = 0 WHERE id = ?", [p.id]);
+                        backToEgg += 1;
+                    } else if ((Number(p.visual_stage) || 0) >= 1 && String(p.species_code || 'egg') !== 'egg') {
+                        /* 经验已达标且本来就显示成宠物：保留为已孵化 */
+                        this.db.run("UPDATE pets SET hatched_at = COALESCE(hatched_at, created_at, ?) WHERE id = ?", [now, p.id]);
+                        kept += 1;
+                    } else {
+                        this.db.run("UPDATE pets SET hatched_at = NULL WHERE id = ?", [p.id]);
+                    }
+                });
+                this.db.run("INSERT OR REPLACE INTO app_meta (key, value) VALUES ('hatch_rule_v3', ?)", [String(now)]);
+                this.db.run('COMMIT;');
+                this.saveToDiskSync();
+                console.log('[SQLiteService] 孵化规则 v3 已应用：' + backToEgg + ' 只经验不足的宠物回到蛋；' + kept + ' 只已达标的宠物标记为已孵化');
+            }
+            return true;
+        } catch (e) {
+            try { this.db.run('ROLLBACK;'); } catch (e2) {}
+            console.warn('[SQLiteService] 孵化规则 v3 迁移失败:', e && e.message);
             return false;
         }
     }

@@ -1,0 +1,60 @@
+// probe_pet_expr.cjs —— 真数据态：点互动后宠物图是否换成 <species>-stageN-<expr>.png
+const { app, BrowserWindow, ipcMain } = require('electron');
+const path=require('path'), fs=require('fs'), os=require('os');
+const ROOT=process.cwd();
+const {SQLiteService}=require(path.join(ROOT,'electron-app','sqlite_service.js'));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+app.setPath('userData', path.join(os.tmpdir(),'cp-expr-'+Date.now()));
+app.commandLine.appendSwitch('disable-gpu'); app.commandLine.appendSwitch('no-sandbox');
+const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'cp-exprdb-'));
+const db=path.join(tmp,'classpet.sqlite');
+fs.copyFileSync(path.join(ROOT,'database','classpet.sqlite'), db);
+let svc=null, passed=0, failed=0;
+const assert=(c,m,x)=>{ if(c){console.log('  PASS  '+m);passed++;} else {console.error('  FAIL  '+m+(x!==undefined?'  ->  '+JSON.stringify(x).slice(0,240):''));failed++;} };
+function regIpc(){ const h=(ch,fn)=>ipcMain.handle(ch,async(e,pl)=>{try{return await fn(pl);}catch(err){return {success:false,error:String(err&&err.message||err)};}});
+ h('db:loadAllState',c=>svc.loadAllState(c||'c_class02_01')); h('db:recordScore',p=>svc.recordScoreOperation(p));
+ h('db:undoScore',id=>svc.undoOperation(id)); h('db:getStudentAuditLogs',s=>svc.getStudentAuditLogs(s));
+ h('db:hatchPet',p=>svc.hatchStudentPet(p)); h('db:saveStudent',p=>svc.saveStudent(p.student,p.classId||'c_class02_01'));
+ h('db:importStudents',p=>svc.importStudents(p.students,p.classId||'c_class02_01'));
+ h('db:saveAllStudents',p=>svc.saveAllStudents(p.students,p.classId||'c_class02_01'));
+ h('db:archiveStudent',p=>svc.archiveStudent(p.studentId,p.isArchived,p.classId)); h('db:deleteStudent',p=>svc.deleteStudent(p.studentId,p.classId));
+ h('db:saveThresholds',p=>svc.saveThresholds(p.thresholds,p.stages,p.classId||'c_class02_01'));
+ h('db:saveBehaviorRules',p=>svc.saveBehaviorRules(p.rules,p.classId||'c_class02_01'));
+ h('db:getClassLedger',p=>svc.getClassLedger(p.classId||'c_class02_01',p.fromTs,p.toTs));
+ h('db:updateStudentProfile',p=>svc.updateStudentProfile(p.studentId,p.patch||{},p.classId||'c_class02_01'));
+ h('db:restoreClassBackup',p=>svc.restoreClassBackup(p.classId||'c_class02_01',p.payload));
+ h('db:query',p=>svc.query(p.sql,p.params||[])); h('db:execute',p=>svc.execute(p.sql,p.params||[])); }
+app.whenReady().then(async()=>{
+ svc=new SQLiteService(); await svc.init(null,db); svc.isInitialized=true;
+ svc.initDefaultTables(); svc.migrateLegacyDefaultThresholds(); svc.migrateHatchRuleV3(); regIpc();
+ console.log('== 表情图换脸（真数据态）==');
+ const cat = svc.query("SELECT p.*, s.name FROM pets p JOIN students s ON s.id=p.student_id WHERE p.class_id='c_class02_01' AND p.species_code='cat' AND p.hatched_at IS NOT NULL ORDER BY p.visual_stage DESC, s.student_no LIMIT 1")[0];
+ assert(!!cat, '库里有一只已孵化的猫', cat && { stage: cat.visual_stage, exp: cat.exp });
+ const stage = Number(cat.visual_stage)||1;
+ const files = ['pat','feed','play'].map(e => 'cat-stage'+stage+'-'+e+'.png');
+ const exist = files.map(f => fs.existsSync(path.join(ROOT,'electron-app','src','assets','pets','cat',f)));
+ assert(exist.every(Boolean), '该阶段的三张表情图都在（'+files.join(', ')+'）', exist);
+
+ const win=new BrowserWindow({width:1600,height:900,show:false,webPreferences:{contextIsolation:true,preload:path.join(ROOT,'electron-app','preload.js')}});
+ const js=c=>win.webContents.executeJavaScript(c,true);
+ await win.loadURL('file://'+path.join(ROOT,'electron-app','src','v3_looseleaf_paper.html').replace(/\\/g,'/'));
+ await sleep(2200);
+ const clickPetJs = (name) => "(function(){var cards=[].slice.call(document.querySelectorAll('.pet-card'));var t=cards.filter(function(c){return (c.textContent||'').indexOf("+JSON.stringify(name)+")>=0;})[0];if(!t)return null;var img=t.querySelector('.pet-stage img');img.dispatchEvent(new MouseEvent('click',{bubbles:true}));return t.getAttribute('data-id');})()";
+ await js(clickPetJs(cat.name)); await sleep(600);
+ const beforeSrc = await js("(function(){var ring=document.querySelector('.interact-ring');var owner=ring?ring.getAttribute('data-owner'):null;var i=owner?document.querySelector('.pet-card[data-id=\"'+owner+'\"] .pet-stage img'):null;return i?i.getAttribute('src'):null;})()");
+ const mStage = String(beforeSrc).match(/cat-stage(\d)\.png$/);
+ assert(!!mStage, '点击前是基础图 ' + beforeSrc, beforeSrc);
+ const shownStage = mStage ? mStage[1] : '0';
+ const diag = await js("(async function(){var b=document.querySelector('.interact-btn[data-pet-action=\"pat\"]');if(!b)return {err:'no-btn'};var ring=b.closest('.interact-ring');var owner=ring?ring.getAttribute('data-owner'):null;b.dispatchEvent(new MouseEvent('click',{bubbles:true}));await new Promise(function(r){setTimeout(r,900);});var card=document.querySelector('.pet-card[data-id=\"'+owner+'\"] .pet-stage img');return {src:card?card.getAttribute('src'):null, bubble: !!document.querySelector('.pet-bubble'), disabled: b.getAttribute('aria-disabled'), owner: owner};})()");
+ console.log('  诊断：' + JSON.stringify(diag));
+ const afterPat = diag && diag.src;
+ assert(new RegExp('cat-stage'+shownStage+'-pat\\.png$').test(String(afterPat)), '点「摸摸头」后换成 pat 表情图（stage'+shownStage+'）：' + afterPat, afterPat);
+ await sleep(2600);
+ const restored = await js("(function(){var ring=document.querySelector('.interact-ring');var owner=ring?ring.getAttribute('data-owner'):null;var i=owner?document.querySelector('.pet-card[data-id=\"'+owner+'\"] .pet-stage img'):null;return i?i.getAttribute('src'):null;})()");
+ assert(new RegExp('cat-stage'+shownStage+'\\.png$').test(String(restored)), '2.5 秒后还原为基础图', restored);
+ win.destroy();
+ console.log('\n结果: '+passed+' passed, '+failed+' failed');
+ try{svc.db.close()}catch(e){}
+ fs.rmSync(tmp,{recursive:true,force:true});
+ app.exit(failed===0?0:1);
+}).catch(e=>{console.error('探针异常:',e);app.exit(2);});
