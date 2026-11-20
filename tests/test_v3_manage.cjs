@@ -38,7 +38,7 @@ const assert = (cond, msg, extra) => {
         db: {
             loadAllState: (c) => svc.loadAllState(c), recordScore: (p) => svc.recordScoreOperation(p),
             undoScore: (id) => svc.undoOperation(id), hatchPet: (p) => svc.hatchStudentPet(p),
-            saveStudent: (s, c) => svc.saveStudent(s, c), importStudents: (s, c) => svc.importStudents(s, c),
+            saveStudent: (s, c, options) => svc.saveStudent(s, c, options), importStudents: (s, c) => svc.importStudents(s, c),
             saveThresholds: (t, s2, c) => svc.saveThresholds(t, s2, c), saveBehaviorRules: (r, c) => svc.saveBehaviorRules(r, c),
             getClassLedger: (c, f, t) => svc.getClassLedger(c, f, t),
             updateStudentProfile: (id, patch, c) => svc.updateStudentProfile(id, patch, c),
@@ -56,26 +56,15 @@ const assert = (cond, msg, extra) => {
     assert(r.ok === true && !!r.studentId, '新增学生成功并生成库内 id', r);
     const petCount = svc.query("SELECT COUNT(*) AS n FROM pets WHERE student_id = ?", [r.studentId])[0].n;
     assert(petCount === 3, '新增学生自动建三科蛋宠（3 条）', petCount);
-    // 同名是正常情况：只要学号不同就应当允许，且两人完全独立（id/宠物/成绩互不影响）
-    const first = r;
-    const dupName = await store.v3CreateStudent({ name: '管理测试甲', group: 3 });
-    assert(dupName.ok === true, '同名不同学号可以新增（不再按姓名拒绝）', dupName);
-    assert(dupName.studentId !== first.studentId && dupName.no !== first.no, '两人的库内 id 与学号都不同', { a: first, b: dupName });
-    const petsA = svc.query("SELECT id FROM pets WHERE student_id = ? ORDER BY id", [first.studentId]).map(x => x.id);
-    const petsB = svc.query("SELECT id FROM pets WHERE student_id = ? ORDER BY id", [dupName.studentId]).map(x => x.id);
-    assert(petsA.length === 3 && petsB.length === 3 && petsA.every(id => petsB.indexOf(id) < 0), '两人的宠物各自独立（6 条互不重叠）', { petsA, petsB });
-    const scored = await store.v3Score({ studentIds: [dupName.studentId], delta: 6, reason: '只有乙加分', subjectCode: 'chinese' });
-    const expA = svc.query("SELECT exp FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [first.studentId])[0].exp;
-    const expB = svc.query("SELECT exp FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [dupName.studentId])[0].exp;
-    assert(scored.ok === true && Number(expB) === 6 && Number(expA) === 0, '给乙加分不会影响同名的甲', { expA, expB });
-    // 明确指定的学号冲突 -> 报错（不再静默改号）
-    r = await store.v3CreateStudent({ name: '管理测试乙', no: first.no });
-    assert(r.ok === false && r.reason === 'duplicate-no', '明确指定已被占用的学号时新增被拒', r);
-    const svcDup = svc.saveStudent({ id: 'st_svc_dup', student_no: first.no, name: '直调服务丙', group: 1, pets: {} }, CLASS);
-    assert(svcDup.success === false && /DUPLICATE_STUDENT_NO/.test(svcDup.error || ''), '直接调 saveStudent 指定冲突学号 -> DUPLICATE_STUDENT_NO（不再静默改号）', svcDup);
-    const svcBlank = svc.saveStudent({ id: 'st_svc_blank', name: '留空学号丁', group: 1, pets: {} }, CLASS);
-    const blankNo = svc.query("SELECT student_no FROM students WHERE id = 'st_svc_blank'")[0];
-    assert(svcBlank.success === true && blankNo && blankNo.student_no, '学号留空时仍自动分配', { svcBlank, blankNo });
+    const dupName = await store.v3CreateStudent({ name: '管理测试甲' });
+    assert(dupName.ok === true && dupName.no !== r.no && dupName.studentId !== r.studentId, '同名新增各自拥有独立学号和 ID', dupName);
+    const dupNo = await store.v3CreateStudent({ name: '管理测试乙', no: '000' + r.no });
+    assert(dupNo.ok === false && dupNo.reason === 'duplicate-no', '额外前导零不能绕过学号冲突校验', dupNo);
+    const badNo = await store.v3CreateStudent({ name: '管理测试乙', no: 'A01' });
+    assert(badNo.ok === false && badNo.reason === 'bad-no', '非数字学号不会被改号或自动分配', badNo);
+    const directConflict = svc.saveStudent({ id: 'st_qa_conflicting_no', name: '管理测试乙', no: r.no }, CLASS, { strictStudentNo: true });
+    assert(!directConflict.success && directConflict.reason === 'duplicate-no' &&
+        svc.query("SELECT id FROM students WHERE id = 'st_qa_conflicting_no'").length === 0, 'SQLite 直接拒绝显式冲突，且没有新增记录', directConflict);
 
     // 编辑只改姓名/组：等级/经验/物种必须原样
     store = await mk();
@@ -83,11 +72,8 @@ const assert = (cond, msg, extra) => {
     const vm0 = await store.getV3ViewModel();
     const editTarget = vm0.students.filter(s => s.petsBySubject.chinese.exp > 0)[0];
     const petBefore = svc.query("SELECT * FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [editTarget.id])[0];
-    const otherName = vm0.students.filter(s => s.id !== editTarget.id)[0].name;
-    const renameDup = await store.v3SaveStudentProfile({ studentId: editTarget.id, name: otherName, group: 3 });
-    assert(renameDup.ok === true, '编辑成与他人同名同样允许（学号才是身份）', renameDup);
-    const pr = await store.v3SaveStudentProfile({ studentId: editTarget.id, name: editTarget.name + '·改', group: 3 });
-    assert(pr.ok === true && pr.group === 3, '编辑学生姓名/小组成功', pr);
+    const pr = await store.v3SaveStudentProfile({ studentId: editTarget.id, name: '管理测试甲', group: 3 });
+    assert(pr.ok === true && pr.name === '管理测试甲' && pr.group === 3, '编辑学生可使用本班已有姓名', pr);
     const petAfter = svc.query("SELECT * FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [editTarget.id])[0];
     assert(petAfter.species_code === petBefore.species_code && Number(petAfter.exp) === Number(petBefore.exp) && Number(petAfter.level) === Number(petBefore.level),
         '编辑绝不改物种/经验/等级', { before: [petBefore.species_code, petBefore.exp, petBefore.level], after: [petAfter.species_code, petAfter.exp, petAfter.level] });

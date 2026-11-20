@@ -1,5 +1,11 @@
 # 当前任务
 
+## V3 学生身份验收修复
+
+- [x] 允许同名新增与编辑，拒绝显式重复学号。
+- [x] CSV 按学号合并，规范化重号在写前拒绝。
+- [x] 完成临时库与 Electron 回归。九套共 280 项通过。
+
 ## explore/hifi-redesign-experience 分支：高保真页面重构与交互升级探索
 
 - [x] 新建独立探索分支 `explore/hifi-redesign-experience`。
