@@ -1245,7 +1245,7 @@
                             <label style="font-size: 12px; font-weight: 900; display: block; margin-bottom: 6px;">🐣 萌宠破壳所需经验：</label>
                             <div class="stepper-box" style="height: 42px;">
                                 <button type="button" class="stepper-btn" style="width: 40px; font-size: 20px;" onclick="stepHatchExp(-5)">−</button>
-                                <input type="text" id="quickHatchExp" class="stepper-val" style="font-size: 16px; font-weight: 900;" value="15" readonly />
+                                <input type="text" id="quickHatchExp" value="50" readonly />
                                 <button type="button" class="stepper-btn" style="width: 40px; font-size: 20px;" onclick="stepHatchExp(+5)">+</button>
                             </div>
                             <span style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 4px; font-weight: 700;">满此分数即可认领专属神兽</span>
@@ -1254,7 +1254,7 @@
                             <label style="font-size: 12px; font-weight: 900; display: block; margin-bottom: 6px;">📈 之后每升一级递增经验：</label>
                             <div class="stepper-box" style="height: 42px;">
                                 <button type="button" class="stepper-btn" style="width: 40px; font-size: 20px;" onclick="stepStepExp(-5)">−</button>
-                                <input type="text" id="quickStepExp" class="stepper-val" style="font-size: 16px; font-weight: 900;" value="20" readonly />
+                                <input type="text" id="quickStepExp" value="100" readonly />
                                 <button type="button" class="stepper-btn" style="width: 40px; font-size: 20px;" onclick="stepStepExp(+5)">+</button>
                             </div>
                             <span style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 4px; font-weight: 700;">每积攒此分数自动升一级</span>
@@ -1546,7 +1546,7 @@
         function stepHatchExp(delta) {
             const input = document.getElementById('quickHatchExp');
             if (!input) return;
-            let val = parseInt(input.value, 10) || 15;
+            let val = parseInt(input.value, 10) || 50;
             val = Math.max(5, Math.min(200, val + delta));
             input.value = val;
             const prev = document.getElementById('prevHatchExp');
@@ -1696,7 +1696,7 @@
                 const prog = store.getExpProgress ? store.getExpProgress(petExp, isEgg ? 0 : petLvl, !isEgg) : {
                     percent: 0,
                     progressInLevel: petExp,
-                    levelSpan: 15,
+                    levelSpan: 50,
                     needExp: 0,
                     totalExp: petExp,
                     isMax: petLvl >= 20
@@ -3036,7 +3036,7 @@
             const curThresholds = store.getLevelThresholds();
             const curStages = store.getStageMinLevels();
             
-            const hatchVal = curThresholds[1] || 15;
+            const hatchVal = curThresholds[1] || 50;
             const stepVal = (curThresholds[2] && curThresholds[1]) ? Math.max(5, curThresholds[2] - curThresholds[1]) : 20;
             const qH = document.getElementById('quickHatchExp');
             if (qH) qH.value = hatchVal;
@@ -3070,7 +3070,7 @@
             const getExpAtLevel = (lvl) => {
                 const inp = document.getElementById(`thresh_input_${lvl}`);
                 if (inp) return parseInt(inp.value, 10) || 0;
-                const qH = parseInt(document.getElementById('quickHatchExp')?.value, 10) || 15;
+                const qH = parseInt(document.getElementById('quickHatchExp')?.value, 10) || 50;
                 const qS = parseInt(document.getElementById('quickStepExp')?.value, 10) || 20;
                 return qH + (lvl - 1) * qS;
             };
@@ -3111,7 +3111,7 @@
         function stepHatchExp(delta) {
             const input = document.getElementById('quickHatchExp');
             if (!input) return;
-            let val = parseInt(input.value, 10) || 15;
+            let val = parseInt(input.value, 10) || 50;
             val = Math.max(5, Math.min(100, val + delta));
             input.value = val;
             const prevH = document.getElementById('prevHatchExp');
@@ -3266,7 +3266,7 @@
         }
 
         function generateLinearThresholds(showToast = true) {
-            const hatchExp = parseInt(document.getElementById('quickHatchExp')?.value, 10) || 15;
+            const hatchExp = parseInt(document.getElementById('quickHatchExp')?.value, 10) || 50;
             const stepExp = parseInt(document.getElementById('quickStepExp')?.value, 10) || 20;
             const t = [0, hatchExp];
             for (let i = 2; i <= 20; i++) {
@@ -3341,7 +3341,7 @@
                     store.resetLevelThresholds();
                     const curThresholds = store.getLevelThresholds();
                     const curStages = store.getStageMinLevels();
-                    const hatchVal = curThresholds[1] || 15;
+                    const hatchVal = curThresholds[1] || 50;
                     const stepVal = (curThresholds[2] && curThresholds[1]) ? Math.max(5, curThresholds[2] - curThresholds[1]) : 20;
                     const qH = document.getElementById('quickHatchExp');
                     if (qH) qH.value = hatchVal;

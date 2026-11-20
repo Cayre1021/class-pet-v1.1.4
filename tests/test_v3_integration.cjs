@@ -97,6 +97,8 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     };
 
     // ---------------- 准备 ----------------
+    const THR = svc.query("SELECT min_exp FROM class_level_thresholds WHERE class_id = ? ORDER BY level", [CLASS]).map(r => Number(r.min_exp));
+    const HATCH = THR[1], L2 = THR[2];    /* 当前库内破壳门槛与二级阈值（默认 50 / 150） */
     const STU = 'st_b6_int_a';
     const STU2 = 'st_b6_int_b';
     assert(svc.saveStudent({ id: STU, student_no: '93', name: '集成甲', group: 2, pets: {} }, CLASS).success === true,
@@ -128,23 +130,23 @@ const tick = () => new Promise(r => setTimeout(r, 0));
 
     // ================= 2. 重启一致性 =================
     console.log('\n[2] 重启一致性：写库后重启，经验/等级/形态与写后一致');
-    assert((await store.v3Score({ studentIds: [STU], delta: 5, reason: '集成破壳前置', subjectCode: 'chinese' })).ok === true,
-        '再 +5 到 15（破壳阈值）');
+    assert((await store.v3Score({ studentIds: [STU], delta: HATCH - 10, reason: '集成破壳前置', subjectCode: 'chinese' })).ok === true,
+        '补到破壳线（' + HATCH + ' EXP）');
     assert((await store.v3Hatch({ studentId: STU, subjectCode: 'chinese', speciesCode: 'cat', nickname: '集成小猫' })).ok === true,
         '破壳成功（cat）');
     const up2 = await store.v3Score({ studentIds: [STU], delta: 5, reason: '集成重启前最后一笔', subjectCode: 'chinese' });
-    assert(up2.ok === true, '破壳后再 +5（经验 20）');
+    assert(up2.ok === true, '破壳后再 +5（经验 ' + (HATCH + 5) + '）');
     const petBeforeRestart = petRow(STU, 'subj_chinese');
-    assert(Number(petBeforeRestart.exp) === 20 && Number(petBeforeRestart.level) === 1 && Number(petBeforeRestart.visual_stage) >= 1,
-        '写后库值：exp 20 / level 1 / visual_stage>=1', { exp: petBeforeRestart.exp, lv: petBeforeRestart.level, st: petBeforeRestart.visual_stage });
+    assert(Number(petBeforeRestart.exp) === HATCH + 5 && Number(petBeforeRestart.level) === 1 && Number(petBeforeRestart.visual_stage) >= 1,
+        '写后库值：exp ' + (HATCH + 5) + ' / level 1 / visual_stage>=1', { exp: petBeforeRestart.exp, lv: petBeforeRestart.level, st: petBeforeRestart.visual_stage });
 
     store = await restart();
     vm = await store.getV3ViewModel();
     const stVm = vm.students.filter(s => s.id === STU)[0];
     const cnVm = stVm ? stVm.petsBySubject.chinese : null;
-    assert(!!cnVm && cnVm.exp === Number(petBeforeRestart.exp), '重启后 VM 经验 = 写后库值（20）', { vm: cnVm && cnVm.exp, db: petBeforeRestart.exp });
+    assert(!!cnVm && cnVm.exp === Number(petBeforeRestart.exp), '重启后 VM 经验 = 写后库值（' + (HATCH + 5) + '）', { vm: cnVm && cnVm.exp, db: petBeforeRestart.exp });
     assert(!!cnVm && cnVm.level === Number(petBeforeRestart.level) && cnVm.level === 1,
-        '重启后 VM 等级 = 写后库值（Lv.1，20 EXP 落在 15~35 区间）', { vm: cnVm && cnVm.level, db: petBeforeRestart.level });
+        '重启后 VM 等级 = 写后库值（Lv.1，' + (HATCH + 5) + ' EXP 落在 ' + HATCH + '~' + L2 + ' 区间）', { vm: cnVm && cnVm.level, db: petBeforeRestart.level });
     assert(!!cnVm && cnVm.visualStage === Number(petBeforeRestart.visual_stage) && cnVm.visualStage >= 1,
         '重启后 VM 形态阶段 = 写后库值（stage>=1，已破壳不回退成蛋）', { vm: cnVm && cnVm.visualStage, db: petBeforeRestart.visual_stage });
     assert(!!cnVm && cnVm.isHatched === true && cnVm.speciesCode === 'cat', '重启后 VM 仍是已破壳的 cat（物种不丢）', cnVm && { sp: cnVm.speciesCode, h: cnVm.isHatched });
@@ -154,11 +156,11 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     // ================= 3. 撤销后重启 =================
     console.log('\n[3] 撤销后重启：该笔不再出现在 lastOperation，经验回到 exp_before');
     const entryOfOp2 = svc.query("SELECT * FROM score_entries WHERE operation_id = ?", [up2.operationId])[0];
-    assert(!!entryOfOp2 && Number(entryOfOp2.exp_before) === 15 && Number(entryOfOp2.exp_after) === 20,
-        '该笔明细记录 exp_before=15 / exp_after=20', entryOfOp2 && { b: entryOfOp2.exp_before, a: entryOfOp2.exp_after });
+    assert(!!entryOfOp2 && Number(entryOfOp2.exp_before) === HATCH && Number(entryOfOp2.exp_after) === HATCH + 5,
+        '该笔明细记录 exp_before=' + HATCH + ' / exp_after=' + (HATCH + 5), entryOfOp2 && { b: entryOfOp2.exp_before, a: entryOfOp2.exp_after });
     const undoOk = await store.v3UndoLast({ operationId: up2.operationId });
     assert(undoOk.ok === true && undoOk.operationId === up2.operationId, '撤销最后一笔成功', undoOk);
-    assert(petExp(STU) === Number(entryOfOp2.exp_before), '撤销后库里经验立刻回到 exp_before=15', petExp(STU));
+    assert(petExp(STU) === Number(entryOfOp2.exp_before), '撤销后库里经验立刻回到 exp_before=' + HATCH, petExp(STU));
     const undoneRow = svc.query("SELECT * FROM score_operations WHERE id = ?", [up2.operationId])[0];
     assert(!!undoneRow && !!undoneRow.undone_at, '库里该笔已标记 undone_at（台账可区分）', undoneRow && undoneRow.undone_at);
 
@@ -169,7 +171,7 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     const undoAgainStore = await store.v3UndoLast({ operationId: up2.operationId });
     assert(undoAgainStore.ok === false && ['not-last', 'no-operation', 'db-failed'].indexOf(undoAgainStore.reason) >= 0,
         'Store 层第二次撤销失败（not-last：它已不是最后一笔）', undoAgainStore);
-    assert(petExp(STU) === Number(entryOfOp2.exp_before), '被拒的重复撤销没有再次改数据（经验仍 15）', petExp(STU));
+    assert(petExp(STU) === Number(entryOfOp2.exp_before), '被拒的重复撤销没有再次改数据（经验仍 ' + HATCH + '）', petExp(STU));
 
     // 清掉陈旧学生缓存后重启 = 以库为准
     store = await restart({ clearStudentCache: true });
@@ -178,7 +180,7 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     assert(!vm.lastOperation || vm.lastOperation.id !== up2.operationId,
         '重启后 lastOperation 不再是被撤销的那笔', { last: vm.lastOperation && vm.lastOperation.id, undone: up2.operationId });
     assert(stVm3.petsBySubject.chinese.exp === Number(entryOfOp2.exp_before),
-        '重启后 VM 经验 = 撤销后的 exp_before（15，冷缓存以库为准）', stVm3.petsBySubject.chinese.exp);
+        '重启后 VM 经验 = 撤销后的 exp_before（' + HATCH + '，冷缓存以库为准）', stVm3.petsBySubject.chinese.exp);
     assert(stVm3.petsBySubject.chinese.level === 1 && stVm3.petsBySubject.chinese.isHatched === true,
         '重启后等级/破壳状态仍与库一致（Lv.1 / 已破壳）', { lv: stVm3.petsBySubject.chinese.level, h: stVm3.petsBySubject.chinese.isHatched });
 
@@ -186,7 +188,7 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     console.log('\n[4] 撤销后重启不得回潮（撤销结果必须扛得住重启）');
     svc.saveStudent({ id: STU2, student_no: '94', name: '集成乙', group: 2, pets: {} }, CLASS);
     let storeB = await restart();
-    await storeB.v3Score({ studentIds: [STU2], delta: 15, reason: '回潮探针加分1', subjectCode: 'chinese' });
+    await storeB.v3Score({ studentIds: [STU2], delta: HATCH, reason: '回潮探针加分1', subjectCode: 'chinese' });
     await storeB.v3Hatch({ studentId: STU2, subjectCode: 'chinese', speciesCode: 'cat' });
     const probeUp = await storeB.v3Score({ studentIds: [STU2], delta: 5, reason: '回潮探针加分2', subjectCode: 'chinese' });
     storeB = await restart();                       // 重启把 this.students(=20) 写进 localStorage 缓存
@@ -197,9 +199,9 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     const dbAfterRestart = petExp(STU2);
     const vmB = await storeB.getV3ViewModel();
     const stB = vmB.students.filter(s => s.id === STU2)[0];
-    assert(probeUndo.ok === true && dbAfterUndo === 15, '撤销把经验退回撤销前（库 20 → 15）', { undoOk: probeUndo.ok, dbAfterUndo });
-    assert(dbAfterRestart === 15, '撤销后重启，经验不得被内存缓存回写成撤销前的值（15 仍是 15）', { dbAfterRestart });
-    assert(stB && stB.petsBySubject.chinese.exp === 15, '重启后 ViewModel 经验与库一致（15）', stB && stB.petsBySubject.chinese.exp);
+    assert(probeUndo.ok === true && dbAfterUndo === HATCH, '撤销把经验退回撤销前（库 ' + (HATCH + 5) + ' → ' + HATCH + '）', { undoOk: probeUndo.ok, dbAfterUndo });
+    assert(dbAfterRestart === HATCH, '撤销后重启，经验不得被内存缓存回写成撤销前的值（' + HATCH + ' 仍是 ' + HATCH + '）', { dbAfterRestart });
+    assert(stB && stB.petsBySubject.chinese.exp === HATCH, '重启后 ViewModel 经验与库一致（' + HATCH + '）', stB && stB.petsBySubject.chinese.exp);
 
 
     // ================= 5. 阈值写库后重启 =================
@@ -207,25 +209,25 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     store = await restart({ clearStudentCache: true });
     vm = await store.getV3ViewModel();
     const base = vm.thresholds.slice();
-    assert(base.length === 21 && base[1] === 15 && base[2] === 35, '当前库内阈值 L1=15 / L2=35（默认）', { l1: base[1], l2: base[2] });
-    const changed = base.slice(); changed[1] = 20; changed[2] = 45;
+    assert(base.length === 21 && base[1] === HATCH && base[2] === L2, '当前库内阈值 L1=' + HATCH + ' / L2=' + L2, { l1: base[1], l2: base[2] });
+    const changed = base.slice(); changed[1] = HATCH + 10; changed[2] = L2 + 10;
     const sv = await store.v3SaveThresholds({ thresholds: changed, stages: vm.stages });
-    assert(sv.ok === true, '保存新阈值（L1=20 / L2=45）成功', sv);
+    assert(sv.ok === true, '保存新阈值（L1=' + (HATCH + 10) + ' / L2=' + (L2 + 10) + '）成功', sv);
     const dbL1 = svc.query("SELECT min_exp FROM class_level_thresholds WHERE class_id = ? AND level = 1", [CLASS])[0];
-    assert(dbL1 && Number(dbL1.min_exp) === 20, '库里 class_level_thresholds L1 已写成 20', dbL1);
+    assert(dbL1 && Number(dbL1.min_exp) === HATCH + 10, '库里 class_level_thresholds L1 已写成 ' + (HATCH + 10), dbL1);
 
     store = await restart({ clearThresholdCache: true });   // 清掉 localStorage 阈值缓存：阈值只能来自数据库
     vm = await store.getV3ViewModel();
-    assert(vm.thresholds[1] === 20 && vm.thresholds[2] === 45,
-        '重启后新 store 读到 L1=20 / L2=45（清空 localStorage 阈值缓存后仍成立）', { l1: vm.thresholds[1], l2: vm.thresholds[2] });
-    assert(vm.hatchThreshold === 20, '重启后破壳阈值跟随 L1 变为 20', vm.hatchThreshold);
+    assert(vm.thresholds[1] === HATCH + 10 && vm.thresholds[2] === L2 + 10,
+        '重启后新 store 读到 L1=' + (HATCH + 10) + ' / L2=' + (L2 + 10) + '（清空 localStorage 阈值缓存后仍成立）', { l1: vm.thresholds[1], l2: vm.thresholds[2] });
+    assert(vm.hatchThreshold === HATCH + 10, '重启后破壳阈值跟随 L1 变为 ' + (HATCH + 10), vm.hatchThreshold);
 
     const restore = await store.v3SaveThresholds({ thresholds: base, stages: vm.stages });
     assert(restore.ok === true, '恢复默认阈值成功', restore);
     store = await restart({ clearThresholdCache: true });
     vm = await store.getV3ViewModel();
-    assert(vm.thresholds[1] === 15 && vm.thresholds[2] === 35 && vm.hatchThreshold === 15,
-        '再次重启后回到 L1=15 / L2=35（阈值往返一致）', { l1: vm.thresholds[1], l2: vm.thresholds[2] });
+    assert(vm.thresholds[1] === HATCH && vm.thresholds[2] === L2 && vm.hatchThreshold === HATCH,
+        '再次重启后回到 L1=' + HATCH + ' / L2=' + L2 + '（阈值往返一致）', { l1: vm.thresholds[1], l2: vm.thresholds[2] });
 
     // ================= 收尾 =================
     assert(fs.statSync(SRC_DB).mtimeMs === srcMtime, 'database/classpet.sqlite 原件未被修改（全程临时副本）');

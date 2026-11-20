@@ -77,10 +77,10 @@ const expOf = (svc, studentId, subId) => Number((petRow(svc, studentId, subId) |
     assert(hatch.ok === false && (hatch.reason === 'locked' || hatch.reason === 'exp-insufficient'), '数学破壳被门槛拦截', hatch);
 
     // ---------- 3.1 赋分：语文蛋可以加分攒破壳能量 ----------
-    let score = await store.v3Score({ studentIds: [newId], delta: 15, reason: '写库测试加分', subjectCode: 'chinese' });
-    assert(score.ok === true && !!score.operationId, '赋分 +15 成功且拿到 operationId（等库确认后才算成功）', score);
+    let score = await store.v3Score({ studentIds: [newId], delta: 50, reason: '写库测试加分', subjectCode: 'chinese' });   // 种子库已改为破壳 50
+    assert(score.ok === true && !!score.operationId, '赋分 +50 成功且拿到 operationId（等库确认后才算成功）', score);
     const opBeforeHatch = score.operationId;
-    assert(expOf(svc, newId, 'subj_chinese') === 15, '库里语文经验变为 15', expOf(svc, newId, 'subj_chinese'));
+    assert(expOf(svc, newId, 'subj_chinese') === 50, '库里语文经验变为 50（破壳线）', expOf(svc, newId, 'subj_chinese'));
     assert(score.skipped.length === 0, '无被跳过学生', score.skipped);
 
     // ---------- 3.3 破壳：经验达标后写入成功并成为展示宠 ----------
@@ -130,12 +130,13 @@ const expOf = (svc, studentId, subId) => Number((petRow(svc, studentId, subId) |
     // ---------- 3.5 阈值保存：21 级 + 6 阶段 ----------
     store = await mkStore();
     const baseThr = (await store.getV3ViewModel()).thresholds.slice();
-    const changed = baseThr.map((v, i) => i >= 8 ? Math.max(v, 400 + (i - 8) * 50) : v); // 保持单调不减
+    const l8new = baseThr[7] + 200;   // 保证单调：比上一级高 200
+    const changed = baseThr.map((v, i) => i >= 8 ? Math.max(v, l8new + (i - 8) * 50) : v);
     let sv = await store.v3SaveThresholds({ thresholds: changed, stages: (await store.getV3ViewModel()).stages });
     assert(sv.ok === true, '阈值保存成功（21 级 + 6 阶段）', sv);
     store = await mkStore();
     let vm2 = await store.getV3ViewModel();
-    assert(vm2.thresholds[8] === 400, '重启等价：重新加载后 8 级阈值仍为 400', vm2.thresholds[8]);
+    assert(vm2.thresholds[8] === l8new, '重启等价：重新加载后 8 级阈值仍是写入值(' + l8new + ')', vm2.thresholds[8]);
     const bad = baseThr.slice(); bad[5] = 1; bad[6] = 0;
     sv = await store.v3SaveThresholds({ thresholds: bad, stages: vm2.stages });
     assert(sv.ok === false && sv.reason === 'bad-thresholds', '非单调阈值被拒（bad-thresholds）', sv);

@@ -9,6 +9,8 @@ const ROOT = path.join(__dirname, '..');
 const { SQLiteService } = require(path.join(ROOT, 'electron-app', 'sqlite_service.js'));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// 关键：测试中途会关掉窗口再开新窗口；不拦这个事件，Electron 会在"最后一个窗口关闭"时直接退出
+app.on('window-all-closed', () => {});
 app.setPath('userData', path.join(os.tmpdir(), 'cp-v3e2e-' + Date.now()));
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('no-sandbox');
@@ -156,7 +158,6 @@ app.whenReady().then(async () => {
     const lastOp = q("SELECT * FROM score_operations WHERE class_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1", [CLASS])[0];
     assert(Number(petUndone.exp) === Number(petBefore.exp), '撤销后经验回到赋分前', { now: petUndone.exp, before: petBefore.exp });
     assert(!!lastOp.undone_at, '库里该笔操作已标记 undone_at');
-    t.win.close();
 
     // ================= 教师台：破壳门槛（真库） =================
     console.log('\n[教师台] 破壳门槛走真库');
@@ -174,7 +175,7 @@ app.whenReady().then(async () => {
     t.win.close();
 
     // ================= 学生大屏：页面加分 → 破壳落库 =================
-    console.log('\n[学生大屏] 新建蛋学生 → 页面加分到 15 → 点破壳 → 查库');
+    console.log('\n[学生大屏] 新建蛋学生 → 页面加分到 50（破壳线）→ 点破壳 → 查库');
     const eggId = 'st_e2e_paper';
     svc.saveStudent({ id: eggId, student_no: '99', name: '端到端甲', group: 1, pets: {} }, CLASS);
     const paper = await openPage('v3_looseleaf_paper.html');
@@ -190,19 +191,23 @@ app.whenReady().then(async () => {
     const scoreBtns = await paper.js("(function(){return [].slice.call(document.querySelectorAll('#ins-body [data-score]')).map(function(b){return Number(b.getAttribute('data-score'));});})()");
     assert(Array.isArray(scoreBtns) && scoreBtns.length > 0, '检查器里有赋分按钮', scoreBtns);
     const step = Math.max.apply(null, scoreBtns);
-    const clicks = Math.ceil(15 / step) + 1;
+    const HATCH_NEED = 50;                       /* 破壳门槛：50 EXP（阈值表第 1 级） */
+    const clicks = Math.ceil(HATCH_NEED / step);
     for (let i = 0; i < clicks; i++) {
         await paper.js("(function(){var b=document.querySelector('#ins-body [data-score=\"" + step + "\"]'); if(b) b.click(); return !!b;})()");
         await sleep(1500);
     }
     const eggPet = q("SELECT * FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [eggId])[0];
-    assert(Number(eggPet.exp) >= 15, '学生大屏点击赋分真的落库（经验 >= 15）', { exp: eggPet.exp, step: step, clicks: clicks });
+    assert(Number(eggPet.exp) >= 50, '学生大屏点击赋分真的落库（经验 >= 50）', { exp: eggPet.exp, step: step, clicks: clicks });
+    assert(String(eggPet.species_code) === 'egg' && Number(eggPet.visual_stage) === 0 && !eggPet.hatched_at,
+        '★ 加到破壳线也仍是蛋：不会自动孵化（等用户点破壳）', { sp: eggPet.species_code, st: eggPet.visual_stage, hatched: eggPet.hatched_at });
     const hatchVisible = await paper.js("(function(){var b=document.getElementById('btn-hatch'); if(!b) return 'missing'; var s=getComputedStyle(b); return (b.offsetParent!==null || s.display!=='none') ? 'visible' : 'hidden';})()");
-    assert(hatchVisible === 'visible', '经验达标后大屏出现「立即破壳」入口', hatchVisible);
+    assert(hatchVisible === 'visible', '经验达标后大屏出现「破壳孵化」入口', hatchVisible);
     await paper.js("document.getElementById('btn-hatch').click()");
     await sleep(2000);
     const hatched = q("SELECT * FROM pets WHERE student_id = ? AND subject_id = 'subj_chinese'", [eggId])[0];
-    assert(hatched.species_code !== 'egg' && Number(hatched.visual_stage) >= 1, '大屏点破壳后库里写入真实物种与形态（不会是 egg）', { sp: hatched.species_code, st: hatched.visual_stage });
+    assert(hatched.species_code !== 'egg' && Number(hatched.visual_stage) >= 1 && !!hatched.hatched_at,
+        '大屏点破壳后库里写入真实物种与形态（hatched_at 也被写入）', { sp: hatched.species_code, st: hatched.visual_stage, hatched: hatched.hatched_at });
     const disp = q("SELECT display_pet_id FROM students WHERE id = ?", [eggId])[0];
     assert(disp && disp.display_pet_id === hatched.id, '破壳后展示宠由库里更新', disp);
     paper.win.close();

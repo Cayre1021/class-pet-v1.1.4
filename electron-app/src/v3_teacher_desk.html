@@ -2757,7 +2757,7 @@ html.theme-fade *::after{
 
   /* 3.5 真实数据态阈值：单值「每级递增步长」→ 21 级阈值（L0=0，L1=破壳门槛，L(n)=L(n-1)+步长） */
   function buildRealThresholds(step) {
-    var base = Math.max(0, Math.round(Number(state.vm && state.vm.hatchThreshold) || 15));
+    var base = Math.max(0, Math.round(Number(state.vm && state.vm.hatchThreshold) || 50));
     var out = [0, base];
     for (var n = 2; n <= 20; n++) out[n] = out[n - 1] + step;
     return out;
