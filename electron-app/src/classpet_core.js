@@ -366,20 +366,16 @@ class ClassPetStore {
 
     initLevelThresholds() {
         try {
-            const cachedT = localStorage.getItem('classpet_custom_level_thresholds');
-            if (cachedT) {
-                const parsed = JSON.parse(cachedT);
-                if (Array.isArray(parsed) && parsed.length === 21) {
-                    LEVEL_THRESHOLDS = parsed.map(Number);
-                }
-            }
-            const cachedS = localStorage.getItem('classpet_custom_stage_levels');
-            if (cachedS) {
-                const parsedS = JSON.parse(cachedS);
-                if (Array.isArray(parsedS) && parsedS.length === 6) {
-                    STAGE_MIN_LEVELS = parsedS;
-                }
-            }
+            /* 2026-11-20：不再读旧的 localStorage 阈值缓存。
+               老版本在这里缓存过 [0,15,35,55,…]（破壳 15 / 每级 +20），它会覆盖代码默认的 50/100，
+               导致"库里已是 50/100、界面却还是 15/20"。真实阈值一律以数据库为准
+               （loadFromSQLite / getV3ViewModel 会覆盖），演示态用代码默认值。 */
+            try {
+                localStorage.removeItem('classpet_custom_level_thresholds');
+                localStorage.removeItem('classpet_custom_stage_levels');
+            } catch (e) {}
+            LEVEL_THRESHOLDS = [...DEFAULT_LEVEL_THRESHOLDS];
+            STAGE_MIN_LEVELS = JSON.parse(JSON.stringify(DEFAULT_STAGE_MIN_LEVELS));
             if (typeof window !== 'undefined') {
                 window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
                 window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
@@ -398,7 +394,7 @@ class ClassPetStore {
     }
 
     getHatchThreshold() {
-        return LEVEL_THRESHOLDS[1] || 15;
+        return LEVEL_THRESHOLDS[1] || 50;
     }
 
     saveLevelThresholds(newThresholds, newStages) {
@@ -1923,7 +1919,7 @@ class ClassPetStore {
         const isPetHatched = !!(currentPet.isHatched || (currentPet.species && currentPet.species !== 'egg'));
         const curStage = currentPet.visualStage || (isPetHatched ? 1 : 0);
         const targetStage = this.calcVisualStage(newLevel, 0);
-        const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : (LEVEL_THRESHOLDS[1] || 15);
+        const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : (LEVEL_THRESHOLDS[1] || 50);
 
         const isActiveSub = subKey === (student.activeSubject || 'chinese');
 
@@ -2028,7 +2024,7 @@ class ClassPetStore {
     batchScore(ids, delta, reason, isPrivate = false, targetSubject = null) {
         const leveledUpStudents = [];
         const beforeStates = [];
-        const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : (LEVEL_THRESHOLDS[1] || 15);
+        const hatchThresh = (this.levelThresholds && this.levelThresholds[1]) ? this.levelThresholds[1] : (LEVEL_THRESHOLDS[1] || 50);
         const subNameMap = { chinese: '语文', math: '数学', english: '英语' };
 
         // 🔒 铁律守卫：过滤仅具有加分资格的学生（未解锁或未孵化宠物坚决拦截）
@@ -2513,7 +2509,7 @@ class ClassPetStore {
 
         const subKey = record.subject || 'chinese';
         const delta = record.delta || 0;
-        const hatchThresh = typeof this.getHatchThreshold === 'function' ? this.getHatchThreshold() : (LEVEL_THRESHOLDS[1] || 15);
+        const hatchThresh = typeof this.getHatchThreshold === 'function' ? this.getHatchThreshold() : (LEVEL_THRESHOLDS[1] || 50);
 
         targetIds.forEach(sid => {
             const student = this.students.find(s => s.id === sid);

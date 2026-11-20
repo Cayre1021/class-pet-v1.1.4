@@ -42,6 +42,18 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     const core = loadCore();
     const store = new core.ClassPetStore();
 
+    // ★ 回归（负责人 2026-11-20 反馈）：本机残留的旧阈值缓存不得覆盖默认 50/100
+    (function poisonOldCache() {
+        const storageRef = global.localStorage;
+        storageRef.setItem('classpet_custom_level_thresholds', JSON.stringify([0,15,35,55,75,95,115,135,155,175,195,215,235,255,275,295,315,335,355,375,395]));
+        const { ClassPetStore: FreshStore } = loadCore();
+        const poisoned = new FreshStore();
+        const t2 = poisoned.getLevelThresholds();
+        assert(t2[1] === 50 && t2[2] === 150, '★ 残留旧缓存 [0,15,35,…] 不会覆盖默认阈值（仍为 50/100）', { l1: t2[1], l2: t2[2] });
+        assert(poisoned.getHatchThreshold() === 50, '★ getHatchThreshold() 在旧缓存下仍返回 50', poisoned.getHatchThreshold());
+        assert(storageRef.getItem('classpet_custom_level_thresholds') === null, '★ 旧缓存已被主动清除', storageRef.getItem('classpet_custom_level_thresholds'));
+    })();
+
     const thr = store.getLevelThresholds();
     assert(thr.length === 21 && thr[0] === 0 && thr[1] === 50 && thr[20] === 1950,
         '默认阈值表 0~20 级共 21 个数值（L0=0 / L1=50 破壳 / L20=1950）', thr);
