@@ -291,6 +291,43 @@ function getPetImagePath(species, stage = 1) {
     return `./assets/pets/${sp}/${sp}-stage${st}.png`;
 }
 
+// ==========================================
+// 2.4 V3 统一 ViewModel 的学科/形态/身份常量（批次 2 · 只读适配）
+// ==========================================
+const V3_SUBJECTS = {
+    chinese: { code: 'chinese', subjectId: 'subj_chinese', label: '语文' },
+    math: { code: 'math', subjectId: 'subj_math', label: '数学' },
+    english: { code: 'english', subjectId: 'subj_english', label: '英语' }
+};
+
+function normalizeSubjectCode(value) {
+    const raw = String(value == null ? '' : value).trim();
+    if (!raw) return 'chinese';
+    if (V3_SUBJECTS[raw]) return raw;
+    const byLabel = Object.keys(V3_SUBJECTS).filter(k => V3_SUBJECTS[k].label === raw)[0];
+    if (byLabel) return byLabel;
+    if (raw === 'subj_math') return 'math';
+    if (raw === 'subj_english') return 'english';
+    return 'chinese';
+}
+
+// 形态阶梯只认 STAGE_MIN_LEVELS（禁止 ceil(level/2)、level-2 之类的演示公式）
+function v3StageForLevel(level, stages) {
+    const list = (Array.isArray(stages) && stages.length) ? stages : STAGE_MIN_LEVELS;
+    const lv = Math.max(0, Number(level) || 0);
+    let picked = list[0];
+    for (let i = 0; i < list.length; i++) {
+        if (lv >= Number(list[i].minLevel)) picked = list[i];
+    }
+    return picked;
+}
+
+function v3StageName(stage, stages) {
+    const list = (Array.isArray(stages) && stages.length) ? stages : STAGE_MIN_LEVELS;
+    const hit = list.filter(s => Number(s.stage) === Number(stage))[0];
+    return (hit && hit.name) ? hit.name : '初始宠物蛋';
+}
+
 function safeElectronAPI() {
     return (typeof window !== 'undefined' && window.electronAPI) ? window.electronAPI : null;
 }
@@ -844,6 +881,187 @@ class ClassPetStore {
 
     getCurrentLevelMinExp(level) {
         return LEVEL_THRESHOLDS[Math.min(level, 20)];
+    }
+
+    // 账号上下文（D13=A）：classId/teacherId 取账号缓存，姓名不当身份
+    getV3Identity() {
+        let acc = null;
+        let profile = null;
+        try {
+            const raw = localStorage.getItem('classpet_current_account');
+            if (raw) acc = JSON.parse(raw);
+        } catch (e) {}
+        try {
+            const rawP = localStorage.getItem('classpet.teacher.profile.v3');
+            if (rawP) profile = JSON.parse(rawP);
+        } catch (e) {}
+        let activeId = '';
+        try { activeId = localStorage.getItem('classpet_active_account_id') || ''; } catch (e) {}
+        const classId = (acc && acc.classId) ? String(acc.classId) : this.getClassId();
+        const teacherId = (acc && acc.id) ? String(acc.id) : activeId;
+        const teacherName = (acc && acc.teacherName) || (profile && profile.name) || '';
+        const className = (acc && acc.className) || (profile && profile['class']) || '';
+        const school = (acc && acc.school) || '';
+        let subjectRaw = '';
+        try {
+            subjectRaw = localStorage.getItem('classpet_current_teaching_subject') || localStorage.getItem('classpet_teacher_subject') || '';
+        } catch (e) {}
+        if (!subjectRaw) subjectRaw = (acc && acc.subject) || (profile && profile.subject) || '';
+        return {
+            classId: classId,
+            teacherId: teacherId,
+            teacher: { id: teacherId, name: teacherName, className: className, school: school },
+            subject: normalizeSubjectCode(subjectRaw)
+        };
+    }
+
+    // 单只宠物的 ViewModel：等级/经验读库，形态读 STAGE_MIN_LEVELS（只升不降，取已获得形态）
+    _v3PetView(petRow, subjectCode, stages) {
+        const subj = V3_SUBJECTS[subjectCode] || V3_SUBJECTS.chinese;
+        const row = petRow || null;
+        const rawSpecies = (row && row.species_code) ? String(row.species_code) : 'egg';
+        const speciesCode = PET_SPECIES_CATALOG[rawSpecies] ? rawSpecies : 'egg';
+        const exp = row ? Math.max(0, Number(row.exp) || 0) : 0;
+        const level = this.calcLevel(exp, 0);
+        const derived = v3StageForLevel(level, stages);
+        const storedStage = row ? Math.max(0, Math.min(5, Number(row.visual_stage) || 0)) : 0;
+        const visualStage = Math.max(Number(derived.stage) || 0, storedStage);
+        const isHatched = visualStage >= 1 && speciesCode !== 'egg';
+        const shownSpecies = isHatched ? speciesCode : 'egg';
+        const progress = this.getExpProgress(exp, level, isHatched);
+        const catalog = PET_SPECIES_CATALOG[shownSpecies];
+        const stageEntry = v3StageForLevel(visualStage, stages) || derived;
+        return {
+            petId: row ? String(row.id || '') : '',
+            subjectCode: subj.code,
+            subjectId: subj.subjectId,
+            subjectLabel: subj.label,
+            speciesCode: shownSpecies,
+            speciesName: catalog ? catalog.name : '神秘宠物蛋',
+            isHatched: isHatched,
+            isEgg: !isHatched,
+            level: level,
+            exp: exp,
+            maxLevel: Math.max(0, LEVEL_THRESHOLDS.length - 1),
+            visualStage: visualStage,
+            stageCode: stageEntry ? stageEntry.code : 'egg',
+            stageName: v3StageName(visualStage, stages),
+            percent: progress.percent,
+            needExp: progress.needExp,
+            nextLevelExp: progress.levelNextExp,
+            levelMinExp: progress.levelMinExp,
+            isMax: !!progress.isMax,
+            image: getPetImagePath(shownSpecies, visualStage)
+        };
+    }
+
+    /**
+     * V3 统一 ViewModel（批次 2 · 只读适配：只读库，不写库、不写 localStorage）
+     * 三页都只消费这一份结构；无 electronAPI 时返回 ok:false / reason:'no-bridge'
+     * 空班返回 ok:true 且 students: []（绝不注入演示名单）
+     */
+    async getV3ViewModel() {
+        const identity = this.getV3Identity();
+        const thresholds = LEVEL_THRESHOLDS.slice();
+        const stages = JSON.parse(JSON.stringify(STAGE_MIN_LEVELS));
+        const vm = {
+            version: 1,
+            ok: false,
+            reason: 'no-bridge',
+            error: null,
+            classId: identity.classId,
+            teacherId: identity.teacherId,
+            teacher: identity.teacher,
+            subject: identity.subject,
+            subjectLabel: (V3_SUBJECTS[identity.subject] || V3_SUBJECTS.chinese).label,
+            maxLevel: Math.max(0, thresholds.length - 1),
+            thresholds: thresholds,
+            stages: stages,
+            students: []
+        };
+        const db = safeElectronDB();
+        if (!db || typeof db.loadAllState !== 'function') return vm;
+
+        let state = null;
+        try {
+            state = await db.loadAllState(identity.classId);
+        } catch (e) {
+            return Object.assign(vm, { reason: 'load-failed', error: String((e && e.message) || e).slice(0, 200) });
+        }
+        if (!state || !Array.isArray(state.students)) {
+            return Object.assign(vm, { reason: 'load-failed', error: 'loadAllState 返回结构不完整' });
+        }
+
+        // 阈值与形态以数据库为准：批次 0「改完阈值重启失效」的运行期消费点
+        if (state.thresholds && typeof state.thresholds === 'object') {
+            Object.keys(state.thresholds).forEach(k => {
+                const lv = Number(k);
+                const val = Number(state.thresholds[k]);
+                if (Number.isFinite(lv) && lv >= 0 && lv < thresholds.length && Number.isFinite(val)) thresholds[lv] = val;
+            });
+        }
+        if (Array.isArray(state.stages) && state.stages.length) {
+            state.stages.forEach(st => {
+                const idx = Number(st.stage);
+                if (Number.isFinite(idx) && idx >= 0 && idx < stages.length) {
+                    stages[idx] = {
+                        stage: idx,
+                        minLevel: Number(st.minLevel),
+                        code: st.code || stages[idx].code,
+                        name: stages[idx].name
+                    };
+                }
+            });
+        }
+        LEVEL_THRESHOLDS = thresholds;
+        STAGE_MIN_LEVELS = stages;
+        if (typeof window !== 'undefined') {
+            window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
+            window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
+        }
+        vm.thresholds = thresholds;
+        vm.stages = stages;
+        vm.maxLevel = Math.max(0, thresholds.length - 1);
+
+        const petsByStudent = (state.petsByStudent && typeof state.petsByStudent === 'object') ? state.petsByStudent : {};
+        const subjectCode = identity.subject;
+        vm.students = state.students.filter(row => row && row.id).map(row => {
+            const rawPets = (petsByStudent[row.id] && typeof petsByStudent[row.id] === 'object') ? petsByStudent[row.id] : {};
+            const petsBySubject = {};
+            Object.keys(V3_SUBJECTS).forEach(code => {
+                petsBySubject[code] = this._v3PetView(rawPets[code], code, stages);
+            });
+
+            // D7=A：卡片显示固定跟随 display_pet_id，切授课科目不批量换宠
+            const displayPetId = row.display_pet_id ? String(row.display_pet_id) : null;
+            let displayKey = null;
+            if (displayPetId) {
+                displayKey = Object.keys(petsBySubject).filter(code => petsBySubject[code].petId === displayPetId)[0] || null;
+            }
+            if (!displayKey) {
+                if (rawPets[subjectCode]) displayKey = subjectCode;
+                else if (rawPets.chinese) displayKey = 'chinese';
+                else if (Object.keys(rawPets).length) displayKey = normalizeSubjectCode(Object.keys(rawPets)[0]);
+                else displayKey = subjectCode;
+            }
+            const studentNo = row.student_no !== undefined && row.student_no !== null ? String(row.student_no) : String(row.no || '');
+
+            return {
+                id: String(row.id),
+                no: studentNo.length === 1 ? '0' + studentNo : studentNo,
+                name: row.name || '',
+                group: Number(row.group) || 1,
+                isArchived: !!row.archived_at,
+                // D9=A：缺勤是当日开关、不落历史，读库时一律为 false
+                isAbsent: false,
+                displayPetId: displayPetId,
+                activePet: petsBySubject[displayKey] || petsBySubject[subjectCode] || petsBySubject.chinese,
+                petsBySubject: petsBySubject
+            };
+        });
+        vm.ok = true;
+        vm.reason = 'db';
+        return vm;
     }
 
     initData() {

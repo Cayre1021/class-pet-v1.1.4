@@ -1,5 +1,30 @@
 # 门户精简与宠物大屏布局规划
 
+## 2026-11-13：探索分支（全新高保真页面重构与交互升级探索）
+
+- **分支目标**：在独立探索分支 `explore/hifi-redesign-experience` 上，对学生大屏与教师操作台进行深度的排版、布局与交互动效重构，打造兼具“空间呼吸感”与“饱满业务呈现”的高保真纯前端原型页面。
+- **改动范围**：
+  1. **样式与交互审校分析**：
+     - 系统性审校历史版本（`display_bigscreen_touch_pro.html`、`teacher_panel_touch_pro.html`、`revision-preview.html`、`demo_a` 与 `demo_b`），明确排版冗余点（如卡片过度堆砌微标签、顶部栏过重压抑、弹窗遮挡动线）与优质保留项（大图大字卡片、右下角悬浮快捷球、4列网格、座位表、小组总分、抽屉式档案）。
+     - 确立“呼吸感 ≠ 简陋空白”的设计哲学：利用大圆角、微质感卡牌、24px 充裕网格间距、悬浮式极简导航、卡片内部呼吸比例（65%+ 宠物大图舞台），在完整承载 32 位学生、4 大组、3 学科、考勤状态、孵化状态、实时经验值的同时，实现 3~10 米远距一目了然与 3 秒顺手触控。
+  2. **双方案高保真页面打造**：
+     - **主方案（现代教育触屏大师版）**：`design/hifi_classroom_masterpiece.html`
+       - 深度融合新粗野主义与温润 Bento 卡牌设计，整合全部成熟业务形态（宠物网格 / 4大组座位表 / 小组PK竞速榜 / 教师闪电授课工作台）；
+       - 包含全功能右下角悬浮工具球（随堂抽点、专注计时、全班表扬、主题切换、学科切换）；
+       - 包含顺手侧拉抽屉、6 大印章式点赞加分（带印章盖下声效、弹跳反馈与飞升金币粒子）；
+       - **全屏粒子烟花盛典引擎**：破壳诞生、进化突破 Stage 1~5 拥有全屏多色系粒子烟花、金箔纸屑、升级勋章光芒与声效激励，并提供一键演示烟花按钮。
+     - **对比方案（Looseleaf 纸上墨水手绘风版）**：`design/hifi_looseleaf_edition.html`
+       - 深度吸收 `D:\Desk\ALL Vibe\软件工程实验\_libraries\looseleaf` 组件库的设计基因，采用手绘纸张底衬、墨水笔触、便签贴纸、复古印章、彩色记号笔高亮风格，为用户提供鲜明对比。
+  3. **交互逻辑二次防遮挡与防截断审核**：
+     - 验证抽屉展开、浮球辐射、全屏点名、升级弹窗等层级（z-index），确保不破坏卡片选中状态，无顶部截断与意外遮挡。
+- **涉及文件**：
+  - `design/hifi_classroom_masterpiece.html`
+  - `design/hifi_looseleaf_edition.html`
+  - `tasks/plan.md`
+  - `tasks/todo.md`
+  - `tests/test_hifi_redesign.cjs`
+- **验证方式**：静态检查、离线 DOM / 语法检查、浏览器打开与人工测试步骤交付。
+
 ## 2026-11-12：探索分支（学生卡片极简化与侧边档案收纳）
 
 - **分支目标**：在独立探索分支 `explore/ui-streamline-cards` 上尝试前端页面视觉调整。
@@ -165,3 +190,55 @@
 - 未覆盖：真实浏览器渲染、全屏响应式、Electron 原生窗口和 SQLite 持久化；未执行时必须原样报告。
 - 风险：88 人在大卡模式下需要分页或分组；左侧详情过宽会压缩扫描区；未来赋分控件不能在只有视觉稿时伪装可用。
 - 回滚：V1 预览文件和 PNG 保留为历史记录，V2 使用单独命名或版本标记；正式大屏不在此阶段修改。
+
+## 2026-11-13：V3 高保真三页（分支 explore/ui-v3-breathing）
+
+- 用户确认范围：拆成独立 HTML；点选学生后用**停靠式检查器**（网格 4↔3 列、无遮罩、不遮挡卡片、可连续点选）。
+- 交付物（均在 design/，不接正式页面、不改 IPC/SQLite/发布包）：
+  - `design/v3_student_stage.html` 学生大屏 v3
+  - `design/v3_teacher_desk.html` 教师操作台 v3
+  - `design/v3_looseleaf_paper.html` 纸感手绘变体（Looseleaf 风格参考）
+  - `design/V3_DESIGN_SPEC.md` 视觉与交互契约 + 审校取舍清单
+  - `scripts/audit_v3_pages.js` Electron 自动化审查（几何/遮挡/控制可达/截图）
+- 审校结论：保留（4 列大图大字、成长档案富信息、悬浮球工具、组筛选与 EXP、双视图、4 主题、缺勤/蛋/满级状态）；去掉（三级小组信息重复、常驻教学文案、头部 13 控件平铺、卡片装饰噪声、遮罩式抽屉；教师台的边框通胀/12px 正文/270px 底部赋分台/默认收起的小组下拉）；新增（组带二合一、卡片「+1」快捷键、停靠检查器、卡片级粒子与升级烟花、教师台右侧常驻赋分台与批量条）。
+- 风险：三页为独立原型，未接真实业务；宠物素材靠相对路径，移动到别处会失效；动效较多，低配机需 reduced-motion 降级；教师台功能为演示态，未连 IPC。
+- 验收：每页 `window.__v3audit().pass === true`（1440×900 与 1920×1080）、文档无纵向滚动、检查器打开时任意卡片中心点不被遮挡、关闭弹层后无残留点击层、真实宠物素材可加载、无外网请求。未执行原生业务与真实手测项不记为通过。
+- 回滚：删除本轮新增 5 个文件即可，不影响正式页面与既有 demo_a/demo_b。
+
+## 2026-11-13：V3 三页交付与审查结果（explore/ui-v3-breathing）
+
+- 交付：`design/v3_student_stage.html`（2518 行）、`design/v3_teacher_desk.html`（2523 行）、`design/v3_looseleaf_paper.html`（2180 行）、`design/V3_DESIGN_SPEC.md`、`design/V3_对比说明.md`、审查脚本 4 个、`screenshots_v3/`。
+- 独立审查（Electron 33，可见窗口 setContentSize 1920×1080）：三页文档均 1080/1080 不滚动；学生页检查器 380px / 4→3 列 / 卡片被遮挡 0 / 不关闭点下一张可切换；教师台点行 selected=1、复选框不双触发、批量条 48px 且清空后 display:none 无残留层、行内⋯菜单 3/3 可点且贴边翻转；纸感页复跑 unhit=0（悬浮球避让生效）、控制台 0 报错。
+- 返工 2 轮：教师台（行点击 id 类型不匹配导致选不中、批量计数不归零）、纸感页（悬浮球压住「+1」按钮中心 → 改为自动避让并把 fabCoversControls 纳入 pass 条件）。
+- 未验证：画面观感（无图像输入）、音效听感、真机触屏/投影/F11、IPC/SQLite 联调。截图见 screenshots_v3。
+- 分支状态：工作区被并行会话切到 explore/hifi-redesign-experience，本轮文件尚未提交；提交位置待用户确认。
+
+## 2026-11-13：纸感页第二轮修正 + 教师台 v4 重构
+
+- 纸感学生大屏：弹窗滚动条根治（根因：`.dialog::before` 的 `inset:-1px` 墨线描边造成 1px 可滚动溢出 → `overflow:auto` 反复亮条 → 居中重排成"震动"；实测 345.8↔362.5px / 50ms）。改为 `overflow:hidden` + `.dlg-actions` 固定高度；抽签/计时器全程各只有 1 个 rect。
+- 烟花重写为常规彩色烟花（9 发、88–134 颗/发、闪光核、重力拖尾）；修掉"首帧 rAF 早于第一发火箭导致循环自杀"的缺陷；实测峰值采样 52,814 像素、12/12 色相区段、结束清零。
+- 赋分：印章排替换为 +4 / +5 + `[−][n][+]` 自定义（1–50，中间数字即给分）。
+- 教师台 v4：保留全部业务函数，换皮换骨架 —— 四组泳道→扁平 4 列大卡网格（左上勾选、右上唯一「⋯」）、底部 268px 批量条→右侧 380px 常驻赋分台、删除快捷键说明；分组筛选收敛为工具行原生 select。
+- 用户决定：赋分台保留带规则名的核心按钮（认真倾听 +1 / 积极发言 +2 / 团队协作 +3 / 小组之星 +5 / 小声提醒 −1 / 迟到扣分 −2），不加纯数字行。
+- 未验证：三页的画面观感（本会话模型无图像输入），已写好 `design/V3_视觉验收提示词.md` 供外部看图 AI 复核；音效听感、真机触屏/投影未测。
+
+## 2026-11-19：V3 批次 2 · 数据契约（只读适配，不写库）
+
+- 范围（`docs/V3_执行总清单.md` 批次 2 的 2.1–2.5，决策依据 D6/D7/D9/D13）：让真实 SQLite 数据经**一份统一 ViewModel** 驱动三页；不改变任何写库行为。
+- 核心（Lead 实现）：`electron-app/src/classpet_core.js` 新增 `getV3ViewModel()` 与 `getV3Identity()` / `_v3PetView()` / `v3StageForLevel()` / `v3StageName()` / `normalizeSubjectCode()` / `V3_SUBJECTS`。只读 `loadAllState`，零写库；等级由 `exp + class_level_thresholds` 推导，形态名/图片由 `class_visual_stages`(+STAGE_MIN_LEVELS) 决定；`display_pet_id` 决定卡片展示宠（D7=A 切科不换宠）；`classId/teacherId` 取账号缓存；空班 `students: []`；读失败 `load-failed`。
+- 三页（子代理实现 + Lead 复核）：
+  - `design/v3_looseleaf_paper.html`、`design/v3_teacher_desk.html`、`design/v3_portal.html`（及 `electron-app/src/` 镜像）：数据桥三态分流（`live` 真实只读 / `demo` 演示 / `failed` 失败），演示态与改动前逐字段等价。
+  - 门户页身份改为「账号缓存 → 本机档案」；教师台/学生大屏顶部身份改由 VM 提供（不再写死「三年级二班 · 刘老师」）。
+  - 教师台 CSP 由 `script-src 'unsafe-inline'` 放宽为 `script-src 'unsafe-inline' file:`——否则页面无法加载 `classpet_core.js`（file:// 下 `'self'` 不匹配），数据桥在该页无法成立。
+- 验证（均真跑，2026-11-19）：
+  - `node --check` 核心与三页抽取脚本通过。
+  - `tests/test_v3_viewmodel.js` 23/23；`tests/test_v3_real_db.cjs` 12/12（真实 `sqlite_service` + 种子库副本：88 人、180 只宠物逐个复算、display_pet_id 透传、改库阈值 260→400 后等级跟随、空班空名单、原件未被修改）。
+  - `tests/test_v3_datacontract.cjs`（真 Electron 渲染 + 桩 preload）44/44：两页同一学生「等级/阶段名/经验/下一级阈值」四处一致、顶部身份来自账号缓存、空班真实空态、读失败不顶替、0 控制台错误、0 破图。
+  - 5 个可跑回归脚本全绿（display_layout_a / floating_ball_gestures / hifi_redesign / restart_scoring_freeze / subject_switch_locked_hatch）。
+  - `scripts/audit_all.js` 三页 × 两视口：改动前后逐字段零差异（docH/innerH/controls/遮挡/对比度/溢出全等）；`scripts/debug/probe_src_copy.js` src 三页 0 破图 0 报错、文档不滚动。
+- 已记录未修的既有风险（本批按「不改变写入行为」未动，留给后续批次）：
+  1. `classpet_core.js:797-810`：真实库有真实学生、内存里却是 42 人演示名单时，会把演示名单 `saveStudent` 写进真实班级库（桩测试复现 42 次写调用；真实库空班场景复现 `UNIQUE constraint failed: students.id`）。建议批次 3/4 处理：演示名单永不出内存。
+  2. 真实数据态下「赋分 / 撤销 / 阈值保存 / 编辑保存 / 新增 / 破壳 / 移组 / 导入」均为明确只读提示（不伪装成功），写入在批次 3 接 `db:recordScore` 等接口。
+  3. 教师台「经验阈值」弹窗在真实态标注「正式数据以班级库为准」且保存不生效；批次 3.5 接 `saveThresholds` 后收敛。
+  4. `main.js` 的 `open-*-window` 仍指向旧正式页（批次 1 的 1.2 推迟项），V3 路由切换仍在批次 3 末一次性做。
+- 回滚：`git revert` 批次 2 的提交即可；数据库未写入，无需数据回滚（`database/` 全程干净）。

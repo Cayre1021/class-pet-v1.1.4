@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline' file:; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <title>班级电子宠物 · 教师操作台 V3</title>
 <style>
 /* ============================================================
@@ -881,7 +881,7 @@ html.theme-fade *::after{
       </span>
       <h1>班级电子宠物 <span class="sep">/</span> 教师操作台</h1>
     </div>
-    <span class="class-chip"><i class="dot" aria-hidden="true"></i>三年级二班 · 刘老师</span>
+    <span class="class-chip" id="class-chip"><i class="dot" aria-hidden="true"></i>三年级二班 · 刘老师</span>
     <div class="topbar-right">
       <a class="btn" id="btn-bigscreen" data-audit="btn-bigscreen" href="v3_looseleaf_paper.html">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
@@ -1085,7 +1085,8 @@ html.theme-fade *::after{
   var SPECIES_ORDER = ['cat', 'dog', 'bunny', 'hamster', 'bird', 'deer', 'fish', 'fox'];
   var SUBJECTS = ['语文', '数学', '英语'];
   var EGG_PATH = 'assets/pets/shared/egg.png';
-  var STAGE_NAMES = ['幼年期', '成长期', '活泼期', '成熟期', '极态'];
+  /* 演示态（浏览器直开、无 preload）专用：等级→形态的演示阈值表，逐级取值与旧公式一致 */
+  var DEMO_STAGE_MIN_LEVEL = [1, 3, 5, 7, 9];
 
   /* 学号 01-32；组 EXP 合计 610 / 720 / 830 / 660（与 spec 一致） */
   var ROSTER = [
@@ -1122,6 +1123,27 @@ html.theme-fade *::after{
     { id: 31, name: '洪小鹿', group: 4, level: 8, exp: 110 },
     { id: 32, name: '白景行', group: 4, level: 6, exp: 160 }
   ];
+
+  /* ---- V3 数据桥（批次 2）：只在 Electron（有 preload）里加载核心，浏览器直开保持演示降级 ---- */
+  function v3LoadCore() {
+    return new Promise(function (resolve) {
+      if (!window.electronAPI) { resolve(null); return; }
+      if (window.classPetRuntime) { resolve(window.classPetRuntime); return; }
+      var s = document.createElement('script');
+      s.src = 'classpet_core.js';
+      s.onload = function () { resolve(window.classPetRuntime || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+  }
+  async function v3FetchModel() {
+    var core = await v3LoadCore();
+    if (!core || typeof core.getV3ViewModel !== 'function') {
+      return { ok: false, reason: 'no-bridge', students: [] };
+    }
+    try { return await core.getV3ViewModel(); }
+    catch (e) { return { ok: false, reason: 'load-failed', error: String((e && e.message) || e), students: [] }; }
+  }
 
   /* ============================================================
      2. 工具
@@ -1172,16 +1194,30 @@ html.theme-fade *::after{
     history: [],
     lastOp: null,
     rowMenuId: null,
-    seq: 1
+    seq: 1,
+    /* 批次 2 数据分流：demo=演示态(no-bridge) / real=真实库只读态(ok) / failed=读取失败态 */
+    mode: 'demo',
+    vm: null,
+    thresholds: null,
+    maxLevel: 20,
+    loadError: ''
   };
 
   var THEME_NAMES = { orange: '活力暖橙', forest: '护眼森林', ocean: '晴空蓝调' };
 
+  function isRealMode() { return state.mode === 'real'; }
+  function isRealStu(s) { return !!(s && s.fromVm === true); }
+  /* 批次 2 只读：真实数据态的写类入口给出明确说明，绝不伪装成功 */
+  function v3ReadonlyNotice(what) {
+    toast('正式数据来自班级库（本次只读）：' + what + '将在后续批次接入写入', 'warn');
+  }
+  /* 演示态（no-bridge）专用的本地样本；真实数据态一律由 buildRealStudents 从 VM 构造 */
   function buildStudents() {
     state.students = ROSTER.map(function (r, i) {
       var species = SPECIES_ORDER[i % SPECIES_ORDER.length];
       return {
         id: r.id,
+        no: pad2(r.id),
         name: r.name,
         group: r.group,
         species: species,
@@ -1190,24 +1226,99 @@ html.theme-fade *::after{
         maxExp: r.level * state.expPerLevel,
         isEgg: !!r.isEgg,
         isAbsent: !!r.isAbsent,
-        isMax: !!r.isMax,
+        isMax: !!r.isMax || r.level >= 9,
+        fromVm: false,
         log: []
       };
     });
+  }
+  /* 真实数据态：VM → 本地学生模型。id 保留 1..N 序号（既有交互依赖 Number(s.id)），dbId/no 携带真实库字段 */
+  function buildRealStudents(vm) {
+    state.students = (vm.students || []).map(function (st, i) {
+      var p = st.activePet || {};
+      return {
+        id: i + 1,
+        dbId: String(st.id === undefined || st.id === null ? '' : st.id),
+        no: (st.no === undefined || st.no === null || st.no === '') ? pad2(i + 1) : String(st.no),
+        name: st.name ? String(st.name) : '未命名',
+        group: clamp(Number(st.group) || 1, 1, 4),
+        species: p.speciesCode || 'egg',
+        speciesName: p.speciesName || '',
+        level: Number(p.level) || 0,
+        exp: Math.max(0, Number(p.exp) || 0),
+        maxExp: Number(p.nextLevelExp) || 0,
+        pct: clamp(Math.round(Number(p.percent) || 0), 0, 100),
+        stage: Number(p.visualStage) || 0,
+        stageName: p.stageName || '',
+        image: p.image || '',
+        isEgg: !!p.isEgg,
+        isMax: !!p.isMax,
+        isAbsent: !!st.isAbsent,
+        fromVm: true,
+        log: []
+      };
+    });
+  }
+  /* 顶部身份：真实数据态用账号上下文（班级 · 老师），演示态保持原静态文案 */
+  function applyIdentity(vm) {
+    var el = $('#class-chip');
+    if (!el || !vm || !vm.teacher) return;
+    var parts = [];
+    if (vm.teacher.className) parts.push(vm.teacher.className);
+    if (vm.teacher.name) parts.push(vm.teacher.name);
+    if (parts.length) el.innerHTML = '<i class="dot" aria-hidden="true"></i>' + esc(parts.join(' · '));
+  }
+  function applyViewModel(vm) {
+    state.vm = vm;
+    applyIdentity(vm);
+    state.classId = vm.classId || '';
+    state.teacherId = vm.teacherId || '';
+    state.thresholds = (vm.thresholds && vm.thresholds.length) ? vm.thresholds.slice() : null;
+    state.maxLevel = Number(vm.maxLevel) || 20;
+    if (SUBJECTS.indexOf(vm.subjectLabel) >= 0) state.subject = vm.subjectLabel;
+    buildRealStudents(vm);
   }
   function byId(id) {
     id = Number(id);
     for (var i = 0; i < state.students.length; i++) if (state.students[i].id === id) return state.students[i];
     return null;
   }
-  function petStage(level) { return clamp(Math.ceil(level / 2), 1, 5); }
+  /* 学号显示：真实数据态用 VM 的 no，演示态沿用 01..32 */
+  function stuNo(s) {
+    return (s && s.no !== undefined && s.no !== null && s.no !== '') ? String(s.no) : pad2(s.id);
+  }
+  function cmpNo(a, b) {
+    var x = Number(stuNo(a)), y = Number(stuNo(b));
+    if (isFinite(x) && isFinite(y) && x !== y) return x - y;
+    var c = String(stuNo(a)).localeCompare(String(stuNo(b)));
+    return c || (a.id - b.id);
+  }
+  /* 演示态专用：等级→形态，取值与旧公式逐级一致（真实数据态一律用 VM 的 visualStage / image） */
+  function demoPetStage(level) {
+    var stage = 1;
+    for (var i = 0; i < DEMO_STAGE_MIN_LEVEL.length; i++) if (level >= DEMO_STAGE_MIN_LEVEL[i]) stage = i + 1;
+    return stage;
+  }
   function petSrc(s) {
+    if (isRealStu(s)) return s.image || EGG_PATH;   /* 真实数据态：图片唯一来源 activePet.image */
     if (s.isEgg) return EGG_PATH;
-    var stage = petStage(s.level);
+    var stage = demoPetStage(s.level);
     return 'assets/pets/' + s.species + '/' + s.species + '-stage' + stage + '.png';
   }
-  function speciesName(s) { return (SPECIES[s.species] || { name: '萌宠' }).name; }
-  function expPct(s) { return clamp(Math.round((s.exp / Math.max(1, s.maxExp)) * 100), 0, 100); }
+  function speciesName(s) {
+    if (isRealStu(s) && s.speciesName) return s.speciesName;   /* 真实数据态：VM speciesName */
+    return (SPECIES[s.species] || { name: '萌宠' }).name;
+  }
+  /* 阶段名唯一来源：真实数据态用 VM 的 stageName（蛋形态显示「蛋」） */
+  function stageLabel(s) {
+    if (s.isEgg) return '蛋';
+    if (isRealStu(s)) return s.stageName || '—';
+    return String(demoPetStage(s.level));
+  }
+  function expPct(s) {
+    if (isRealStu(s)) return clamp(Math.round(Number(s.pct) || 0), 0, 100);   /* 真实数据态：VM percent */
+    return clamp(Math.round((s.exp / Math.max(1, s.maxExp)) * 100), 0, 100);
+  }
   function groupTotals() {
     var out = { 1: { count: 0, exp: 0 }, 2: { count: 0, exp: 0 }, 3: { count: 0, exp: 0 }, 4: { count: 0, exp: 0 } };
     state.students.forEach(function (s) {
@@ -1405,14 +1516,14 @@ html.theme-fade *::after{
     if (!state.query) return true;
     var q = state.query.trim().toLowerCase();
     if (!q) return true;
-    return s.name.toLowerCase().indexOf(q) >= 0 || pad2(s.id).indexOf(q) >= 0 || String(s.id) === q;
+    return s.name.toLowerCase().indexOf(q) >= 0 || stuNo(s).toLowerCase().indexOf(q) >= 0 || String(s.id) === q;
   }
   function visibleStudentsForGroup(group) {
     return state.students.filter(function (s) {
       return s.group === Number(group) && matchesQuery(s);
     }).sort(function (a, b) {
-      if (state.sort === 'level') return b.level - a.level || b.exp - a.exp || a.id - b.id;
-      return a.id - b.id;
+      if (state.sort === 'level') return (b.level - a.level) || (b.exp - a.exp) || cmpNo(a, b);
+      return cmpNo(a, b);
     });
   }
   function currentLanes() {
@@ -1424,12 +1535,12 @@ html.theme-fade *::after{
     var flags = '';
     if (s.isAbsent) flags += '<span class="stu-flag absent">缺勤</span>';
     if (s.isEgg) flags += '<span class="stu-flag egg">待破壳</span>';
-    if (s.isMax || s.level >= 9) flags += '<span class="stu-flag max">满级</span>';
+    if (s.isMax) flags += '<span class="stu-flag max">满级</span>';
     var cls = 'stu-row';
     if (state.selected.has(s.id)) cls += ' is-selected';
     if (s.isAbsent) cls += ' is-absent';
     if (s.isEgg) cls += ' is-egg';
-    if (s.isMax || s.level >= 9) cls += ' is-max';
+    if (s.isMax) cls += ' is-max';
     return '' +
       '<div class="' + cls + '" data-stu="' + s.id + '" data-group="' + s.group + '" role="checkbox" aria-checked="' + state.selected.has(s.id) + '" tabindex="0" data-audit-row="' + s.id + '">' +
         '<label class="chk" title="选中 ' + esc(s.name) + '">' +
@@ -1443,10 +1554,21 @@ html.theme-fade *::after{
         '</div>' +
         '<div class="stu-main">' +
           '<div class="stu-name" title="' + esc(s.name) + '"><span class="nm">' + esc(s.name) + '</span></div>' +
-          '<div class="stu-meta"><span class="no">#' + pad2(s.id) + '</span><span>' + s.group + '组</span>' + flags + '</div>' +
+          '<div class="stu-meta"><span class="no">#' + stuNo(s) + '</span><span>' + s.group + '组</span>' + flags + '</div>' +
           '<div class="stu-exp" title="经验 ' + s.exp + ' / ' + s.maxExp + '"><span style="width:' + expPct(s) + '%"></span></div>' +
         '</div>' +
       '</div>';
+  }
+
+  /* 空态文案：失败态 / 真实空班 / 搜索无结果 / 分组无人 —— 一律复用现有 .grid-empty 样式 */
+  function emptyGridText() {
+    if (state.mode === 'failed') {
+      return '读取班级数据失败' + (state.loadError ? '<br>' + esc(state.loadError) : '') +
+        '<br>请确认班级库连接后重新打开本页（未使用演示数据）';
+    }
+    if (state.query) return '没有匹配「' + esc(state.query) + '」的学生<br>试试清空搜索或切换分组';
+    if (isRealMode() && !state.students.length) return '本班还没有学生<br>在正式系统里添加学生后，这里会自动显示';
+    return '该分组暂无学生';
   }
 
   function renderLanes() {
@@ -1456,9 +1578,7 @@ html.theme-fade *::after{
       visibleStudentsForGroup(lane.key).forEach(function (s) { cards.push(s); });
     });
     if (!cards.length) {
-      wrap.innerHTML = '<div class="grid-empty">' + (state.query
-        ? '没有匹配「' + esc(state.query) + '」的学生<br>试试清空搜索或切换分组'
-        : '该分组暂无学生') + '</div>';
+      wrap.innerHTML = '<div class="grid-empty">' + emptyGridText() + '</div>';
       return;
     }
     wrap.innerHTML = cards.map(rowHTML).join('');
@@ -1618,6 +1738,7 @@ html.theme-fade *::after{
       toast('请先勾选学生，再点击快捷赋分', 'warn');
       return;
     }
+    if (isRealMode()) { v3ReadonlyNotice('赋分'); return; }   /* 真实数据态：任何状态变更之前返回，绝不伪造台账/音效/浮字 */
     var applied = [], skipped = [], levelUps = [], snaps = [];
     ids.forEach(function (id) {
       var s = byId(id);
@@ -1712,6 +1833,11 @@ html.theme-fade *::after{
     op.snaps.forEach(function (snap) {
       var s = byId(snap.id);
       if (!s) return;
+      if (isRealStu(s)) {
+        /* 真实数据态：数值以班级库为准，撤销只回退台账记录 */
+        s.log.push({ time: nowTime(), tag: '撤销', text: '撤销「' + op.rule + '」' });
+        return;
+      }
       s.level = snap.level;
       s.exp = snap.exp;
       s.maxExp = s.level * state.expPerLevel;
@@ -1780,7 +1906,7 @@ html.theme-fade *::after{
     closeDataMenu();
     state.rowMenuId = id;
     var title = rowMenu.querySelector('.menu-title');
-    if (title) title.textContent = s.name + ' · #' + pad2(s.id);
+    if (title) title.textContent = s.name + ' · #' + stuNo(s);
     placeMenu(rowMenu, btn.getBoundingClientRect(), 'right');
     btn.setAttribute('aria-expanded', 'true');
     document.addEventListener('pointerdown', onDocPointerDown, true);
@@ -1874,7 +2000,7 @@ html.theme-fade *::after{
   function openLedgerDialog() {
     closeDataMenu();
     var options = ['<option value="all">全部学生</option>'].concat(state.students.map(function (s) {
-      return '<option value="' + s.id + '">' + pad2(s.id) + ' ' + esc(s.name) + '</option>';
+      return '<option value="' + s.id + '">' + stuNo(s) + ' ' + esc(s.name) + '</option>';
     })).join('');
     openDialog({
       title: '赋分台账',
@@ -1909,6 +2035,7 @@ html.theme-fade *::after{
           op.snaps.forEach(function (snap) {
             var s = byId(snap.id);
             if (!s) return;
+            if (isRealStu(s)) return;   /* 真实数据态数值以班级库为准，台账撤销不改写 */
             s.level = snap.level; s.exp = snap.exp; s.maxExp = s.level * state.expPerLevel; s.isMax = s.level >= 9;
           });
           op.undone = true; state.lastOp = op;
@@ -1935,7 +2062,7 @@ html.theme-fade *::after{
         { label: '导出名单 CSV', primary: true, onClick: function () {
             var lines = ['学号,姓名,小组,等级,经验,物种,状态'];
             state.students.forEach(function (s) {
-              lines.push([pad2(s.id), s.name, s.group, s.level, s.exp, s.isEgg ? '蛋' : speciesName(s), s.isAbsent ? '缺勤' : '在读'].join(','));
+              lines.push([stuNo(s), s.name, s.group, s.level, s.exp, s.isEgg ? '蛋' : speciesName(s), s.isAbsent ? '缺勤' : '在读'].join(','));
             });
             if (downloadFile('班级名单-三年级二班-' + Date.now() + '.csv', lines.join('\n'), 'text/csv;charset=utf-8')) toast('名单 CSV 已导出（模拟数据）');
           } },
@@ -1949,6 +2076,11 @@ html.theme-fade *::after{
   }
 
   function applyThreshold(v) {
+    if (isRealMode()) {
+      /* 真实数据态：阈值以班级库为准，本地设置不参与显示，也绝不伪装保存成功 */
+      toast('正式数据以班级阈值为准，此处设置不生效（未写入班级库）', 'warn');
+      return false;
+    }
     v = clamp(Math.round(Number(v) || 40), 15, 80);
     state.expPerLevel = v;
     store('classpet_v3_threshold', String(v));
@@ -1962,11 +2094,15 @@ html.theme-fade *::after{
   }
   function openThresholdDialog() {
     closeDataMenu();
+    var real = isRealMode();
     openDialog({
       title: '经验阈值',
-      body: '<p class="note">决定升到下一级需要的经验值，影响全班 EXP 进度条与升级判定。当前：每级 <b>' + state.expPerLevel + '</b> EXP。</p>' +
+      sub: real ? '班级库只读 · 阈值以班级库为准' : undefined,
+      body: '<p class="note">' + (real
+        ? '正式数据以班级库的等级阈值为准（LV0–LV' + state.maxLevel + ' 阶梯）。此处仅演示态生效，保存不会改写班级库，也不影响卡片显示。'
+        : '决定升到下一级需要的经验值，影响全班 EXP 进度条与升级判定。当前：每级 <b>' + state.expPerLevel + '</b> EXP。') + '</p>' +
         '<div class="form-row"><div class="field"><label for="threshold-value">每级所需 EXP</label>' +
-        '<input id="threshold-value" type="number" min="15" max="80" step="5" value="' + state.expPerLevel + '"></div></div>' +
+        '<input id="threshold-value" type="number" min="15" max="80" step="5" value="' + state.expPerLevel + '"' + (real ? ' readonly' : '') + '></div></div>' +
         '<div class="rule-list">' +
           '<div class="rule-item"><span>快节奏（30）</span><span class="val">课堂上更快看到升级</span></div>' +
           '<div class="rule-item"><span>常规（40）</span><span class="val">默认演示值</span></div>' +
@@ -1975,10 +2111,12 @@ html.theme-fade *::after{
       actions: [
         { label: '保存阈值', primary: true, onClick: function () {
             var v = Number($('#threshold-value').value);
-            applyThreshold(v); closeDialog();
+            if (applyThreshold(v) === false) return;   /* 真实数据态：明确说明后不关闭弹窗，不伪装保存成功 */
+            closeDialog();
           } }
       ],
       onMount: function (body) {
+        if (real) return;
         $$('.rule-item', body).forEach(function (item, i) {
           item.style.cursor = 'pointer';
           item.addEventListener('click', function () {
@@ -1997,7 +2135,7 @@ html.theme-fade *::after{
       body: '<p class="note">导出一份 JSON 快照（含名单、等级、经验、阈值），可在任意机器还原；也可一键恢复初始模拟数据。</p>' +
         '<div class="rule-list">' +
           '<div class="rule-item"><span>当前名单</span><span class="val">' + state.students.length + ' 人</span></div>' +
-          '<div class="rule-item"><span>经验阈值</span><span class="val">' + state.expPerLevel + ' EXP / 级</span></div>' +
+          '<div class="rule-item"><span>经验阈值</span><span class="val">' + (isRealMode() ? '班级库为准' : state.expPerLevel + ' EXP / 级') + '</span></div>' +
           '<div class="rule-item"><span>台账记录</span><span class="val">' + state.history.length + ' 笔</span></div>' +
         '</div>',
       actions: [
@@ -2018,6 +2156,7 @@ html.theme-fade *::after{
   }
 
   function openAddDialog() {
+    if (isRealMode()) { v3ReadonlyNotice('新增学生'); return; }
     var nextId = state.students.reduce(function (m, s) { return Math.max(m, s.id); }, 0) + 1;
     openDialog({
       title: '新增学生',
@@ -2066,27 +2205,31 @@ html.theme-fade *::after{
   }
 
   function openEditDialog(id) {
+    var real = isRealMode();
     var s = byId(id);
     if (!s) return;
     openDialog({
       title: '编辑学生 · ' + s.name,
+      sub: real ? '班级库只读 · 等级与经验以班级库为准' : undefined,
       body: '<div class="form-row">' +
-          '<div class="field"><label for="edit-name">姓名</label><input id="edit-name" maxlength="8" value="' + esc(s.name) + '"></div>' +
+          '<div class="field"><label for="edit-name">姓名</label><input id="edit-name" maxlength="8" value="' + esc(s.name) + '"' + (real ? ' readonly' : '') + '></div>' +
           '<div class="field"><label for="edit-group">小组</label><select id="edit-group">' +
             [1, 2, 3, 4].map(function (g) { return '<option value="' + g + '"' + (s.group === g ? ' selected' : '') + '>' + g + '组</option>'; }).join('') +
           '</select></div>' +
         '</div>' +
         '<div class="form-row">' +
-          '<div class="field"><label for="edit-level">等级</label><input id="edit-level" type="number" min="1" max="9" value="' + s.level + '"></div>' +
-          '<div class="field"><label for="edit-exp">经验</label><input id="edit-exp" type="number" min="0" value="' + s.exp + '"></div>' +
+          '<div class="field"><label for="edit-level">等级</label><input id="edit-level" type="number" min="0" max="' + (real ? state.maxLevel : 9) + '" value="' + s.level + '"' + (real ? ' readonly' : '') + '></div>' +
+          '<div class="field"><label for="edit-exp">经验</label><input id="edit-exp" type="number" min="0" value="' + s.exp + '"' + (real ? ' readonly' : '') + '></div>' +
         '</div>' +
         '<div class="form-row"><div class="field"><label>状态</label>' +
           '<label class="switch" style="min-height:38px"><input type="checkbox" id="edit-absent"' + (s.isAbsent ? ' checked' : '') + '><span class="track" aria-hidden="true"></span>缺勤</label>' +
         '</div></div>' +
         (s.isEgg ? '<p class="note">该学生处于蛋形态（' + s.exp + ' / ' + s.maxExp + ' EXP）。经验满后可在下方直接破壳。</p>' : '') +
-        '<p class="note">宠物：' + speciesName(s) + ' · 阶段 ' + (s.isEgg ? '蛋' : petStage(s.level)) + ' / 5 · 学号 #' + pad2(s.id) + '</p>',
+        '<p class="note">宠物：' + speciesName(s) + ' · 阶段 ' + stageLabel(s) + ' / 5 · 学号 #' + stuNo(s) + '</p>' +
+        (real ? '<p class="note warn">正式数据来自班级库：本页只读预览，保存不会写入班级库（写入在后续批次接入）。</p>' : ''),
       actions: (s.isEgg ? [{ label: '立即破壳', onClick: function () { hatch(s.id); closeDialog(); } }] : []).concat([
         { label: '保存修改', primary: true, onClick: function () {
+            if (real) { v3ReadonlyNotice('保存学生资料'); return; }
             var name = ($('#edit-name').value || '').trim();
             if (!name) { toast('姓名不能为空', 'warn'); return; }
             s.name = name;
@@ -2105,6 +2248,7 @@ html.theme-fade *::after{
   }
 
   function hatch(id) {
+    if (isRealMode()) { v3ReadonlyNotice('破壳'); return; }
     var s = byId(id);
     if (!s || !s.isEgg) return;
     s.isEgg = false;
@@ -2130,7 +2274,8 @@ html.theme-fade *::after{
       : '<div class="empty-state">暂无日志。<br>赋分、编辑、破壳都会记入这里。</div>';
     openDialog({
       title: '学生日志 · ' + s.name,
-      body: '<p class="note">#' + pad2(s.id) + ' · ' + s.group + '组 · LV' + s.level + ' · ' + s.exp + ' / ' + s.maxExp + ' EXP · ' + speciesName(s) +
+      body: '<p class="note">#' + stuNo(s) + ' · ' + s.group + '组 · LV' + s.level + ' · ' + s.exp + ' / ' + s.maxExp + ' EXP · ' + speciesName(s) +
+        (isRealStu(s) && !s.isEgg && s.stageName ? ' · ' + esc(s.stageName) : '') +
         (s.isAbsent ? ' · 缺勤' : s.isEgg ? ' · 蛋形态' : '') + '</p>' +
         '<div class="log-list">' + items + '</div>',
       actions: [{ label: '编辑资料', onClick: function () { closeDialog(); openEditDialog(s.id); } }]
@@ -2138,6 +2283,7 @@ html.theme-fade *::after{
   }
 
   function openMoveGroupDialog() {
+    if (isRealMode()) { v3ReadonlyNotice('调整分组'); return; }
     var n = state.selected.size;
     openDialog({
       title: '调整分组',
@@ -2232,6 +2378,12 @@ html.theme-fade *::after{
   $('#file-input').addEventListener('change', function (e) {
     var file = e.target.files && e.target.files[0];
     if (!file) return;
+    if (state.mode !== 'demo') {
+      /* 真实/失败态：导入会覆盖班级库名单的显示，批次 2 不提供本地覆盖 */
+      e.target.value = '';
+      toast('当前显示的是班级库数据（只读），导入仅演示态可用（未写入）', 'warn');
+      return;
+    }
     var reader = new FileReader();
     reader.onload = function () {
       try {
@@ -2296,7 +2448,27 @@ html.theme-fade *::after{
     toast('已还原备份：' + state.students.length + ' 人 · 阈值 ' + state.expPerLevel + ' EXP/级');
   }
 
+  /* 真实/失败态下的「恢复初始数据」= 重新从班级库读取，绝不注入演示名单 */
+  async function reloadRealData() {
+    var vm = await v3FetchModel();
+    if (vm && vm.ok === true) {
+      state.mode = 'real';
+      applyViewModel(vm);
+      state.selected.clear();
+      state.chipsAll = false;
+      state.history = []; state.lastOp = null;
+      syncSubjectUI();
+      renderLanes(); renderDock(); renderBatch();
+      toast('已从班级库重新读取：' + state.students.length + ' 人');
+      return;
+    }
+    if (vm && vm.reason === 'load-failed') state.loadError = vm.error || state.loadError;
+    renderLanes();
+    toast('重新读取班级数据失败，当前显示保持不变', 'warn');
+  }
+
   function resetData() {
+    if (state.mode !== 'demo') { reloadRealData(); return; }
     buildStudents();
     state.selected.clear();
     state.history = []; state.lastOp = null;
@@ -2328,14 +2500,19 @@ html.theme-fade *::after{
     toast('已选中当前列表 ' + ids.length + ' 人');
     playChime('select');
   }
+  function syncSubjectUI() {
+    $$('#subject-seg button, #subject-seg-2 button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-subject') === state.subject));
+    });
+    var ds = $('#dock-subject');
+    if (ds) ds.textContent = state.subject + '课';
+  }
+  /* D7=A：切授课科目只换赋分目标；卡片宠物固定跟随 display_pet_id（真实态即 VM 的 activePet），不随之切换 */
   function setSubject(name) {
     if (SUBJECTS.indexOf(name) < 0) return;
     state.subject = name;
-    $$('#subject-seg button, #subject-seg-2 button').forEach(function (b) {
-      b.setAttribute('aria-pressed', String(b.getAttribute('data-subject') === name));
-    });
-    var ds = $('#dock-subject'); if (ds) ds.textContent = name + '课';
-    toast('已切换到「' + name + '」赋分（模拟）');
+    syncSubjectUI();
+    toast('已切换到「' + name + '」赋分' + (isRealMode() ? '（班级库只读）' : '（模拟）'));
     playChime('select');
   }
   function setFilter(v) {
@@ -2724,7 +2901,7 @@ html.theme-fade *::after{
      ============================================================ */
   function init() {
     document.documentElement.setAttribute('data-theme', state.theme);
-    buildStudents();
+    if (state.mode === 'demo') buildStudents();
     state.extraRules = [
       { name: '朗读之星', value: 2 },
       { name: '桌面凌乱', value: -1 }
@@ -2734,6 +2911,7 @@ html.theme-fade *::after{
     $('#sound-state').textContent = state.sound ? '开启' : '关闭';
     $('#quiet-mode').checked = state.quiet;
     renderExtraRules();
+    syncSubjectUI();
     renderLanes();
     renderDock();
     renderBatch();
@@ -2753,11 +2931,13 @@ html.theme-fade *::after{
       closeRowMenu: closeRowMenu,
       openDialog: openDialog,
       closeDialog: closeDialog,
+      reloadRealData: reloadRealData,
       renderLanes: renderLanes,
       renderDock: renderDock,
       renderBatch: renderBatch,
       hatch: hatch
     };
+    if (state.mode === 'failed') toast('班级数据读取失败：' + (state.loadError || '未知原因'), 'warn');
     if (/[?&]audit=1/.test(location.search)) {
       setTimeout(function () {
         var result = window.__v3audit();
@@ -2766,8 +2946,25 @@ html.theme-fade *::after{
       }, 120);
     }
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  /* 批次 2：先取统一 ViewModel，再按 no-bridge / ok / load-failed 三条模式分流启动 */
+  async function start() {
+    var vm = null;
+    try { vm = await v3FetchModel(); }
+    catch (e) { vm = { ok: false, reason: 'load-failed', error: String((e && e.message) || e), students: [] }; }
+    if (vm && vm.ok === true) {
+      state.mode = 'real';
+      applyViewModel(vm);
+    } else if (vm && vm.reason === 'load-failed') {
+      state.mode = 'failed';
+      state.students = [];
+      state.loadError = vm.error || '';
+    } else {
+      state.mode = 'demo';
+    }
+    init();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
 })();
 
 </script>

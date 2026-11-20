@@ -572,7 +572,7 @@ body.is-shaking{animation:shakeIt .3s cubic-bezier(.36,.07,.19,.97)}
     <div>
       <h1><span class="marker">班级电子宠物</span></h1>
       <p class="sub">
-        <span>三年级二班 · 刘老师 · 语文</span>
+        <span id="head-identity">三年级二班 · 刘老师 · 语文</span>
       </p>
     </div>
   </div>
@@ -749,6 +749,32 @@ console.error = function(){ window.__v3ConsoleErrors.push(Array.prototype.join.c
 
 var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* ---- V3 数据桥（批次 2）：只在 Electron（有 preload）里加载核心，浏览器直开保持演示降级 ---- */
+  function v3LoadCore() {
+    return new Promise(function (resolve) {
+      if (!window.electronAPI) { resolve(null); return; }
+      if (window.classPetRuntime) { resolve(window.classPetRuntime); return; }
+      var s = document.createElement('script');
+      s.src = 'classpet_core.js';
+      s.onload = function () { resolve(window.classPetRuntime || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+  }
+  async function v3FetchModel() {
+    var core = await v3LoadCore();
+    if (!core || typeof core.getV3ViewModel !== 'function') {
+      return { ok: false, reason: 'no-bridge', students: [] };
+    }
+    try { return await core.getV3ViewModel(); }
+    catch (e) { return { ok: false, reason: 'load-failed', error: String((e && e.message) || e), students: [] }; }
+  }
+
+/* 数据态：live = 真实库只读 / demo = 演示数据 / failed = 读取失败 */
+var VM = null;
+var DATA_MODE = window.electronAPI ? 'loading' : 'demo';
+var DATA_ERROR = '';
+
 /* ============================================================
    1 · 数据样本（V3_DESIGN_SPEC §10，与 v3_student_stage 同一批）
    ============================================================ */
@@ -756,7 +782,15 @@ var SPECIES = {
   cat:{name:'狸花猫'}, dog:{name:'金毛犬'}, bunny:{name:'白兔'}, hamster:{name:'仓鼠'},
   bird:{name:'青鸟'}, deer:{name:'小鹿'}, fish:{name:'金鱼'}, fox:{name:'小狐狸'}
 };
-var MAX_LEVEL = 9;
+/* 演示态专用（仅 no-bridge 生效）：9 级上限与阶段阶梯；真实数据态一律取 VM 的 maxLevel / stages */
+var DEMO_MAX_LEVEL = 9;
+var DEMO_STAGES = [{stage:1, minLevel:1}, {stage:2, minLevel:3}, {stage:3, minLevel:5}, {stage:4, minLevel:7}, {stage:5, minLevel:9}];
+function demoExpForLevel(lv){ return lv * 40; }
+function demoStageOf(level){
+  var picked = DEMO_STAGES[0];
+  for (var i = 0; i < DEMO_STAGES.length; i++) if (level >= DEMO_STAGES[i].minLevel) picked = DEMO_STAGES[i];
+  return picked.stage;
+}
 var NAMES = [
   ['陈雨桐','林子轩','王思远','赵一诺','周小满','吴念安','郑亦然','孙可欣'],
   ['李佳怡','张沐辰','徐嘉树','何若溪','高子墨','罗安然','唐星野','冯乐乐'],
@@ -782,14 +816,14 @@ function buildStudents(){
     list.push({
       id: id, name: NAMES[group - 1][i % 8], group: group,
       species: SPECIES_CYCLE[i % 8],
-      level: level, exp: exp, maxExp: level * 40,
+      level: level, exp: exp, maxExp: demoExpForLevel(level),
       isEgg: id === 3, isAbsent: id === 7,
       stamps: []
     });
   }
   /* #11 徐嘉树 LV9 满级 */
   var maxed = list[10];
-  maxed.level = 9; maxed.maxExp = 360; maxed.exp = 360;
+  maxed.level = DEMO_MAX_LEVEL; maxed.maxExp = demoExpForLevel(DEMO_MAX_LEVEL); maxed.exp = maxed.maxExp;
   return list;
 }
 function subjectsOf(s){
@@ -801,8 +835,32 @@ function subjectsOf(s){
   ];
 }
 
+/* 真实数据态的三科学阶：读 ViewModel 的 petsBySubject（等级 / 进度），演示态保持 subjectsOf 随机值 */
+var SUBJECT_ORDER = ['chinese', 'math', 'english'];
+var SUBJECT_COLOR = { chinese: 'var(--sub-yuwen)', math: 'var(--sub-shuxue)', english: 'var(--sub-yingyu)' };
+function subjectsFromVM(bySubject){
+  var out = [];
+  for (var i = 0; i < SUBJECT_ORDER.length; i++) {
+    var code = SUBJECT_ORDER[i];
+    var pet = (bySubject && bySubject[code]) ? bySubject[code] : null;
+    out.push({
+      key: code,
+      name: (pet && pet.subjectLabel) || '',
+      lv: pet ? (Number(pet.level) || 0) : 0,
+      pct: pet ? (Number(pet.percent) || 0) : 0,
+      color: SUBJECT_COLOR[code]
+    });
+  }
+  return out;
+}
+/* 取值协议：学生对象带 VM 字段就用 VM（真实数据态），没有才回落到演示态常量 */
+function capLevelOf(s){ return (typeof s.maxLevel === 'number' && s.maxLevel > 0) ? s.maxLevel : DEMO_MAX_LEVEL; }
+function isMaxed(s){ return (typeof s.isMax === 'boolean') ? s.isMax : (s.level >= DEMO_MAX_LEVEL); }
+function stageText(s){ return s.stageName || ('第 ' + demoStageOf(s.level) + ' 阶段'); }
+function awakenText(s){ return stageText(s) + '觉醒'; }
+
 var state = {
-  students: buildStudents(),
+  students: window.electronAPI ? [] : buildStudents(),
   selectedId: null,
   group: 'all',
   sort: 'no',
@@ -812,16 +870,29 @@ var state = {
 };
 function byId(id){ for (var i = 0; i < state.students.length; i++) if (state.students[i].id === id) return state.students[i]; return null; }
 function pad2(n){ return n < 10 ? '0' + n : String(n); }
+/* 学号：真实数据态用 VM 的 no（如 '01'），演示态沿用补零序号 */
+function noOf(s){ return (s.no !== undefined && s.no !== null && s.no !== '') ? String(s.no) : pad2(s.id); }
+function cmpNo(a, b){
+  var na = parseInt(noOf(a), 10), nb = parseInt(noOf(b), 10);
+  if (!isNaN(na) && !isNaN(nb)) { if (na !== nb) return na - nb; }
+  else {
+    var sa = noOf(a), sb = noOf(b);
+    if (sa < sb) return -1;
+    if (sa > sb) return 1;
+  }
+  return a.id - b.id;
+}
 
 /* ============================================================
    2 · 素材
    ============================================================ */
-/* 临时演示映射：与教师台保持同一公式；接线时统一改用 class_visual_stages */
-function stageOf(level){ return Math.max(1, Math.min(5, Math.ceil(level / 2))); }
+/* 图片：真实数据态直接用 ViewModel 的 pet.image；演示态才走演示阶段阶梯（DEMO_STAGES）寻址 */
 function petSrc(s){
+  if (s.image) return s.image;
   if (s.isEgg) return 'assets/pets/shared/egg.png';
-  return 'assets/pets/' + s.species + '/' + s.species + '-stage' + stageOf(s.level) + '.png';
+  return 'assets/pets/' + s.species + '/' + s.species + '-stage' + demoStageOf(s.level) + '.png';
 }
+function speciesLabel(s){ return s.speciesName || ((SPECIES[s.species] && SPECIES[s.species].name) || '神秘宠物蛋'); }
 window.__v3PetFallback = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' +
   '<g fill="none" stroke="#111" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
@@ -881,39 +952,70 @@ function toast(msg){
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ elToast.classList.remove('is-on'); }, 2400);
 }
+/* 批次 2 只读：真实数据态不改本地数值、不写库 */
+function readonlyHit(){
+  toast(DATA_MODE === 'failed' ? '班级数据未加载，暂不能赋分' : '只读预览 · 写库将在批次 3 接入');
+  sfx('ink');
+}
+function escText(t){
+  return String(t === null || t === undefined ? '' : t).replace(/[&<>"]/g, function(c){
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c];
+  });
+}
 function visibleStudents(){
   var list = state.students.filter(function(s){ return state.group === 'all' || String(s.group) === state.group; });
   list.sort(function(a, b){
     if (state.sort === 'level') {
       if (b.level !== a.level) return b.level - a.level;
       if (b.exp !== a.exp) return b.exp - a.exp;
-      return a.id - b.id;
+      return cmpNo(a, b);
     }
-    return a.id - b.id;
+    return cmpNo(a, b);
   });
   return list;
 }
+function maxGroupNo(){
+  var m = 4;
+  for (var i = 0; i < state.students.length; i++) {
+    var g = Number(state.students[i].group) || 0;
+    if (g > m) m = g;
+  }
+  return Math.min(8, m);
+}
 function groupStats(){
   var out = {};
-  for (var g = 1; g <= 4; g++) {
+  for (var g = 1; g <= maxGroupNo(); g++) {
     var arr = state.students.filter(function(s){ return s.group === g; });
     out[g] = { count: arr.length, exp: arr.reduce(function(sum, s){ return sum + s.exp; }, 0) };
   }
   out.all = { count: state.students.length, exp: state.students.reduce(function(sum, s){ return sum + s.exp; }, 0) };
   return out;
 }
-function pct(s){ return Math.max(0, Math.min(100, Math.round(s.exp / s.maxExp * 100))); }
+function pct(s){
+  if (typeof s.pct === 'number' && isFinite(s.pct)) return Math.max(0, Math.min(100, Math.round(s.pct)));
+  return Math.max(0, Math.min(100, Math.round(s.exp / s.maxExp * 100)));
+}
 
 /* ============================================================
    5 · 组带（筛选 + 统计，实时一致）
    ============================================================ */
+function bandHintText(count, groups){
+  if (DATA_MODE === 'failed') return '读取失败 · 数据不可用';
+  if (DATA_MODE === 'live') return '真实数据 · ' + count + ' 人 · ' + groups + ' 组';
+  return '模拟数据 · ' + count + ' 人 · ' + groups + ' 组';
+}
 function renderBand(){
+  var groups = maxGroupNo();
   var st = groupStats();
-  var maxExp = Math.max(st[1].exp, st[2].exp, st[3].exp, st[4].exp, 1);
+  var maxExp = Math.max(st.all.exp, 1), gcount = 0;
+  for (var i2 = 1; i2 <= groups; i2++) {
+    if (st[i2].exp > maxExp) maxExp = st[i2].exp;
+    if (st[i2].count) gcount++;
+  }
   var html = '';
   html += chipHtml('all', '全班', st.all.count, st.all.exp, st.all.exp / maxExp);
-  for (var g = 1; g <= 4; g++) html += chipHtml(String(g), g + '组', st[g].count, st[g].exp, st[g].exp / maxExp);
-  html += '<span class="band-hint">模拟数据 · 32 人 · 4 组</span>';
+  for (var g = 1; g <= groups; g++) html += chipHtml(String(g), g + '组', st[g].count, st[g].exp, st[g].exp / maxExp);
+  html += '<span class="band-hint">' + bandHintText(st.all.count, gcount) + '</span>';
   elBand.innerHTML = html;
   function chipHtml(key, label, count, exp, ratio){
     var on = state.group === key ? ' is-on' : '';
@@ -955,19 +1057,19 @@ function flip(containers, mutate){
 function cardHtml(s){
   var sel = s.id === state.selectedId ? ' is-selected' : '';
   var cls = 'pet-card' + sel + (s.isAbsent ? ' is-absent' : '') + (s.isEgg ? ' is-egg' : '') +
-            (!s.isEgg && s.level >= MAX_LEVEL ? ' is-max' : '');
+            (!s.isEgg && isMaxed(s) ? ' is-max' : '');
   var tag = 'LV.' + s.level, tagCls = '';
   if (s.isEgg) { tag = '待破壳'; tagCls = ' egg'; }
   else if (s.isAbsent) { tag = '缺勤'; tagCls = ' warn'; }
-  else if (s.level >= MAX_LEVEL) { tag = '★ LV.9 满级'; tagCls = ' max'; }
-  var sub = s.isAbsent ? ('缺勤 · ' + s.group + '组') : ('#' + pad2(s.id) + ' · ' + s.group + '组');
+  else if (isMaxed(s)) { tag = '★ LV.' + s.level + ' 满级'; tagCls = ' max'; }
+  var sub = s.isAbsent ? ('缺勤 · ' + s.group + '组') : ('#' + noOf(s) + ' · ' + s.group + '组');
   return '<div class="' + cls + '" data-id="' + s.id + '" role="button" tabindex="0" ' +
-    'aria-label="' + s.name + '，' + SPECIES[s.species].name + '，' + tag + (sel ? '，已选中' : '') + '">' +
+    'aria-label="' + s.name + '，' + speciesLabel(s) + '，' + tag + (sel ? '，已选中' : '') + '">' +
     '<div class="card-top">' +
       '<span class="lv-tag' + tagCls + '">' + tag + '</span>' +
     '</div>' +
     '<div class="pet-stage">' +
-      '<img src="' + petSrc(s) + '" alt="' + s.name + '的' + SPECIES[s.species].name + '" onerror="__petFail(this)">' +
+      '<img src="' + petSrc(s) + '" alt="' + s.name + '的' + speciesLabel(s) + '" onerror="__petFail(this)">' +
       '<span class="stage-shadow" aria-hidden="true"></span>' +
     '</div>' +
     '<div class="card-name">' + s.name + '</div>' +
@@ -977,6 +1079,14 @@ function cardHtml(s){
 }
 function renderGrid(){
   var list = visibleStudents();
+  if (!state.students.length) {
+    var msg;
+    if (DATA_MODE === 'failed') msg = '读取班级数据失败' + (DATA_ERROR ? '：' + escText(DATA_ERROR) : '');
+    else if (DATA_MODE === 'live') msg = '本班还没有学生';
+    else msg = '该小组暂无学生';
+    elGrid.innerHTML = '<div class="empty-hint">' + msg + '</div>';
+    return;
+  }
   if (!list.length) { elGrid.innerHTML = '<div class="empty-hint">该小组暂无学生</div>'; return; }
   elGrid.innerHTML = list.map(cardHtml).join('');
 }
@@ -1001,21 +1111,21 @@ function renderInspector(skipRoll){
     elInsBody.innerHTML = '<div class="ins-empty">未选择学生<br>点任意卡片查看成长档案</div>';
     return;
   }
-  var subs = subjectsOf(s);
+  var subs = s.subjects || subjectsOf(s);
   var egg = s.isEgg;
   var dis = s.isAbsent ? ' disabled' : '';
   var html = '';
 
   html += '<div class="ins-sec">' +
     '<div class="ins-stage">' +
-      '<img id="ins-pet" src="' + petSrc(s) + '" alt="' + s.name + '的' + SPECIES[s.species].name + '" onerror="__petFail(this)">' +
+      '<img id="ins-pet" src="' + petSrc(s) + '" alt="' + s.name + '的' + speciesLabel(s) + '" onerror="__petFail(this)">' +
       '<span class="stage-shadow" aria-hidden="true"></span>' +
     '</div>' +
     '<div class="ins-name">' + s.name + '</div>' +
     '<div class="ins-meta">' +
-      '<span class="chip">#' + pad2(s.id) + '</span>' +
+      '<span class="chip">#' + noOf(s) + '</span>' +
       '<span class="chip">' + s.group + ' 组</span>' +
-      '<span class="chip">' + SPECIES[s.species].name + '</span>' +
+      '<span class="chip">' + speciesLabel(s) + '</span>' +
       (s.isAbsent ? '<span class="chip" style="border-color:#8E2F1E;color:#8E2F1E">缺勤</span>' : '') +
       (s.isEgg ? '<span class="chip" style="background:var(--sun)">待破壳</span>' : '') +
     '</div>' +
@@ -1025,11 +1135,11 @@ function renderInspector(skipRoll){
     '<div class="ins-sec-t">经验值 EXP</div>' +
     '<div class="exp-big">' +
       '<span class="num" id="ins-exp">' + s.exp + '<small>/' + s.maxExp + '</small></span>' +
-      '<span class="delta" id="ins-delta">' + (s.level >= MAX_LEVEL ? '已满级 · 继续积累' : ('距升级 ' + Math.max(0, s.maxExp - s.exp) + ' EXP')) + '</span>' +
+      '<span class="delta" id="ins-delta">' + (isMaxed(s) ? '已满级 · 继续积累' : ('距升级 ' + Math.max(0, s.maxExp - s.exp) + ' EXP')) + '</span>' +
     '</div>' +
     '<div class="exp-track" aria-hidden="true"><i id="ins-track" style="width:' + pct(s) + '%"></i></div>' +
     '<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11.5px;font-weight:800;color:var(--ink-3)">' +
-      '<span>LV.' + s.level + ' · 第 ' + stageOf(s.level) + ' 阶段</span><span>' + pct(s) + '%</span>' +
+      '<span>LV.' + s.level + ' · ' + stageText(s) + '</span><span>' + pct(s) + '%</span>' +
     '</div>' +
   '</div>';
 
@@ -1304,19 +1414,21 @@ function cardNode(id){
 function rectCenter(r){ return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
 function award(id, amount, label, evt){
   var s = byId(id); if (!s) return false;
+  if (DATA_MODE !== 'demo') { readonlyHit(); return false; }
   if (s.isAbsent) { toast(s.name + ' 今日请假，无法赋分'); sfx('ink'); return false; }
   var cardRect = null, node = cardNode(id);
   if (node) cardRect = node.getBoundingClientRect();
-  var oldSrc = petSrc(s), oldStage = stageOf(s.level), oldLevel = s.level;
+  var oldSrc = petSrc(s), oldStage = demoStageOf(s.level), oldLevel = s.level;
   var leveled = false;
+  var cap = capLevelOf(s);
 
   if (s.isEgg) {
     s.exp = Math.min(s.maxExp, s.exp + amount);
   } else {
     s.exp += amount;
-    if (s.exp >= s.maxExp && s.level < MAX_LEVEL) {
-      s.exp = s.exp - s.maxExp; s.level += 1; s.maxExp = s.level * 40; leveled = true;
-    } else if (s.level >= MAX_LEVEL) {
+    if (s.exp >= s.maxExp && s.level < cap) {
+      s.exp = s.exp - s.maxExp; s.level += 1; s.maxExp = demoExpForLevel(s.level); leveled = true;
+    } else if (s.level >= cap) {
       s.exp = s.maxExp;
     }
   }
@@ -1374,7 +1486,7 @@ function levelUpFX(s, oldSrc, oldLevel, oldStage){
   fireworks(cx, cy);
   vignetteFlash();
   shockwave(cx, cy - 10, s.name);
-  if (r) floatText(cx, cy - 120, '第 ' + stageOf(s.level) + ' 阶段觉醒', 'var(--accent)');
+  if (r) floatText(cx, cy - 120, awakenText(s), 'var(--accent)');
   if (ins && oldSrc !== petSrc(s) && !REDUCED) {
     var ghost = document.createElement('img');
     ghost.src = oldSrc; ghost.className = 'ins-old'; ghost.alt = '';
@@ -1391,6 +1503,7 @@ function levelUpFX(s, oldSrc, oldLevel, oldStage){
 function hatch(){
   var s = state.selectedId ? byId(state.selectedId) : null;
   if (!s || !s.isEgg) return;
+  if (DATA_MODE !== 'demo') { readonlyHit(); return; }
   var node = cardNode(s.id);
   var insSt = document.querySelector('.ins-stage');
   var wait = 0;
@@ -1770,10 +1883,12 @@ function openDetail(){
   var s = state.selectedId ? byId(state.selectedId) : null;
   if (!s) return;
   var cells = [
-    ['学号', '#' + pad2(s.id)], ['姓名', s.name], ['小组', s.group + ' 组'],
-    ['宠物', SPECIES[s.species].name], ['等级', 'LV.' + s.level + '（第 ' + stageOf(s.level) + ' 阶段）'],
-    ['经验', s.exp + ' / ' + s.maxExp], ['状态', s.isAbsent ? '请假缺勤' : (s.isEgg ? '蛋 · 待破壳' : (s.level >= MAX_LEVEL ? '满级' : '正常'))]
+    ['学号', '#' + noOf(s)], ['姓名', s.name], ['小组', s.group + ' 组'],
+    ['宠物', speciesLabel(s)], ['等级', 'LV.' + s.level + '（' + stageText(s) + '）'],
+    ['经验', s.exp + ' / ' + s.maxExp], ['状态', s.isAbsent ? '请假缺勤' : (s.isEgg ? '蛋 · 待破壳' : (isMaxed(s) ? '满级' : '正常'))]
   ];
+  var dsub = $('detail-sub');
+  if (dsub && DATA_MODE === 'live') dsub.textContent = '真实数据 · 只读预览';
   var html = '<div class="detail-grid">';
   cells.forEach(function(c){ html += '<div class="detail-cell"><b>' + c[0] + '</b>' + c[1] + '</div>'; });
   html += '</div>';
@@ -1782,7 +1897,8 @@ function openDetail(){
   setTimeout(function(){ $('detail-ok').focus(); }, 30);
 }
 function resetAll(){
-  state.students = buildStudents();
+  if (DATA_MODE === 'demo') state.students = buildStudents();
+  else state.students = (DATA_MODE === 'live' && VM) ? vmStudents(VM) : [];
   state.selectedId = null;
   state.group = 'all';
   state.sort = 'no';
@@ -1792,7 +1908,8 @@ function resetAll(){
   $('mask-reset').hidden = true;
   applyTheme('orange', false);
   renderAll();
-  toast('演示数据已重置');
+  toast(DATA_MODE === 'demo' ? '演示数据已重置'
+    : (DATA_MODE === 'live' ? '已重新载入真实数据（未写库）' : '班级数据仍未加载'));
 }
 
 /* ============================================================
@@ -2069,18 +2186,84 @@ function bind(){
   });
 }
 function praiseAll(){
+  if (DATA_MODE !== 'demo') { closeFab(); readonlyHit(); return; }
   var present = state.students.filter(function(s){ return !s.isAbsent; });
   present.forEach(function(s){
+    var cap = capLevelOf(s);
     if (s.isEgg) { s.exp = Math.min(s.maxExp, s.exp + 10); return; }
     s.exp += 10;
-    if (s.exp >= s.maxExp && s.level < MAX_LEVEL) { s.exp -= s.maxExp; s.level += 1; s.maxExp = s.level * 40; }
-    else if (s.level >= MAX_LEVEL) s.exp = s.maxExp;
+    if (s.exp >= s.maxExp && s.level < cap) { s.exp -= s.maxExp; s.level += 1; s.maxExp = demoExpForLevel(s.level); }
+    else if (s.level >= cap) s.exp = s.maxExp;
   });
   closeFab();
   renderAll();
   sfx('bell');
   fireworks(window.innerWidth / 2, window.innerHeight * 0.42);
   toast('全班表扬：' + present.length + ' 位到校同学各 +10 EXP');
+}
+
+/* ============================================================
+   18.5 · 真实数据态装载（批次 2 · 只读）
+   ============================================================ */
+/* 把 ViewModel 的学生映射成页面既有学生对象：保留数值 id，另存 dbId / no */
+function vmStudents(vm){
+  var cap = (vm && typeof vm.maxLevel === 'number' && vm.maxLevel > 0) ? vm.maxLevel : DEMO_MAX_LEVEL;
+  var rows = (vm && Array.isArray(vm.students)) ? vm.students : [];
+  var list = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i] || {};
+    var pet = row.activePet || {};
+    list.push({
+      id: i + 1,
+      dbId: row.id,
+      no: row.no,
+      name: row.name || '',
+      group: Number(row.group) || 1,
+      level: Number(pet.level) || 0,
+      exp: Number(pet.exp) || 0,
+      maxExp: Number(pet.nextLevelExp) || 0,
+      maxLevel: cap,
+      species: pet.speciesCode,
+      speciesName: pet.speciesName,
+      isEgg: !!pet.isEgg,
+      isMax: !!pet.isMax,
+      isAbsent: !!row.isAbsent,
+      stageName: pet.stageName,
+      stage: Number(pet.visualStage) || 0,
+      pct: Number(pet.percent) || 0,
+      image: pet.image,
+      subjects: subjectsFromVM(row.petsBySubject),
+      stamps: []
+    });
+  }
+  return list;
+}
+/* 顶部身份：真实数据态用账号上下文（班级 · 老师 · 科目），演示态保持原静态文案 */
+function applyIdentity(vm){
+  var el = $('head-identity');
+  if (!el || !vm || !vm.teacher) return;
+  var parts = [];
+  if (vm.teacher.className) parts.push(vm.teacher.className);
+  if (vm.teacher.name) parts.push(vm.teacher.name);
+  if (vm.subjectLabel) parts.push(vm.subjectLabel);
+  if (parts.length) el.textContent = parts.join(' · ');
+}
+/* 三条模式：ok=true → live；no-bridge → demo；其余 → failed（绝不用演示名单顶替） */
+function applyModel(vm){
+  VM = vm || null;
+  DATA_ERROR = (vm && vm.error) ? String(vm.error) : '';
+  if (vm && vm.ok === true) { DATA_MODE = 'live'; state.students = vmStudents(vm); applyIdentity(vm); return; }
+  if (vm && vm.reason === 'no-bridge') { DATA_MODE = 'demo'; state.students = buildStudents(); return; }
+  DATA_MODE = 'failed';
+  state.students = [];
+}
+async function v3Boot(){
+  var vm = null;
+  try { vm = await v3FetchModel(); }
+  catch (e) { vm = { ok: false, reason: 'load-failed', error: String((e && e.message) || e), students: [] }; }
+  applyModel(vm);
+  lastExpShown = {};
+  renderAll();
 }
 
 /* ============================================================
@@ -2092,7 +2275,10 @@ applyTheme(state.theme, false);
 $('sound-label').textContent = state.sound ? '开' : '关';
 bind();
 initFab();
-renderAll();
+/* 演示态（浏览器直开 / 无 preload）：首屏同步渲染，行为与改动前一致 */
+if (DATA_MODE === 'demo') renderAll();
+/* Electron：先取统一 ViewModel，再按 live / demo / failed 三条模式渲染一次 */
+else v3Boot();
 if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
   $('fx').style.display = 'none';
 }

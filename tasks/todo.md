@@ -1,5 +1,16 @@
 # 当前任务
 
+## explore/hifi-redesign-experience 分支：高保真页面重构与交互升级探索
+
+- [x] 新建独立探索分支 `explore/hifi-redesign-experience`。
+- [x] 审校分析：深入对比旧版学生大屏、教师控制台与前序 Demo，梳理排版冗余、空间呼吸感与教师操作动线。
+- [x] 组件库评估：解构 `D:\Desk\ALL Vibe\软件工程实验\_libraries\looseleaf` 的设计系统（纸张底色、墨水线条、贴纸印章）。
+- [x] 开发主方案：`design/hifi_classroom_masterpiece.html`（现代教育触屏大师版，高呼吸感、全业态保留、极致交互动效与烟花盛典引擎）。
+- [x] 开发对比方案：`design/hifi_looseleaf_edition.html`（手绘质感纸质版，基于 Looseleaf 组件库风格打造）。
+- [x] 交互动效与细节打磨：所有按钮触觉反馈、印章盖压飞字、粒子烟花、随机点名、护眼主题切换。
+- [x] 交互逻辑二次审核：防遮挡、防边界截断、层级（z-index）闭环与 Esc 收起逻辑验证。
+- [x] 自动化测试与交付报告编写（`tests/test_hifi_redesign.cjs` 通过，提供 `Open-Hifi-Redesign.cmd` 一键直达）。
+
 ## explore/ui-streamline-cards 分支：学生卡片精简与左侧档案收纳弹出
 
 - [x] 基于最新主分支创建独立探索分支 `explore/ui-streamline-cards`。
@@ -115,3 +126,38 @@
 - [ ] 用户选型后制作对应可点击预览；当前 V2 仅为静态图。
 - [ ] 用户选定方案后，另行确认正式宠物大屏实施范围。
 - [ ] 修改、验证并重新构建可供用户人工测试的便携版。
+
+## explore/ui-v3-breathing 分支：V3 高保真三页
+
+- [x] 新建分支 `explore/ui-v3-breathing`。
+- [x] 完成现有页面审校（学生大屏 demo_a/demo_b/正式版，教师台 C 版）：保留 / 去掉 / 新增三张清单。
+- [x] 写定统一契约 `design/V3_DESIGN_SPEC.md`（token、三级边框、8pt 节奏、动效表、遮挡与 z-index 合约、__v3audit 自检契约、32 人共用数据样本）。
+- [x] 并行派发 3 个子代理：学生大屏 v3 / 教师操作台 v3 / 纸感手绘变体。
+- [ ] 编写 `scripts/audit_v3_pages.js`（Electron 真实渲染：几何、遮挡、控制可达、截图、控制台报错）。
+- [ ] R6 审查三页并按证据返工（每页最多 3 次运行）。
+- [ ] 交付对比截图与使用说明（Before/After 同场景同视口）。
+- [x] 三页交付并通过独立审查（1920×1080 可见窗口几何 + elementFromPoint）。
+- [x] 两轮返工闭环：教师台行选中/批量计数；纸感页悬浮球遮挡。
+- [x] 产出 `design/V3_对比说明.md` 与 1920×1080 对比截图（screenshots_v3）。
+- [ ] 待用户确认：把这批 v3 文件提交到哪个分支（explore/ui-v3-breathing 与并行会话冲突）。
+- [ ] 待用户人工查看：画面观感 / 音效 / 真机触屏与投影。
+- [x] 纸感页：弹窗无滚动条、几何稳定（各 1 个 rect）。
+- [x] 纸感页：常规彩色烟花（峰值 52,814 采样像素、12 色相区段）+ 修循环自杀缺陷。
+- [x] 纸感页：+4 / +5 + `[−][n][+]` 自定义赋分。
+- [x] 教师台 v4：扁平大卡网格 + 右侧常驻赋分台 + 无快捷键说明；业务入口全保留。
+- [x] 独立复审：选中/撤销/自定义/⋯菜单/5 个弹窗无滚动条与几何稳定/audit pass。
+- [ ] 待人工：三页视觉观感、音效、真机触屏与投影。
+
+## feature/v3-hifi-prototypes：批次 2 数据契约（2026-11-19）
+
+- [x] 核心 `getV3ViewModel()` 统一 ViewModel（等级/经验/形态/身份/空班/失败态，只读零写库）。
+- [x] `tests/test_v3_viewmodel.js`（23/23）契约单测。
+- [x] `tests/test_v3_real_db.cjs`（12/12）真实 `sqlite_service` + 种子库副本。
+- [x] `tests/test_v3_datacontract.cjs` + `tests/v3_fixture_preload.js`（44/44）真 Electron 两页一致性验收。
+- [x] 学生大屏 / 教师台 / 门户三页只读接入，演示态逐字段等价（audit 前后零差异）。
+- [x] 顶部身份改由 VM 提供（不再写死「三年级二班 · 刘老师」）。
+- [x] 教师台 CSP 放宽 `file:` 以加载核心脚本。
+- [ ] 待用户人工验收：真实班级 88 人在大屏/教师台的真实观感、投影 3 米可读、触屏、F11。
+- [ ] 待批次 3：真实态写入口接通（`db:recordScore` / `undoScore` / `hatchPet` / `saveThresholds` / `saveStudent`）。
+- [ ] 待批次 3/4：修 `classpet_core.js:797-810` 演示名单落入真实库的既有缺陷。
+- [ ] 待批次 3 末：`main.js` 三个 `open-*-window` 切到 V3 页（批次 1 的 1.2 推迟项）。

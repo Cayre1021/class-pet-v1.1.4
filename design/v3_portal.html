@@ -592,6 +592,9 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
   var PROFILE_KEY = 'classpet.teacher.profile.v3';
   var SESSION_KEY = 'classpet.teacher.session.v3';
   var SWITCH_KEY = 'classpet.teacher.switched.v3';
+  /* 账号缓存（只读）：与另两页同一身份来源，写入者是 portal_auth.html */
+  var ACCOUNT_KEY = 'classpet_current_account';
+  var ACTIVE_KEY = 'classpet_active_account_id';
   function switchedAccount() { try { return localStorage.getItem(SWITCH_KEY) === '1'; } catch (e) { return false; } }
   function clearSwitched() { try { localStorage.removeItem(SWITCH_KEY); } catch (e) {} }
 
@@ -599,6 +602,25 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
   function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} }
   function lsDel(k) { try { window.localStorage.removeItem(k); } catch (e) {} }
+
+  /* ---------- 账号缓存：只读解析，不写入、不新建账号 ---------- */
+  function readAccountCache() {
+    var raw = lsGet(ACCOUNT_KEY);
+    if (!raw) { return null; }
+    var a;
+    try { a = JSON.parse(raw); } catch (e) { return null; }
+    if (!a || typeof a !== 'object') { return null; }
+    var acc = {
+      id: a.id ? String(a.id) : String(lsGet(ACTIVE_KEY) || ''),
+      classId: a.classId ? String(a.classId) : '',
+      teacherName: a.teacherName ? String(a.teacherName) : '',
+      className: a.className ? String(a.className) : '',
+      school: a.school ? String(a.school) : '',
+      subject: a.subject ? String(a.subject) : ''
+    };
+    if (!acc.classId && !acc.className && !acc.teacherName) { return null; }
+    return acc;
+  }
 
   function readProfile() {
     var raw = lsGet(PROFILE_KEY);
@@ -622,6 +644,15 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
   }
   function hasSession() { return lsGet(SESSION_KEY) === '1'; }
   function setSession(on) { if (on) { lsSet(SESSION_KEY, '1'); } else { lsDel(SESSION_KEY); } }
+
+  /* ---------- 统一身份：账号缓存优先 → 本机档案 → 无身份（保持原登录/注册表单） ---------- */
+  function readIdentity() {
+    var acc = readAccountCache();
+    if (acc && (acc.className || acc.teacherName)) {
+      return { 'class': acc.className, name: acc.teacherName, subject: acc.subject };
+    }
+    return readProfile();
+  }
 
   var cardHead = $('cardHead');
   var cardTitle = $('cardTitle');
@@ -803,16 +834,16 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     });
     if (!ok) { focusFirstBad(panelLogin); return; }
 
-    var profile = readProfile();
+    var identity = readIdentity();
     var wantClass = $('lg-class').value.trim();
     var wantName = $('lg-name').value.trim();
-    if (!profile) {
+    if (!identity) {
       lgFormMsg.textContent = '本机还没有教师档案，请先注册';
       markLoginBad();
       $('lg-class').focus();
       return;
     }
-    if (profile['class'] !== wantClass || profile.name !== wantName) {
+    if (identity['class'] !== wantClass || identity.name !== wantName) {
       lgFormMsg.textContent = '班级或姓名与本机档案不一致';
       markLoginBad();
       $('lg-class').focus();
@@ -820,7 +851,7 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     }
     clearSwitched();
     setSession(true);
-    showEntry(profile);
+    showEntry(identity);
   });
 
   /* ---------- 提交：注册（写档案 + 自动登录 + 预填） ---------- */
@@ -875,12 +906,12 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     $('lg-class').focus();
   });
 
-  /* ---------- 启动：有档案就预填；有会话直接进选择入口 ---------- */
+  /* ---------- 启动：有身份（账号缓存优先，其次本机档案）就预填；有会话直接进选择入口 ---------- */
   (function boot() {
-    var profile = readProfile();
-    if (profile && !switchedAccount()) { prefill(profile); }
-    if (profile && hasSession()) {
-      showEntry(profile);
+    var identity = readIdentity();
+    if (identity && !switchedAccount()) { prefill(identity); }
+    if (identity && hasSession()) {
+      showEntry(identity);
     } else {
       showAuth('login');
     }
