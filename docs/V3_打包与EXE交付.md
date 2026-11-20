@@ -85,3 +85,45 @@ release\ClassPet-Portable-1.2.0.exe
 - 代码：revert 对应提交（路由切换是单独一个提交，回滚只影响入口）；
 - 数据：打包前备份的 `classpet.sqlite.bak` 覆盖 userData 里的库；
 - 发布包：`release/` 里的旧版本产物保留，不覆盖。
+## 七、2026-11-19 实际打包记录（V3 · 1.2.0）
+
+> 本机网络到 GitHub / Electron 下载源不通，本次为**离线打包**，结果与验收如下。
+
+### 打包命令（离线变体）
+
+```bash
+cd electron-app
+# 版本号 1.1.4 → 1.2.0（已提交）
+env -u ELECTRON_RUN_AS_NODE npx.cmd electron-builder --win --x64 \
+    --config.electronDist=node_modules/electron/dist
+```
+
+- `--config.electronDist` 是本机必需的：默认流程会去下载 `electron-v33.4.11-win32-x64.zip`，本机 TLS 不通会直接失败（`Client network socket disconnected before secure TLS connection was established`）。指到已有的 `node_modules/electron/dist` 即可离线打包。
+- **不要**用 bash 的 `timeout`（Windows 上是 `TIMEOUT.EXE`），也不要在继承 `ELECTRON_RUN_AS_NODE=1` 的环境里启动打包产物（会被当普通 node 跑，报 `bad option` 退出 9）。
+
+### 产物（`electron-app/release/`，已被 .gitignore 忽略，未入库）
+
+| 产物 | 大小 |
+|---|---|
+| `ClassPet Setup 1.2.0.exe`（NSIS 安装版，含 blockmap） | 103.8 MB |
+| `ClassPet-Portable-1.2.0.exe`（便携版） | 103.6 MB |
+| `win-unpacked/ClassPet.exe`（免安装目录） | 180 MB |
+| `win-unpacked/resources/database/classpet.sqlite`（种子库） | 248 KB |
+
+旧版本产物（1.0.0 / 1.1.0 / 1.1.1）**未覆盖**。
+
+### 验收结果（2026-11-19 真跑）
+
+- [x] `win-unpacked` 内存在 `resources/database/classpet.sqlite`（248 KB）
+- [x] `app.asar` 内含 `main.js` / `preload.js` / `sqlite_service.js` / `src/classpet_core.js` / `src/v3_portal.html` / `src/v3_teacher_desk.html` / `src/v3_looseleaf_paper.html`
+- [x] 包内 `main.js` 路由已是 V3：`open-*-window` 指向 `v3_*`，默认启动页 `v3_portal.html`
+- [x] **真实启动成功**（临时 userData，未碰用户数据）：窗口标题 = `班级电子宠物 · 教师登录 / 注册`（V3 门户），日志 `[SQLiteService] 成功载入既有 SQLite 数据库文件` + `[Main] SQLite 服务初始化就绪`，无报错
+- [ ] 未验：安装版/便携版双击安装与卸载重装、卸载后用户数据保留、SmartScreen 提示、扩展屏投屏、触屏与 F11、音效听感、画面观感
+- [ ] 未验：拔网线可用（静态检查无外链、三页资源均在包内，但未做断网实测）
+
+### 本机环境限制（影响发布动作，不影响产物）
+
+- 到 `github.com` 的 HTTPS：`TLS connect error: unexpected eof`（curl 同样失败，无系统代理）；
+- `ssh.github.com:443`：`Connection closed by 198.18.0.21 port 443`；
+- `gh` 的 keyring token 已失效（`gh auth refresh -h github.com` 可修）。
+→ **推送需先恢复网络与凭据**；代码与产物已就绪，命令：`git push origin feature/v3-hifi-prototypes`。
