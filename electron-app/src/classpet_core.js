@@ -328,6 +328,15 @@ function v3StageName(stage, stages) {
     return (hit && hit.name) ? hit.name : '初始宠物蛋';
 }
 
+// 内置演示名单特征（initData 生成的那批）：只活在本页内存，绝不写进班级库
+function isDemoRosterList(list) {
+    if (!Array.isArray(list) || list.length !== 42) return false;
+    for (let i = 0; i < list.length; i++) {
+        if (!list[i] || String(list[i].id) !== 'stu_' + (i + 1)) return false;
+    }
+    return true;
+}
+
 function safeElectronAPI() {
     return (typeof window !== 'undefined' && window.electronAPI) ? window.electronAPI : null;
 }
@@ -795,7 +804,7 @@ class ClassPetStore {
                 });
 
                 // 核心安全合并机制：杜绝 SQLite 刚启动滞后导致内存中新增/导入的学生被覆盖删除
-                if (Array.isArray(this.students) && this.students.length > 0) {
+                if (Array.isArray(this.students) && this.students.length > 0 && !this.isDemoRoster) {
                     const loadedIds = new Set(loadedStudents.map(s => s.id));
                     const missingInDb = this.students.filter(s => !loadedIds.has(s.id));
                     if (missingInDb.length > 0) {
@@ -820,8 +829,9 @@ class ClassPetStore {
                 this.notify('STATE_SYNC', { students: this.students });
                 this.notify('SYNC', { students: this.students });
                 return true;
-            } else if (this.students && this.students.length > 0) {
+            } else if (this.students && this.students.length > 0 && !this.isDemoRoster) {
                 // 若 SQLite 库中暂无该班级名单，自动将现有学生种子同步写入 SQLite
+                // 演示名单除外：空班要显示真实空态，不许把 42 人样例灌进班级库
                 if (db && typeof db.importStudents === 'function') {
                     await db.importStudents(this.students, classId);
                 }
@@ -1022,6 +1032,27 @@ class ClassPetStore {
         vm.thresholds = thresholds;
         vm.stages = stages;
         vm.maxLevel = Math.max(0, thresholds.length - 1);
+        vm.hatchThreshold = Number(thresholds[1]) || 15;
+
+        // 行为规则：以库为准，页面不再写死六条
+        const ruleRows = Array.isArray(state.behaviorRules) ? state.behaviorRules : [];
+        vm.rules = ruleRows.map(r => ({
+            id: String(r.id || ''),
+            name: r.name || '',
+            points: Number(r.points) || 0,
+            type: r.type === 'negative' ? 'negative' : 'positive'
+        }));
+        if (!vm.rules.length) {
+            vm.rules = (this.behaviorRules || []).map(r => ({
+                id: String(r.id || ''), name: r.name || '', points: Number(r.points) || 0,
+                type: r.type === 'negative' ? 'negative' : 'positive'
+            }));
+        }
+
+        // 最近一笔可撤销的操作（D11=A：只许撤最后一笔）。同一毫秒内多笔时用 rowid 兜底排序，
+        // 必须与 sqlite_service.undoOperation 的判定一致，否则"最后一笔"会认错。
+        vm.lastOperation = await this._v3LastOperation(identity.classId, state);
+
 
         const petsByStudent = (state.petsByStudent && typeof state.petsByStudent === 'object') ? state.petsByStudent : {};
         const subjectCode = identity.subject;
@@ -1030,6 +1061,11 @@ class ClassPetStore {
             const petsBySubject = {};
             Object.keys(V3_SUBJECTS).forEach(code => {
                 petsBySubject[code] = this._v3PetView(rawPets[code], code, stages);
+            });
+            Object.keys(V3_SUBJECTS).forEach(code => {
+                const u = this._v3UnlockState(petsBySubject, code, vm.maxLevel);
+                petsBySubject[code].unlocked = u.allowed;
+                petsBySubject[code].lockReason = u.reason;
             });
 
             // D7=A：卡片显示固定跟随 display_pet_id，切授课科目不批量换宠
@@ -1064,7 +1100,225 @@ class ClassPetStore {
         return vm;
     }
 
+    // 本班最后一笔未撤销的赋分（与 sqlite_service.undoOperation 同一排序规则）
+    async _v3LastOperation(classId, state) {
+        const db = safeElectronDB();
+        if (db && typeof db.query === 'function') {
+            try {
+                const rows = await db.query(
+                    "SELECT id, created_at, points, action_name FROM score_operations WHERE class_id = ? AND undone_at IS NULL ORDER BY created_at DESC, rowid DESC LIMIT 1",
+                    [classId]
+                );
+                if (Array.isArray(rows) && rows.length) {
+                    return {
+                        id: String(rows[0].id),
+                        createdAt: Number(rows[0].created_at) || 0,
+                        points: Number(rows[0].points) || 0,
+                        actionName: rows[0].action_name || ''
+                    };
+                }
+                return null;
+            } catch (e) { /* 退化到 loadAllState 的快照 */ }
+        }
+        const ops = (state && Array.isArray(state.recentOperations) ? state.recentOperations : [])
+            .filter(o => o && !o.undone_at)
+            .sort((a, b) => (Number(b.created_at) || 0) - (Number(a.created_at) || 0));
+        return ops.length ? {
+            id: String(ops[0].id),
+            createdAt: Number(ops[0].created_at) || 0,
+            points: Number(ops[0].points) || 0,
+            actionName: ops[0].action_name || ''
+        } : null;
+    }
+
+    // 学科解锁判定（用 ViewModel 里的宠物视图，DB 真相）
+    _v3UnlockState(pets, subjectCode, maxLevel) {
+        const key = normalizeSubjectCode(subjectCode);
+        if (key === 'chinese') return { allowed: true, reason: null };
+        const cur = pets[key];
+        if (cur && cur.isHatched) return { allowed: true, reason: null };
+        const cap = Number(maxLevel) || 20;
+        const cn = pets.chinese;
+        const cnMax = !!(cn && cn.isHatched && Number(cn.level) >= cap);
+        if (!cnMax) return { allowed: false, reason: '需【语文】学科宠物升至 Lv.' + cap + ' 满级方可唤醒' };
+        const otherKey = key === 'math' ? 'english' : 'math';
+        const other = pets[otherKey];
+        if (!other || !other.isHatched) return { allowed: true, reason: null };
+        if (Number(other.level) >= cap) return { allowed: true, reason: null };
+        return { allowed: false, reason: '需【语文】与【' + (otherKey === 'math' ? '数学' : '英语') + '】均升至 Lv.' + cap + ' 满级方可唤醒' };
+    }
+
+    // 赋分资格判定（与 canScoreStudentPet 同规则，但读 ViewModel/DB）
+    _v3GuardScore(student, subjectCode, isAbsent) {
+        const code = normalizeSubjectCode(subjectCode);
+        const subj = V3_SUBJECTS[code];
+        if (!student) return { allowed: false, reason: 'NOT_FOUND', message: '学生不存在' };
+        if (student.isArchived) return { allowed: false, reason: 'ARCHIVED', message: '学生已归档，不可赋分' };
+        if (isAbsent) return { allowed: false, reason: 'ABSENT', message: '学生今日请假，不可赋分' };
+        const pet = student.petsBySubject ? student.petsBySubject[code] : null;
+        if (code !== 'chinese') {
+            if (pet && pet.unlocked === false) {
+                return { allowed: false, reason: 'LOCKED', message: '【' + subj.label + '】尚未解锁：' + (pet.lockReason || '需前置学科满级') };
+            }
+            if (!pet || !pet.isHatched) {
+                return { allowed: false, reason: 'UNHATCHED', message: '【' + subj.label + '】尚未破壳认领，请先破壳' };
+            }
+        }
+        return { allowed: true, reason: 'OK', message: '', pet: pet };
+    }
+
+    /**
+     * 批次 3.1 赋分：全部等数据库确认（D18=A）。成功只以 recordScore 的 success 为准，不改本地缓存。
+     * 返回 { ok, operationId, entries, delta, subjectCode, skipped:[{studentId,reason,message}] }
+     */
+    async v3Score({ studentIds, delta, reason, ruleId = null, subjectCode = null, absentIds = [] } = {}) {
+        const db = safeElectronDB();
+        if (!db || typeof db.recordScore !== 'function') return { ok: false, reason: 'no-bridge', skipped: [] };
+        const ids = (Array.isArray(studentIds) ? studentIds : []).map(id => String(id)).filter(Boolean);
+        if (!ids.length) return { ok: false, reason: 'no-students', skipped: [] };
+        const d = Math.round(Number(delta));
+        if (!Number.isFinite(d) || d === 0) return { ok: false, reason: 'bad-delta', skipped: [] };
+
+        const vm = await this.getV3ViewModel();
+        if (!vm.ok) return { ok: false, reason: vm.reason, error: vm.error, skipped: [] };
+        const subject = normalizeSubjectCode(subjectCode || vm.subject);
+        const absent = new Set((Array.isArray(absentIds) ? absentIds : []).map(id => String(id)));
+
+        const allowed = [], skipped = [];
+        ids.forEach(id => {
+            const s = vm.students.filter(x => x.id === id)[0];
+            const g = this._v3GuardScore(s, subject, absent.has(id));
+            if (g.allowed) allowed.push(id);
+            else skipped.push({ studentId: id, name: s ? s.name : '', reason: g.reason, message: g.message });
+        });
+        if (!allowed.length) return { ok: false, reason: 'no-eligible', skipped: skipped };
+
+        let res;
+        try {
+            res = await db.recordScore({
+                classId: vm.classId,
+                teacherId: vm.teacherId || 't_local',
+                studentIds: allowed,
+                delta: d,
+                reason: reason || '',
+                ruleId: ruleId,
+                subjectCode: subject
+            });
+        } catch (e) {
+            return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200), skipped: skipped };
+        }
+        if (!res || res.success !== true) {
+            return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认', skipped: skipped };
+        }
+        return { ok: true, operationId: res.operationId, entries: res.entries || [], delta: d, subjectCode: subject, skipped: skipped };
+    }
+
+    // 批次 3.2 撤销：只能撤本堂课最后一笔（D11=A），且以数据库确认结果为准
+    async v3UndoLast({ operationId = null } = {}) {
+        const db = safeElectronDB();
+        if (!db || typeof db.undoScore !== 'function') return { ok: false, reason: 'no-bridge' };
+        const vm = await this.getV3ViewModel();
+        if (!vm.ok) return { ok: false, reason: vm.reason, error: vm.error };
+        const last = vm.lastOperation;
+        if (!last) return { ok: false, reason: 'no-operation', message: '本堂课还没有可撤销的赋分' };
+        if (operationId && String(operationId) !== String(last.id)) {
+            return { ok: false, reason: 'not-last', message: '只能撤销本堂课最后一笔赋分' };
+        }
+        let res;
+        try {
+            res = await db.undoScore(last.id);
+        } catch (e) {
+            return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200) };
+        }
+        if (!res || res.success !== true) {
+            return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认' };
+        }
+        return { ok: true, operationId: last.id, revertedCount: res.revertedCount || 0 };
+    }
+
+    // 批次 3.3 破壳：门槛（学生 / 未破壳 / 经验 / 学科解锁 / 缺勤）全过才写库
+    async v3Hatch({ studentId, subjectCode = null, speciesCode = 'cat', nickname = '', isAbsent = false } = {}) {
+        const db = safeElectronDB();
+        if (!db || typeof db.hatchPet !== 'function') return { ok: false, reason: 'no-bridge' };
+        const vm = await this.getV3ViewModel();
+        if (!vm.ok) return { ok: false, reason: vm.reason, error: vm.error };
+        const s = vm.students.filter(x => x.id === String(studentId))[0];
+        if (!s) return { ok: false, reason: 'not-found', message: '学生不存在' };
+        if (isAbsent || s.isAbsent) return { ok: false, reason: 'absent', message: '学生今日请假，不可破壳' };
+        const subject = normalizeSubjectCode(subjectCode || vm.subject);
+        const pet = s.petsBySubject[subject];
+        if (pet && pet.isHatched) return { ok: false, reason: 'already-hatched', message: '该学科宠物已经破壳认领' };
+        if (pet && pet.unlocked === false) {
+            return { ok: false, reason: 'locked', message: pet.lockReason || '该学科尚未解锁' };
+        }
+        const need = Number(vm.hatchThreshold) || 15;
+        const cur = pet ? Number(pet.exp) || 0 : 0;
+        if (cur < need) {
+            return { ok: false, reason: 'exp-insufficient', message: '破壳需要 ' + need + ' EXP（当前 ' + cur + '）', need: need, current: cur };
+        }
+        let res;
+        try {
+            res = await db.hatchPet({ classId: vm.classId, studentId: s.id, subjectCode: subject, speciesCode: speciesCode, nickname: nickname });
+        } catch (e) {
+            return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200) };
+        }
+        if (!res || res.success !== true) {
+            return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认' };
+        }
+        return { ok: true, studentId: s.id, subjectCode: subject, speciesCode: speciesCode };
+    }
+
+    // 批次 3.5 阈值保存：21 级 + 6 阶段对象一起写库
+    async v3SaveThresholds({ thresholds, stages } = {}) {
+        const db = safeElectronDB();
+        if (!db || typeof db.saveThresholds !== 'function') return { ok: false, reason: 'no-bridge' };
+        if (!Array.isArray(thresholds) || thresholds.length !== 21) return { ok: false, reason: 'bad-thresholds', message: '经验阈值必须是 0~20 级共 21 个数值' };
+        const nums = thresholds.map(Number);
+        if (nums.some(n => !Number.isFinite(n) || n < 0)) return { ok: false, reason: 'bad-thresholds', message: '经验阈值必须是非负数字' };
+        for (let i = 1; i < nums.length; i++) {
+            if (nums[i] < nums[i - 1]) return { ok: false, reason: 'bad-thresholds', message: '第 ' + i + ' 级阈值小于上一级，阈值必须单调不减' };
+        }
+        const stageList = Array.isArray(stages) ? stages : STAGE_MIN_LEVELS;
+        if (stageList.length !== 6) return { ok: false, reason: 'bad-stages', message: '形态阶梯必须是 6 段' };
+        const vm = await this.getV3ViewModel();
+        const classId = vm.classId;
+        let res;
+        try {
+            res = await db.saveThresholds(nums, stageList.map(st => ({ stage: Number(st.stage), minLevel: Number(st.minLevel), code: st.code || ('form' + st.stage) })), classId);
+        } catch (e) {
+            return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200) };
+        }
+        if (!res || res.success !== true) return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认' };
+        return { ok: true, classId: classId, thresholds: nums };
+    }
+
+    // 批次 3.4 自定义规则保存
+    async v3SaveRules({ rules } = {}) {
+        const db = safeElectronDB();
+        if (!db || typeof db.saveBehaviorRules !== 'function') return { ok: false, reason: 'no-bridge' };
+        const list = (Array.isArray(rules) ? rules : [])
+            .filter(r => r && String(r.name || '').trim())
+            .map((r, i) => ({
+                id: r.id || ('rule_' + (i + 1)),
+                name: String(r.name).trim(),
+                points: Math.round(Number(r.points) || 0),
+                type: r.type === 'negative' ? 'negative' : 'positive',
+                sortOrder: i + 1
+            }));
+        if (!list.length) return { ok: false, reason: 'bad-rules', message: '至少需要一条有效规则' };
+        const vm = await this.getV3ViewModel();
+        let res;
+        try {
+            res = await db.saveBehaviorRules(list, vm.classId);
+        } catch (e) {
+            return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200) };
+        }
+        if (!res || res.success !== true) return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认' };
+        return { ok: true, rules: list };
+    }
+
     initData() {
+        this.isDemoRoster = false;
         const storageKey = this.getStorageKey();
         let cached = localStorage.getItem(storageKey);
         
@@ -1076,6 +1330,7 @@ class ClassPetStore {
         if (cached !== null) {
             try {
                 this.students = JSON.parse(cached);
+                this.isDemoRoster = isDemoRosterList(this.students);
                 // 兼容性自动回填与迁移字段
                 let needResave = false;
                 const spKeys = Object.keys(PET_SPECIES_CATALOG);
@@ -1252,6 +1507,7 @@ class ClassPetStore {
             };
         });
 
+        this.isDemoRoster = true;
         this.save();
     }
 

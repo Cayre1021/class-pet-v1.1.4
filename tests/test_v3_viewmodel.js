@@ -88,8 +88,10 @@ async function runTests() {
 
     // 2. 读库：等级由 exp + 阈值推导，形态由 STAGE_MIN_LEVELS 取名
     installBridge(fixture());
+    writes = 0;
     store = new ClassPetStore();
     await new Promise(r => setTimeout(r, 0));   // 等构造函数里并发的 loadFromSQLite 落定
+    assert(writes === 0, '演示名单不会被写进班级库（构造期 saveStudent/importStudents 调用次数=0）', writes);
     calls = 0; writes = 0;
     vm = await store.getV3ViewModel();
     assert(vm.ok === true && vm.reason === 'db', '有桥时 ok=true / reason=db', vm.reason);

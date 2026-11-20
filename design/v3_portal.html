@@ -906,6 +906,20 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     $('lg-class').focus();
   });
 
+  /* ---------- 1.4 入口互跳走 electronAPI（单窗口原地跳转）；浏览器直开时降级为 href ---------- */
+  (function bindGates(){
+    var gates = document.querySelectorAll('.gate');
+    Array.prototype.forEach.call(gates, function(g){
+      g.addEventListener('click', function(e){
+        var api = window.electronAPI;
+        if (!api) return;
+        var isDisplay = /\.?\/?v3_looseleaf_paper\.html$/.test(g.getAttribute('href') || '');
+        var fn = isDisplay ? api.openDisplayWindow : api.openTeacherWindow;
+        if (typeof fn === 'function') { e.preventDefault(); fn(); }
+      });
+    });
+  })();
+
   /* ---------- 启动：有身份（账号缓存优先，其次本机档案）就预填；有会话直接进选择入口 ---------- */
   (function boot() {
     var identity = readIdentity();

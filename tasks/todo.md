@@ -161,3 +161,17 @@
 - [ ] 待批次 3：真实态写入口接通（`db:recordScore` / `undoScore` / `hatchPet` / `saveThresholds` / `saveStudent`）。
 - [ ] 待批次 3/4：修 `classpet_core.js:797-810` 演示名单落入真实库的既有缺陷。
 - [ ] 待批次 3 末：`main.js` 三个 `open-*-window` 切到 V3 页（批次 1 的 1.2 推迟项）。
+
+## feature/v3-hifi-prototypes：批次 3 写操作（2026-11-19）
+
+- [x] 服务层：撤销只许最后一笔（含同毫秒排序修正）、破壳四道门槛、学科链式解锁 `checkSubjectUnlock`。
+- [x] 核心：修「演示名单写进真实库」缺陷；VM 扩展 rules/lastOperation/hatchThreshold/unlock；五个 `v3*` 写库方法。
+- [x] 学生大屏：赋分 / 破壳 / 全班表扬 / 抽点加分 全部走写库，只有库确认才成功反馈。
+- [x] 教师台：赋分 / 批量 / 撤销 / 破壳 / 规则按钮读库 / 自定义规则保存 / 阈值保存 全部走写库。
+- [x] `tests/test_v3_writes.cjs` 31/31、`tests/test_v3_write_e2e.cjs` 19/19（真 preload+IPC+真服务+临时库）。
+- [x] `main.js` 三个 IPC 路由切到 V3；学生大屏「教师台」与门户入口卡改走 `electronAPI`。
+- [x] 回归：5 个可跑脚本全绿；`audit_all` 与批次 2 基线零差异；`probe_src_copy` 三页 0 破图 0 报错。
+- [ ] 待负责人确认：应用默认启动页是否切到 `v3_portal.html`（入口从账号+口令换成离线档案）。
+- [ ] 待负责人确认：学生大屏是否要新增「撤销」入口（本页原本没有，未擅自加）。
+- [ ] 待批次 4：新增/编辑学生、CSV/JSON 导入导出、台账/考勤（教师台这些入口在真实态仍是明确只读提示）。
+- [ ] 待人工：真机投影/触屏/音效；真实数据态画面观感（本会话无图像能力，不声称视觉通过）。

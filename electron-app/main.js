@@ -67,15 +67,15 @@ function navigateMainWindow(htmlRelativePath, title) {
 
 // 统一 IPC 路由：单窗口应用内原地跳转
 ipcMain.on('open-display-window', () => {
-    navigateMainWindow('display_bigscreen_touch_pro.html', 'Class Pet - 班级电子宠物管理系统 (学生大屏)');
+    navigateMainWindow('v3_looseleaf_paper.html', 'Class Pet - 班级电子宠物管理系统 (学生大屏)');
 });
 
 ipcMain.on('open-teacher-window', () => {
-    navigateMainWindow('teacher_panel_touch_pro.html', 'Class Pet - 班级电子宠物管理系统 (教师控制台)');
+    navigateMainWindow('v3_teacher_desk.html', 'Class Pet - 班级电子宠物管理系统 (教师控制台)');
 });
 
 ipcMain.on('open-portal-window', () => {
-    navigateMainWindow('portal_auth.html', 'Class Pet - 班级电子宠物管理系统 (主控制台)');
+    navigateMainWindow('v3_portal.html', 'Class Pet - 班级电子宠物管理系统 (主控制台)');
 });
 
 // 全屏切换控制：直接控制唯一的 mainWindow

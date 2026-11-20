@@ -430,6 +430,19 @@ class SQLiteService {
             const op = opRows[0];
             if (op.undone_at) return { success: false, error: '该记录此前已被撤销' };
 
+            // D11=A：只允许撤销本班最后一笔未撤销的操作，避免覆盖后续流水
+            const opClassId = op.class_id || (this.query("SELECT class_id FROM score_entries WHERE operation_id = ? LIMIT 1", [operationId])[0] || {}).class_id || null;
+            if (opClassId) {
+                const latestRows = this.query(
+                    "SELECT id FROM score_operations WHERE class_id = ? AND undone_at IS NULL ORDER BY created_at DESC, rowid DESC LIMIT 1",
+                    [opClassId]
+                );
+                if (!latestRows.length) return { success: false, error: 'NO_UNDOABLE:本班没有可撤销的赋分记录' };
+                if (String(latestRows[0].id) !== String(operationId)) {
+                    return { success: false, error: 'NOT_LAST:只能撤销本堂课最后一笔赋分' };
+                }
+            }
+
             const entries = this.query("SELECT * FROM score_entries WHERE operation_id = ?", [operationId]);
             const now = Date.now();
 
@@ -484,6 +497,30 @@ class SQLiteService {
         return this.query(sql, [studentId, realId]);
     }
 
+    // 学科链式解锁（与 classpet_core.isSubjectUnlocked 同一规则，用库里的宠物行判定）
+    checkSubjectUnlock(studentId, subjectCode, classId = 'c_class02_01') {
+        const key = subjectCode === 'math' ? 'math' : (subjectCode === 'english' ? 'english' : 'chinese');
+        const rows = this.query("SELECT * FROM pets WHERE class_id = ? AND student_id = ?", [classId, studentId]);
+        const byKey = {};
+        rows.forEach(r => {
+            const k = r.subject_id === 'subj_math' ? 'math' : (r.subject_id === 'subj_english' ? 'english' : 'chinese');
+            const prev = byKey[k];
+            if (!prev || (Number(r.exp) || 0) > (Number(prev.exp) || 0)) byKey[k] = r;
+        });
+        const hatched = r => !!(r && Number(r.visual_stage) >= 1 && String(r.species_code || 'egg') !== 'egg');
+        if (key === 'chinese') return { allowed: true, reason: null };
+        if (hatched(byKey[key])) return { allowed: true, reason: null };
+        const maxLevel = Number((this.query("SELECT max_level FROM classes WHERE id = ? LIMIT 1", [classId])[0] || {}).max_level) || 20;
+        const cn = byKey.chinese;
+        const cnMax = hatched(cn) && (Number(cn.level) || 0) >= maxLevel;
+        if (!cnMax) return { allowed: false, reason: '需【语文】学科宠物升至 Lv.' + maxLevel + ' 满级方可唤醒' };
+        const otherKey = key === 'math' ? 'english' : 'math';
+        if (!hatched(byKey[otherKey])) return { allowed: true, reason: null };
+        const otherMax = (Number(byKey[otherKey].level) || 0) >= maxLevel;
+        if (otherMax) return { allowed: true, reason: null };
+        return { allowed: false, reason: '需【语文】与【' + (otherKey === 'math' ? '数学' : '英语') + '】均升至 Lv.' + maxLevel + ' 满级方可唤醒' };
+    }
+
     // 核心业务：破壳认领或自选学科宠物形态
     hatchStudentPet({ classId = 'c_class02_01', studentId, subjectCode = 'chinese', speciesCode = 'cat', nickname = '' }) {
         const now = Date.now();
@@ -492,6 +529,24 @@ class SQLiteService {
         const petId = 'pet_' + realId + '_' + subjectCode.charAt(0);
 
         const existing = this.query("SELECT * FROM pets WHERE student_id = ? AND subject_id = ?", [realId, subId]);
+
+        // 批次 3.3 破壳门槛：学生存在 → 未破壳 → 经验达标 → 学科链式解锁
+        const stuRows = this.query("SELECT * FROM students WHERE id = ? AND class_id = ? LIMIT 1", [realId, classId]);
+        if (stuRows.length === 0) return { success: false, error: 'NO_STUDENT:学生不存在或不属于该班级' };
+        if (existing.length > 0) {
+            const ex = existing[0];
+            const already = (Number(ex.visual_stage) || 0) >= 1 && String(ex.species_code || 'egg') !== 'egg';
+            if (already) return { success: false, error: 'ALREADY_HATCHED:该学科宠物已经破壳认领' };
+        }
+        const threshRow = this.query("SELECT min_exp FROM class_level_thresholds WHERE class_id = ? AND level = 1", [classId])[0];
+        const hatchNeed = threshRow ? Number(threshRow.min_exp) : 15;
+        const currentExp = existing.length > 0 ? (Number(existing[0].exp) || 0) : 0;
+        if (currentExp < hatchNeed) {
+            return { success: false, error: 'EXP_NOT_ENOUGH:破壳需要 ' + hatchNeed + ' EXP，当前 ' + currentExp };
+        }
+        const unlock = this.checkSubjectUnlock(realId, subjectCode, classId);
+        if (!unlock.allowed) return { success: false, error: 'SUBJECT_LOCKED:' + unlock.reason };
+
         let targetPetId = petId;
         if (existing.length > 0) {
             targetPetId = existing[0].id;

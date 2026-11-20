@@ -1211,6 +1211,74 @@ html.theme-fade *::after{
   function v3ReadonlyNotice(what) {
     toast('正式数据来自班级库（本次只读）：' + what + '将在后续批次接入写入', 'warn');
   }
+  /* 批次 3 写库链路（D18=A：全部等数据库确认才返回成功）。演示态一律不经过这里 */
+  var SUBJECT_CODE = { '语文': 'chinese', '数学': 'math', '英语': 'english' };
+  function subjectCodeFor(label) { return SUBJECT_CODE[label] || 'chinese'; }
+  var v3Busy = false;
+  async function v3Core(methods) {
+    var core = await v3LoadCore();
+    if (!core) return null;
+    for (var i = 0; i < methods.length; i++) if (typeof core[methods[i]] !== 'function') return null;
+    return core;
+  }
+  function v3NoBridge(what) { toast(what + '失败：班级库写入通道不可用（no-bridge）', 'warn'); return false; }
+  /* 失败文案只播报上游给的原因（message / error / reason），页面不自行推断 */
+  function v3FailText(res, action) {
+    if (!res) return action + '失败：班级库未确认';
+    if (res.reason === 'no-bridge') return action + '失败：班级库写入通道不可用（no-bridge）';
+    return action + '失败：' + (res.message || res.error || res.reason || '班级库未确认');
+  }
+  function v3SkippedText(list) {
+    var parts = [];
+    (list || []).forEach(function (sk) {
+      var m = sk && (sk.message || sk.reason);
+      if (m && parts.indexOf(m) < 0) parts.push(m);
+    });
+    return parts.join('；');
+  }
+  function v3ScoreFailText(res) {
+    if (!res) return '赋分失败：班级库未确认';
+    var skipped = v3SkippedText(res.skipped);
+    if (res.reason === 'no-eligible') return '无人可赋分' + (skipped ? '：' + skipped : '');
+    if (res.reason === 'no-students') return '赋分失败：所选学生缺少班级库标识' + (skipped ? '；' + skipped : '');
+    if (res.reason === 'bad-delta') return '赋分失败：分值必须是非零整数';
+    var text = v3FailText(res, '赋分');
+    return skipped ? text + '；' + skipped : text;
+  }
+  function v3ReasonText(res, fallback) {
+    if (!res) return fallback;
+    return res.message || res.error || res.reason || fallback;
+  }
+  /* 写成功后重新拉取 ViewModel 并重绘：保持当前选中集合与滚动位置 */
+  async function v3Refresh() {
+    var y = window.scrollY || 0;
+    var sc = $('#score-scroll'), dock = $('#dock-scroll');
+    var scTop = sc ? sc.scrollTop : 0, dockTop = dock ? dock.scrollTop : 0;
+    var keepSubject = state.subject;
+    /* 选中集合按真实库 id 记住，重绘后按 id 重新映射到新的行号，避免顺序变化后选错人 */
+    var keepDbIds = Array.from(state.selected).map(byId).filter(Boolean).map(function (s) { return s.dbId; }).filter(Boolean);
+    var vm;
+    try { vm = await v3FetchModel(); }
+    catch (e) { vm = { ok: false, reason: 'load-failed', error: String((e && e.message) || e) }; }
+    if (!vm || vm.ok !== true) {
+      toast('重新读取班级库失败：' + v3ReasonText(vm, '未知原因') + '（界面数值保持不变）', 'warn');
+      return false;
+    }
+    applyViewModel(vm);
+    if (SUBJECTS.indexOf(keepSubject) >= 0) state.subject = keepSubject;
+    state.selected = new Set(keepDbIds.map(function (dbId) {
+      var hit = state.students.filter(function (s) { return s.dbId === dbId; })[0];
+      return hit ? hit.id : null;
+    }).filter(function (id) { return id !== null; }));
+    syncSubjectUI();
+    renderScoreRules();
+    renderExtraRules();
+    renderLanes(); renderDock(); renderBatch();
+    if (sc) sc.scrollTop = scTop;
+    if (dock) dock.scrollTop = dockTop;
+    window.scrollTo(0, y);
+    return true;
+  }
   /* 演示态（no-bridge）专用的本地样本；真实数据态一律由 buildRealStudents 从 VM 构造 */
   function buildStudents() {
     state.students = ROSTER.map(function (r, i) {
@@ -1677,7 +1745,10 @@ html.theme-fade *::after{
     var n = state.selected.size;
     $('#sel-count').textContent = String(n);
     $('#sel-clear').disabled = n === 0;
-    $('#btn-undo').disabled = !state.history.some(function (op) { return !op.undone; });
+    /* 真实数据态：撤销可用性只由班级库的「最后一笔」决定（D11=A），不看本地台账 */
+    $('#btn-undo').disabled = isRealMode()
+      ? !(state.vm && state.vm.lastOperation)
+      : !state.history.some(function (op) { return !op.undone; });
     $('#dock-subject').textContent = state.subject + '课';
     renderChips();
     var op = state.lastOp;
@@ -1721,8 +1792,26 @@ html.theme-fade *::after{
       box.scrollBy({ top: Math.round(box.clientHeight * 0.82), behavior: 'smooth' });
     });
   })();
+  /* 3.4 真实数据态：赋分按钮全部由数据库行为规则渲染（positive 在前 negative 在后，保持库内顺序） */
+  function renderScoreRules() {
+    var grid = $('#score-grid');
+    if (!grid || !isRealMode()) return;   /* 演示态保留页面写死的六条按钮，一字不动 */
+    var rules = (state.vm && state.vm.rules) ? state.vm.rules : [];
+    if (!rules.length) { grid.innerHTML = ''; return; }   /* 库内没有规则时不伪造演示按钮 */
+    var pos = rules.filter(function (r) { return r.type !== 'negative'; });
+    var neg = rules.filter(function (r) { return r.type === 'negative'; });
+    grid.innerHTML = pos.concat(neg).map(function (r) {
+      var v = Number(r.points) || 0;
+      var isNeg = v < 0 || r.type === 'negative';
+      return '<button class="score-btn ' + (isNeg ? 'neg' : 'pos') + '" data-score="' + v + '" data-rule="' + esc(r.name) + '" data-rule-id="' + esc(r.id || '') + '">' +
+        '<span>' + esc(r.name) + '</span><span class="val">' + (v > 0 ? '+' : '') + String(v).replace('-', '−') + '</span></button>';
+    }).join('');
+    updateScoreMore();
+  }
   function renderExtraRules() {
     var box = $('#extra-rules');
+    if (!box) return;
+    if (isRealMode()) { box.innerHTML = ''; return; }   /* 真实数据态规则全部来自 vm.rules，避免重复按钮 */
     if (!state.extraRules.length) { box.innerHTML = ''; return; }
     box.innerHTML = state.extraRules.map(function (r, i) {
       var neg = r.value < 0;
@@ -1738,7 +1827,7 @@ html.theme-fade *::after{
       toast('请先勾选学生，再点击快捷赋分', 'warn');
       return;
     }
-    if (isRealMode()) { v3ReadonlyNotice('赋分'); return; }   /* 真实数据态：任何状态变更之前返回，绝不伪造台账/音效/浮字 */
+    if (isRealMode()) { applyScoreReal(value, rule, opts); return; }   /* 真实数据态：等班级库确认（D18=A） */
     var applied = [], skipped = [], levelUps = [], snaps = [];
     ids.forEach(function (id) {
       var s = byId(id);
@@ -1824,7 +1913,84 @@ html.theme-fade *::after{
     });
   }
 
+  /* 3.1 真实数据态赋分：studentIds 走真实库 id，只有 res.ok === true 才算成功 */
+  async function applyScoreReal(value, rule, opts) {
+    opts = opts || {};
+    if (v3Busy) return;
+    var picked = Array.from(state.selected).map(byId).filter(Boolean);
+    var ids = picked.map(function (s) { return s.dbId; }).filter(Boolean);
+    if (!ids.length) { toast('所选学生缺少班级库标识，无法写入', 'warn'); return; }
+    var absentIds = picked.filter(function (s) { return s.isAbsent; }).map(function (s) { return s.dbId; });
+    var ruleId = opts.ruleId || '';
+    if (!ruleId) {
+      var named = ((state.vm && state.vm.rules) || []).filter(function (r) { return r.name === rule; })[0];
+      ruleId = named ? named.id : '';
+    }
+    var core = await v3Core(['v3Score']);
+    if (!core) { v3NoBridge('赋分'); return; }
+    var res;
+    v3Busy = true;
+    try {
+      res = await core.v3Score({
+        studentIds: ids,
+        delta: value,
+        reason: rule,
+        ruleId: ruleId || null,
+        subjectCode: subjectCodeFor(state.subject),
+        absentIds: absentIds
+      });
+    } catch (e) {
+      res = { ok: false, reason: 'db-failed', error: String((e && e.message) || e) };
+    }
+    v3Busy = false;
+    if (!res || res.ok !== true) { toast(v3ScoreFailText(res), 'warn'); return; }   /* 失败不动任何本地数值 */
+
+    var skippedIds = (res.skipped || []).map(function (sk) { return String(sk.studentId); });
+    var applied = picked.filter(function (s) { return skippedIds.indexOf(s.dbId) < 0; });
+    var op = {
+      id: String(res.operationId || ('db' + (state.seq++))),
+      time: nowTime(),
+      ids: applied.map(function (s) { return s.id; }),
+      names: applied.map(function (s) { return s.name; }),
+      rule: rule,
+      value: value,
+      subject: state.subject,
+      snaps: [],
+      undone: false,
+      real: true
+    };
+    state.history.push(op);   /* 台账只记数据库确认过的操作 */
+    state.lastOp = op;
+
+    if (opts.event && opts.event.currentTarget) {
+      var r0 = opts.event.currentTarget.getBoundingClientRect();
+      spawnFloat(r0.left + r0.width / 2, r0.top + 8, (value > 0 ? '+' : '') + value, value < 0);
+      FX.burstAt(r0.left + r0.width / 2, r0.top + 10);
+    }
+    playChime(value < 0 ? 'neg' : 'stamp');
+    var refreshed = await v3Refresh();
+    if (refreshed) {
+      var skippedText = v3SkippedText(res.skipped);
+      toast(applied.length + ' 人 · ' + rule + ' ' + (value > 0 ? '+' : '') + value + ' · ' + state.subject +
+        (skippedText ? '，' + (res.skipped || []).length + ' 人跳过：' + skippedText : '') + '（班级库已确认）');
+    }
+    applied.forEach(function (s) {
+      var row = $('.stu-row[data-stu="' + s.id + '"]');
+      if (!row) return;
+      if (!reducedMotion()) {
+        row.classList.add('pulse');
+        setTimeout(function () { row.classList.remove('pulse'); }, 620);
+      }
+      var bar = row.querySelector('.stu-exp');
+      if (bar) {
+        bar.classList.add('shimmer');
+        setTimeout(function () { bar.classList.remove('shimmer'); }, 720);
+      }
+    });
+  }
+
   function undoLast() {
+    if (isRealMode()) { undoLastReal(''); return; }
     var op = null;
     for (var i = state.history.length - 1; i >= 0; i--) {
       if (!state.history[i].undone) { op = state.history[i]; break; }
@@ -1849,6 +2015,32 @@ html.theme-fade *::after{
     renderLanes(); renderDock(); renderBatch();
     playChime('undo');
     toast('已撤销：' + op.ids.length + ' 人 · ' + op.rule + ' ' + (op.value > 0 ? '+' : '') + op.value);
+  }
+
+  /* 3.2 真实数据态撤销：只撤班级库里的最后一笔（D11=A），可用性由 vm.lastOperation 决定 */
+  async function undoLastReal(operationId) {
+    if (v3Busy) return false;
+    var last = state.vm && state.vm.lastOperation;
+    if (!last) { toast('本堂课还没有可撤销的赋分', 'warn'); return false; }
+    if (operationId && String(operationId) !== String(last.id)) {
+      toast('只能撤销本堂课最后一笔赋分', 'warn');
+      return false;
+    }
+    var core = await v3Core(['v3UndoLast']);
+    if (!core) { v3NoBridge('撤销'); return false; }
+    var res;
+    v3Busy = true;
+    try { res = await core.v3UndoLast(operationId ? { operationId: String(operationId) } : {}); }
+    catch (e) { res = { ok: false, reason: 'db-failed', error: String((e && e.message) || e) }; }
+    v3Busy = false;
+    if (!res || res.ok !== true) { toast(v3FailText(res, '撤销'), 'warn'); return false; }
+    for (var i = state.history.length - 1; i >= 0; i--) {
+      if (state.history[i].id === String(res.operationId)) { state.history[i].undone = true; break; }
+    }
+    var refreshed = await v3Refresh();
+    playChime('undo');
+    if (refreshed) toast('已撤销上一笔（' + (res.revertedCount || 0) + ' 条记录已回退，班级库已确认）');
+    return true;
   }
 
 
@@ -2032,6 +2224,10 @@ html.theme-fade *::after{
           var opId = b.getAttribute('data-undo-op');
           var op = state.history.filter(function (o) { return o.id === opId; })[0];
           if (!op || op.undone) return;
+          if (isRealMode()) {   /* 真实数据态：以班级库确认为准，只撤最后一笔 */
+            undoLastReal(opId).then(function (ok) { if (ok) table.innerHTML = renderLedgerTable(sel.value); });
+            return;
+          }
           op.snaps.forEach(function (snap) {
             var s = byId(snap.id);
             if (!s) return;
@@ -2093,6 +2289,7 @@ html.theme-fade *::after{
     toast('经验阈值已设为每级 ' + v + ' EXP，全班进度已重算');
   }
   function openThresholdDialog() {
+    if (isRealMode()) { openRealThresholdDialog(); return; }   /* 真实数据态：写班级库（3.5） */
     closeDataMenu();
     var real = isRealMode();
     openDialog({
@@ -2125,6 +2322,57 @@ html.theme-fade *::after{
           });
         });
       }
+    });
+  }
+
+  /* 3.5 真实数据态阈值：单值「每级递增步长」→ 21 级阈值（L0=0，L1=破壳门槛，L(n)=L(n-1)+步长） */
+  function buildRealThresholds(step) {
+    var base = Math.max(0, Math.round(Number(state.vm && state.vm.hatchThreshold) || 15));
+    var out = [0, base];
+    for (var n = 2; n <= 20; n++) out[n] = out[n - 1] + step;
+    return out;
+  }
+  async function saveRealThresholds(step) {
+    if (v3Busy) return false;
+    var v = Number(step);
+    if (!isFinite(v) || Math.round(v) !== v || v < 1) {
+      toast('每级递增步长必须是 ≥ 1 的整数（未写入班级库）', 'warn');
+      return false;
+    }
+    var core = await v3Core(['v3SaveThresholds']);
+    if (!core) { v3NoBridge('保存阈值'); return false; }
+    var thresholds = buildRealThresholds(Math.round(v));
+    var stages = (state.vm && Array.isArray(state.vm.stages)) ? state.vm.stages : [];
+    var res;
+    v3Busy = true;
+    try { res = await core.v3SaveThresholds({ thresholds: thresholds, stages: stages }); }
+    catch (e) { res = { ok: false, reason: 'db-failed', error: String((e && e.message) || e) }; }
+    v3Busy = false;
+    if (!res || res.ok !== true) { toast(v3FailText(res, '保存阈值'), 'warn'); return false; }
+    var refreshed = await v3Refresh();
+    if (refreshed) toast('经验阈值已写入班级库并立即生效（每级递增 ' + Math.round(v) + ' EXP）');
+    return true;
+  }
+  function openRealThresholdDialog() {
+    closeDataMenu();
+    var base = Math.max(0, Math.round(Number(state.vm && state.vm.hatchThreshold) || 15));
+    openDialog({
+      title: '经验阈值',
+      sub: '班级库 · 保存后立即生效',
+      body: '<p class="note">保存后会写入班级库并立即生效：LV0 = 0 EXP，LV1 = 当前破壳所需（<b>' + base + '</b> EXP），此后每级比上一级多「步长」点 EXP。</p>' +
+        '<div class="form-row"><div class="field"><label for="threshold-value">每级递增步长（EXP）</label>' +
+        '<input id="threshold-value" type="number" min="1" max="200" step="5" value="' + base + '"></div></div>' +
+        '<div class="rule-list">' +
+          '<div class="rule-item"><span>快节奏（30）</span><span class="val">课堂上更快看到升级</span></div>' +
+          '<div class="rule-item"><span>常规（40）</span><span class="val">默认演示值</span></div>' +
+          '<div class="rule-item"><span>长线（55）</span><span class="val">学期长线养成</span></div>' +
+        '</div>',
+      actions: [
+        { label: '保存阈值', primary: true, onClick: function () {
+            var v = Number($('#threshold-value').value);
+            saveRealThresholds(v).then(function (ok) { if (ok) closeDialog(); });
+          } }
+      ]
     });
   }
 
@@ -2248,7 +2496,7 @@ html.theme-fade *::after{
   }
 
   function hatch(id) {
-    if (isRealMode()) { v3ReadonlyNotice('破壳'); return; }
+    if (isRealMode()) { hatchReal(id); return; }   /* 真实数据态：等班级库确认（D18=A） */
     var s = byId(id);
     if (!s || !s.isEgg) return;
     s.isEgg = false;
@@ -2262,6 +2510,37 @@ html.theme-fade *::after{
     if (r) FX.celebrate(r.left + r.width / 2, r.top + 40);
     renderLanes(); renderDock(); renderBatch();
     toast(s.name + ' 的宠物破壳成功！觉醒为 ' + speciesName(s));
+  }
+
+  /* 3.3 真实数据态破壳：门槛判定与写库都在 core，页面如实播报 reason */
+  async function hatchReal(id) {
+    if (v3Busy) return false;
+    var s = byId(id);
+    if (!s) return false;
+    var core = await v3Core(['v3Hatch']);
+    if (!core) { v3NoBridge('破壳'); return false; }
+    var row = $('.stu-row[data-stu="' + s.id + '"]');
+    var rect = row ? row.getBoundingClientRect() : null;
+    var who = s.name;
+    var res;
+    v3Busy = true;
+    try {
+      res = await core.v3Hatch({
+        studentId: s.dbId,
+        subjectCode: subjectCodeFor(state.subject),
+        speciesCode: 'cat',
+        isAbsent: !!s.isAbsent
+      });
+    } catch (e) {
+      res = { ok: false, reason: 'db-failed', error: String((e && e.message) || e) };
+    }
+    v3Busy = false;
+    if (!res || res.ok !== true) { toast(v3FailText(res, '破壳'), 'warn'); return false; }
+    if (rect) FX.celebrate(rect.left + rect.width / 2, rect.top + 40);
+    playChime('levelup');
+    var refreshed = await v3Refresh();
+    if (refreshed) toast(who + ' 的宠物破壳成功！（班级库已确认）');
+    return true;
   }
 
   function openLogDialog(id) {
@@ -2320,6 +2599,7 @@ html.theme-fade *::after{
   }
 
   function openRuleDialog() {
+    if (isRealMode()) { openRealRuleDialog(); return; }   /* 真实数据态：规则以数据库为准（3.4） */
     var list = state.extraRules.length
       ? state.extraRules.map(function (r, i) {
           return '<div class="rule-item"><span>' + esc(r.name) + '</span><span class="val">' + (r.value > 0 ? '+' : '') + r.value + '</span>' +
@@ -2366,6 +2646,86 @@ html.theme-fade *::after{
           renderExtraRules();
           closeDialog();
           toast('已删除规则：' + removed.name);
+        });
+      }
+    });
+  }
+
+  /* 3.4 真实数据态规则保存：整张规则表一起写库，成功才重绘赋分台按钮 */
+  async function saveRealRules(list) {
+    if (v3Busy) return false;
+    var core = await v3Core(['v3SaveRules']);
+    if (!core) { v3NoBridge('保存规则'); return false; }
+    var payload = (list || []).map(function (r) {
+      return { id: r.id, name: r.name, points: Number(r.points) || 0, type: r.type === 'negative' ? 'negative' : 'positive' };
+    });
+    var res;
+    v3Busy = true;
+    try { res = await core.v3SaveRules({ rules: payload }); }
+    catch (e) { res = { ok: false, reason: 'db-failed', error: String((e && e.message) || e) }; }
+    v3Busy = false;
+    if (!res || res.ok !== true) { toast(v3FailText(res, '保存规则'), 'warn'); return false; }
+    return await v3Refresh();
+  }
+  function openRealRuleDialog() {
+    var working = ((state.vm && state.vm.rules) || []).map(function (r) {
+      return { id: r.id, name: r.name, points: Number(r.points) || 0, type: r.type === 'negative' ? 'negative' : 'positive' };
+    });
+    function itemsHTML() {
+      if (!working.length) return '<div class="empty-state">还没有赋分规则。<br>例如「朗读之星 +2」或「桌面凌乱 −1」。</div>';
+      return working.map(function (r, i) {
+        return '<div class="rule-item"><span>' + esc(r.name) + '</span><span class="val">' + (r.points > 0 ? '+' : '') + String(r.points).replace('-', '−') + '</span>' +
+          '<button class="link-btn" data-del-rule="' + i + '">删除</button></div>';
+      }).join('');
+    }
+    openDialog({
+      title: '自定义赋分规则',
+      sub: '班级库 · 保存后立即生效',
+      body: '<p class="note">规则以班级库为准：新增或删除都会写入班级库，班级库确认后赋分台按钮随之更新。</p>' +
+        '<div class="form-row">' +
+          '<div class="field"><label for="rule-name">规则名称</label><input id="rule-name" maxlength="12" placeholder="朗读之星"></div>' +
+          '<div class="field"><label>分值（−10 ~ +10）</label><div class="custom-step" style="max-width:190px">' +
+            '<button type="button" id="rule-minus" aria-label="分值减一" title="减一">−</button>' +
+            '<input class="step-val" id="rule-value" type="number" min="-10" max="10" step="1" value="2" readonly aria-label="当前分值">' +
+            '<button type="button" id="rule-plus" aria-label="分值加一" title="加一">＋</button>' +
+          '</div></div>' +
+        '</div>' +
+        '<div class="rule-list" id="rule-list">' + itemsHTML() + '</div>',
+      actions: [
+        { label: '新增规则', primary: true, onClick: function () {
+            var name = ($('#rule-name').value || '').trim();
+            var v = Number($('#rule-value').value);
+            if (!name) { toast('请填写规则名称', 'warn'); return; }
+            if (!v || isNaN(v)) { toast('请填写非零分值', 'warn'); return; }
+            var pts = clamp(Math.round(v), -10, 10);
+            var next = working.concat([{ name: name, points: pts, type: pts < 0 ? 'negative' : 'positive' }]);
+            saveRealRules(next).then(function (ok) {
+              if (!ok) return;   /* 失败保留弹窗 */
+              closeDialog();
+              toast('已新增规则：' + name + '（班级库已确认）');
+            });
+          } }
+      ],
+      onMount: function (body) {
+        var rv = body.querySelector('#rule-value');
+        function bump(d) {
+          var v = clamp(Number(rv.value || 0) + d, -10, 10);
+          if (v === 0) v = d > 0 ? 1 : -1;
+          rv.value = String(v);
+        }
+        body.querySelector('#rule-plus').addEventListener('click', function () { bump(1); });
+        body.querySelector('#rule-minus').addEventListener('click', function () { bump(-1); });
+        body.addEventListener('click', function (e) {
+          var b = e.target.closest('[data-del-rule]');
+          if (!b) return;
+          var i = Number(b.getAttribute('data-del-rule'));
+          var removed = working.splice(i, 1)[0];
+          saveRealRules(working).then(function (ok) {
+            if (ok) { closeDialog(); toast('已删除规则：' + (removed ? removed.name : '') + '（班级库已确认）'); return; }
+            working.splice(i, 0, removed);   /* 失败：弹窗保留，列表还原 */
+            var box = body.querySelector('#rule-list');
+            if (box) box.innerHTML = itemsHTML();
+          });
         });
       }
     });
@@ -2454,6 +2814,7 @@ html.theme-fade *::after{
     if (vm && vm.ok === true) {
       state.mode = 'real';
       applyViewModel(vm);
+      renderScoreRules();
       state.selected.clear();
       state.chipsAll = false;
       state.history = []; state.lastOp = null;
@@ -2512,7 +2873,7 @@ html.theme-fade *::after{
     if (SUBJECTS.indexOf(name) < 0) return;
     state.subject = name;
     syncSubjectUI();
-    toast('已切换到「' + name + '」赋分' + (isRealMode() ? '（班级库只读）' : '（模拟）'));
+    toast('已切换到「' + name + '」赋分' + (isRealMode() ? '（写入班级库）' : '（模拟）'));
     playChime('select');
   }
   function setFilter(v) {
@@ -2644,9 +3005,10 @@ html.theme-fade *::after{
     if (score) {
       var v = Number(score.getAttribute('data-score'));
       var rule = score.getAttribute('data-rule');
+      var ruleId = score.getAttribute('data-rule-id') || '';
       score.classList.add('pressed');
       setTimeout(function () { score.classList.remove('pressed'); }, 90);
-      applyScore(v, rule, { event: e });
+      applyScore(v, rule, { event: e, ruleId: ruleId });
       return;
     }
   });
@@ -2911,6 +3273,7 @@ html.theme-fade *::after{
     $('#sound-state').textContent = state.sound ? '开启' : '关闭';
     $('#quiet-mode').checked = state.quiet;
     renderExtraRules();
+    renderScoreRules();
     syncSubjectUI();
     renderLanes();
     renderDock();

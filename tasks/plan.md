@@ -242,3 +242,25 @@
   3. 教师台「经验阈值」弹窗在真实态标注「正式数据以班级库为准」且保存不生效；批次 3.5 接 `saveThresholds` 后收敛。
   4. `main.js` 的 `open-*-window` 仍指向旧正式页（批次 1 的 1.2 推迟项），V3 路由切换仍在批次 3 末一次性做。
 - 回滚：`git revert` 批次 2 的提交即可；数据库未写入，无需数据回滚（`database/` 全程干净）。
+
+## 2026-11-19：V3 批次 3 · 写操作核心链路（真库写入，全部等库确认）
+
+- 范围（`docs/V3_执行总清单.md` 批次 3 的 3.1–3.5 + 批次 1 的 1.2/1.4）：赋分、撤销、孵化、规则、阈值五条写链路接通真实 SQLite；D18=A 等库确认才提示成功，D11=A 只撤最后一笔。
+- 服务层（`electron-app/sqlite_service.js`）：
+  - `undoOperation` 强制「本班最后一笔未撤销操作」，否则返回 `NOT_LAST`（排序 `created_at DESC, rowid DESC`，修掉同毫秒多笔时的误判）。
+  - 新增 `checkSubjectUnlock(studentId, subjectCode, classId)`：语文永久开放 → 语文满级后数学/英语二选一 → 第三门需另一门满级（与 `classpet_core.isSubjectUnlocked` 同规则，改用库内宠物行判定）。
+  - `hatchStudentPet` 补四道门槛：学生存在 / 未破壳 / 经验 ≥ 库内 1 级阈值 / 学科已解锁。
+- 核心（`electron-app/src/classpet_core.js`）：
+  - 修既有缺陷：**演示名单会被写进真实班级库**（构造期 `saveStudent`/\`importStudents\` 42 次写调用 → 0）。靠 `isDemoRoster` + 42 人签名识别，演示名单只活在本页内存。
+  - ViewModel 扩展：`rules`（来自 `behavior_rules`）、`lastOperation`（与 service 同一排序）、`hatchThreshold`、`petsBySubject[code].unlocked|lockReason`。
+  - 写库契约：`v3Score` / `v3UndoLast` / `v3Hatch` / `v3SaveThresholds` / `v3SaveRules`，全部返回结构化结果，失败绝不改本地、绝不假成功。
+- 三页（子代理实现 + Lead 复核）：学生大屏 `award/hatch/praiseAll`、教师台 `applyScore/undoLast/hatch/规则按钮/阈值弹窗` 全部改走 `v3*`；失败只播报上游 reason/message；成功后重新拉 ViewModel 重绘。教师台赋分台规则按钮改由库内 13 条渲染（可滚动、末条可点）。学生大屏原本没有撤销入口，未新增（加 UI 属信息架构改动，需单独批准）。
+- 路由（Lead）：`main.js` 三个 `open-*-window` 指向 `v3_*`；学生大屏「教师台」、门户两张入口卡改走 `electronAPI`（浏览器直开降级 href）。**应用默认启动页仍是 `portal_auth.html`**——切到 `v3_portal.html` 等于把入口从「账号+口令」换成「离线档案」，属入口流程变更，待负责人确认。
+- 验证（2026-11-19 真跑）：
+  - `node --check`：core / sqlite_service / main.js 通过；三页抽取脚本通过。
+  - `tests/test_v3_viewmodel.js` 24/24、`tests/test_v3_real_db.cjs` 12/12、`tests/test_v3_writes.cjs` 31/31。
+  - `tests/test_v3_write_e2e.cjs` 19/19（真 preload + IPC + 真 sqlite_service + 临时库）：教师台点规则按钮→库里多一条 `score_operations`、经验按分值落库、提示来自库确认；撤销后经验回退且 `undone_at` 置位；13 条规则滚到底末条可点；学生大屏建蛋学生→页面加分到 15→点破壳→库里写入真实物种与 `display_pet_id`；`database/classpet.sqlite` 原件 mtime 未变。
+  - 5 个可跑回归脚本全绿；`scripts/audit_all.js` 与批次 2 基线逐字段 **零差异**；`probe_src_copy.js` src 三页 0 破图 0 报错、不滚动。
+- 假设（G8）：阈值弹窗真实态沿用单值输入，按「L0=0、L1=破壳门槛、L(n)=L(n-1)+步长」生成 21 级（PRD「线性参数快捷生成」口径）；6 阶段原样透传。破壳物种沿用页面既有物种轮转（页面无选种 UI），并在写库前排除 `'egg'`。
+- 未验证：真实应用启动路径（未在正式库上启动 app，避免任何写入风险）；真机投影/触屏/音效；教师台赋分台 13 条规则在 <1440×900 的几何；`?audit=1` 在真实数据态下未跑（该走位刻意不带 data-audit）。
+- 回滚：`git revert` 批次 3 提交；数据库未写入（`database/` 全程干净），无需数据回滚。备份：`scratch/batch3/classpet.sqlite.bak-*`。

@@ -770,10 +770,70 @@ var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: r
     catch (e) { return { ok: false, reason: 'load-failed', error: String((e && e.message) || e), students: [] }; }
   }
 
-/* 数据态：live = 真实库只读 / demo = 演示数据 / failed = 读取失败 */
+  /* ---- 批次 3 写库链路：真实态一律等库确认（D18=A），演示态永不经过这里 ---- */
+  function v3Core() {
+    var c = window.classPetRuntime;
+    return (c && typeof c === 'object') ? c : null;
+  }
+  function v3WriteMissing(what) {
+    toast('写库链路未就绪，' + what + '未执行');
+    sfx('ink');
+  }
+  function v3SubjectCode() { return (VM && VM.subject) ? VM.subject : null; }
+  /* 本页当日标记缺勤的学生（真实库 id），交给核心判 ABSENT */
+  function v3AbsentDbIds() {
+    var out = [];
+    for (var i = 0; i < state.students.length; i++) {
+      var s = state.students[i];
+      if (s.isAbsent && s.dbId) out.push(String(s.dbId));
+    }
+    return out;
+  }
+  /* 失败原因如实展示：核心优先给 skipped[0].message / message / error */
+  function v3FailText(res, fallback) {
+    if (!res) return fallback;
+    var sk = Array.isArray(res.skipped) ? res.skipped : [];
+    if (sk.length && sk[0] && sk[0].message) return String(sk[0].message);
+    if (res.message) return String(res.message);
+    if (res.error) return String(res.error);
+    return fallback;
+  }
+  function v3ByDb(dbId) {
+    for (var i = 0; i < state.students.length; i++) {
+      if (String(state.students[i].dbId) === String(dbId)) return state.students[i];
+    }
+    return null;
+  }
+  function v3RuleIdByLabel(label) {
+    if (!label || !VM || !Array.isArray(VM.rules)) return null;
+    for (var i = 0; i < VM.rules.length; i++) {
+      var r = VM.rules[i];
+      if (r && r.name === label && r.id) return String(r.id);
+    }
+    return null;
+  }
+  /* 写成功后重新取模型并重绘；取模型失败则不动本地数值。true = 界面已是库里的新数值 */
+  async function v3Refresh() {
+    var selDb = state.selectedId ? (byId(state.selectedId) || {}).dbId : null;
+    var vm = null;
+    try { vm = await v3FetchModel(); }
+    catch (e) { vm = { ok: false, reason: 'load-failed', error: String((e && e.message) || e), students: [] }; }
+    if (!vm || vm.ok !== true) { toast('已写入数据库，但重新读取班级数据失败'); return false; }
+    applyModel(vm);
+    if (selDb) {
+      var keep = v3ByDb(selDb);
+      if (keep) state.selectedId = keep.id;
+    }
+    renderAll();
+    return true;
+  }
+
+/* 数据态：live = 真实库 / demo = 演示数据 / failed = 读取失败 */
 var VM = null;
 var DATA_MODE = window.electronAPI ? 'loading' : 'demo';
 var DATA_ERROR = '';
+/* 真实态写库互斥：等库确认期间不重复下单 */
+var liveBusy = false;
 
 /* ============================================================
    1 · 数据样本（V3_DESIGN_SPEC §10，与 v3_student_stage 同一批）
@@ -952,9 +1012,9 @@ function toast(msg){
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ elToast.classList.remove('is-on'); }, 2400);
 }
-/* 批次 2 只读：真实数据态不改本地数值、不写库 */
+/* 批次 3 起真实态走写库分支；这里只兜 failed / loading（数据不可写） */
 function readonlyHit(){
-  toast(DATA_MODE === 'failed' ? '班级数据未加载，暂不能赋分' : '只读预览 · 写库将在批次 3 接入');
+  toast(DATA_MODE === 'failed' ? '班级数据未加载，暂不能赋分' : '班级数据正在载入，请稍候');
   sfx('ink');
 }
 function escText(t){
@@ -1412,8 +1472,73 @@ function cardNode(id){
   return n;
 }
 function rectCenter(r){ return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+/* 批次 3：真实态赋分 = 等数据库确认后才反馈（D18=A），本地数值只认写后重取的模型 */
+async function awardLive(s, amount, label, evt){
+  var core = v3Core();
+  if (!core || typeof core.v3Score !== 'function') { v3WriteMissing('赋分'); return false; }
+  if (liveBusy) { toast('正在写入数据库，请稍候'); return false; }
+  var payload = {
+    studentIds: [String(s.dbId)],
+    delta: amount,
+    reason: label || ('快捷赋分 +' + amount),
+    absentIds: v3AbsentDbIds()
+  };
+  var ruleId = v3RuleIdByLabel(label);
+  if (ruleId) payload.ruleId = ruleId;
+  var subject = v3SubjectCode();
+  if (subject) payload.subjectCode = subject;
+
+  liveBusy = true;
+  var res = null;
+  try { res = await core.v3Score(payload); }
+  catch (e) { res = { ok: false, error: String((e && e.message) || e) }; }
+  liveBusy = false;
+
+  if (!res || res.ok !== true) {
+    toast(v3FailText(res, '赋分未写入'));
+    sfx('ink');
+    return false;
+  }
+  var oldLevel = s.level, oldSrc = petSrc(s), oldStage = s.stage;
+  if (!(await v3Refresh())) { toast('已赋分入库，但重新读取班级数据失败，请下拉重试'); return true; }
+  var now = v3ByDb(s.dbId) || s;
+  var node = cardNode(now.id);
+  var rect = node ? node.getBoundingClientRect() : null;
+  var center = rect ? rectCenter(rect) : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  var origin = (evt && evt.clientX) ? { x: evt.clientX, y: evt.clientY } : center;
+  var meter = node ? node.querySelector('.exp-meter i') : null;
+  var track = $('ins-track');
+  if (meter) { meter.classList.add('is-shimmer'); setTimeout(function(){ meter.classList.remove('is-shimmer'); }, 700); }
+  if (track) { track.classList.add('is-shimmer'); setTimeout(function(){ track.classList.remove('is-shimmer'); }, 700); }
+  stampDrop(center.x, center.y, label || ('+' + amount + ' EXP'));
+  if (node && !REDUCED) {
+    node.classList.add('is-hit');
+    setTimeout(function(){ node.classList.remove('is-hit'); }, 460);
+  }
+  var tx = meter ? meter.getBoundingClientRect() : (track ? track.getBoundingClientRect() : null);
+  particles(origin, tx ? { x: tx.left + tx.width / 2, y: tx.top + tx.height / 2 } : center, 4);
+  floatText(origin.x, origin.y, '+' + amount + ' EXP');
+  if (node) {
+    node.classList.add('is-pulse');
+    setTimeout(function(){ node.classList.remove('is-pulse'); }, 620);
+    if (!REDUCED) node.animate([{ transform: 'translateY(-2px) scale(1.03)' }, { transform: 'translateY(-2px) scale(1)' }],
+      { duration: 380, easing: 'cubic-bezier(.2,.9,.2,1)' });
+  }
+  var leveled = now.level > oldLevel;
+  sfx(leveled ? 'levelup' : 'stamp');
+  if (leveled) {
+    toast('恭喜！' + now.name + ' 的宠物升到了 Lv.' + now.level);
+    levelUpFX(now, oldSrc, oldLevel, oldStage);
+  } else if (now.isEgg) {
+    toast(now.name + '：蛋内能量 +' + amount + ' EXP，可点击破壳');
+  } else {
+    toast('已为 ' + now.name + (label ? ('盖下「' + label + '」章') : '') + ' +' + amount + ' EXP');
+  }
+  return true;
+}
 function award(id, amount, label, evt){
   var s = byId(id); if (!s) return false;
+  if (DATA_MODE === 'live') return awardLive(s, amount, label, evt);
   if (DATA_MODE !== 'demo') { readonlyHit(); return false; }
   if (s.isAbsent) { toast(s.name + ' 今日请假，无法赋分'); sfx('ink'); return false; }
   var cardRect = null, node = cardNode(id);
@@ -1500,9 +1625,80 @@ function levelUpFX(s, oldSrc, oldLevel, oldStage){
     setTimeout(function(){ ghost.remove(); }, 720);
   }
 }
+/* 批次 3：真实态破壳 = 等库确认（门槛由核心判）后才播破壳动画 */
+function hatchFailText(res, s){
+  var reason = res && res.reason;
+  if (reason === 'exp-insufficient') {
+    return (res && res.message) ? String(res.message)
+      : ('破壳经验不足：需要 ' + (res && res.need) + ' EXP，当前 ' + (res && res.current));
+  }
+  if (reason === 'locked') return (res && res.message) || '该学科尚未解锁，无法破壳';
+  if (reason === 'already-hatched') return (res && res.message) || '该学科宠物已经破壳认领';
+  if (reason === 'absent') return (res && res.message) || ((s ? s.name + ' ' : '') + '今日请假，不可破壳');
+  return v3FailText(res, '破壳未成功');
+}
+/* 蛋期 VM 的 speciesCode 就是 'egg'，直接写库会把蛋永久钉成蛋：没有已知物种时按页面既有物种轮转给一个 */
+function v3SpeciesForHatch(s){
+  if (s.species && SPECIES[s.species]) return s.species;
+  var n = Math.max(1, Number(s.id) || 1);
+  return SPECIES_CYCLE[(n - 1) % SPECIES_CYCLE.length];
+}
+async function hatchLive(s){
+  var core = v3Core();
+  if (!core || typeof core.v3Hatch !== 'function') { v3WriteMissing('破壳'); return; }
+  if (liveBusy) { toast('正在写入数据库，请稍候'); return; }
+  var payload = { studentId: String(s.dbId), speciesCode: v3SpeciesForHatch(s), isAbsent: !!s.isAbsent };
+  var subject = v3SubjectCode();
+  if (subject) payload.subjectCode = subject;
+
+  liveBusy = true;
+  var res = null;
+  try { res = await core.v3Hatch(payload); }
+  catch (e) { res = { ok: false, error: String((e && e.message) || e) }; }
+  liveBusy = false;
+
+  if (!res || res.ok !== true) {
+    toast(hatchFailText(res, s));
+    sfx('ink');
+    return;
+  }
+  if (!(await v3Refresh())) return;
+  hatchFx(v3ByDb(s.dbId) || s);
+}
+/* 破壳成功后的原有动画（真实态在写库确认并重绘之后播） */
+function hatchFx(s){
+  var node = cardNode(s.id);
+  var insSt = document.querySelector('.ins-stage');
+  var wait = 0;
+  if (!REDUCED) {
+    wait = 360;
+    if (node) node.classList.add('is-cracking');
+    if (insSt) insSt.animate([
+      { transform: 'rotate(0)' }, { transform: 'rotate(-2.4deg)' }, { transform: 'rotate(2.6deg)' },
+      { transform: 'rotate(-1.4deg)' }, { transform: 'rotate(0)' }
+    ], { duration: 360, easing: 'ease-in-out' });
+    sfx('ink');
+  }
+  setTimeout(function(){
+    if (node) node.classList.remove('is-cracking');
+    renderAll();
+    sfx('levelup');
+    toast('破壳诞生！恭喜 ' + s.name + ' 唤醒了' + speciesLabel(s));
+    var n2 = cardNode(s.id), r = n2 ? n2.getBoundingClientRect() : null;
+    if (r) {
+      shellShards(r.left + r.width / 2, r.top + r.height / 2);
+      stickerPop(r.left + r.width / 2, r.top + r.height / 2, s, '破壳！');
+    }
+    var born = document.getElementById('ins-pet');
+    if (born && !REDUCED) born.animate([{ transform: 'scale(.42)', opacity: .25 }, { transform: 'scale(1.14)', opacity: 1, offset: .6 }, { transform: 'scale(1)' }],
+      { duration: 420, easing: 'cubic-bezier(.2,.9,.2,1)' });
+    fireworks(window.innerWidth / 2, window.innerHeight * .46);
+  }, wait);
+}
 function hatch(){
   var s = state.selectedId ? byId(state.selectedId) : null;
   if (!s || !s.isEgg) return;
+  if (DATA_MODE === 'live') { hatchLive(s); return; }
   if (DATA_MODE !== 'demo') { readonlyHit(); return; }
   var node = cardNode(s.id);
   var insSt = document.querySelector('.ins-stage');
@@ -1888,7 +2084,7 @@ function openDetail(){
     ['经验', s.exp + ' / ' + s.maxExp], ['状态', s.isAbsent ? '请假缺勤' : (s.isEgg ? '蛋 · 待破壳' : (isMaxed(s) ? '满级' : '正常'))]
   ];
   var dsub = $('detail-sub');
-  if (dsub && DATA_MODE === 'live') dsub.textContent = '真实数据 · 只读预览';
+  if (dsub && DATA_MODE === 'live') dsub.textContent = '真实数据 · 本班实时记录';
   var html = '<div class="detail-grid">';
   cells.forEach(function(c){ html += '<div class="detail-cell"><b>' + c[0] + '</b>' + c[1] + '</div>'; });
   html += '</div>';
@@ -2056,6 +2252,14 @@ window.__v3audit = function(){
    18 · 事件绑定
    ============================================================ */
 function bind(){
+  /* 1.4 页面互跳统一走 electronAPI（单窗口原地跳转）；浏览器直开时降级为 href */
+  var btnTeacher = $('btn-teacher');
+  if (btnTeacher) btnTeacher.addEventListener('click', function(e){
+    if (window.electronAPI && window.electronAPI.openTeacherWindow) {
+      e.preventDefault();
+      window.electronAPI.openTeacherWindow();
+    }
+  });
   $('btn-sort').addEventListener('click', function(){
     state.sort = state.sort === 'no' ? 'level' : 'no';
     $('sort-label').textContent = state.sort === 'no' ? '学号升序' : '等级·经验降序';
@@ -2185,7 +2389,40 @@ function bind(){
     }
   });
 }
+/* 批次 3：真实态全班表扬 = 对到校学生批量赋分，skipped 如实报数 */
+async function praiseAllLive(){
+  var core = v3Core();
+  if (!core || typeof core.v3Score !== 'function') { closeFab(); v3WriteMissing('全班表扬'); return; }
+  if (liveBusy) { closeFab(); toast('正在写入数据库，请稍候'); return; }
+  var ids = [];
+  for (var i = 0; i < state.students.length; i++) {
+    var s = state.students[i];
+    if (!s.isAbsent && s.dbId) ids.push(String(s.dbId));
+  }
+  if (!ids.length) { closeFab(); toast('本班今日无人到校，无法全班表扬'); sfx('ink'); return; }
+  var payload = { studentIds: ids, delta: 10, reason: '全班表扬', absentIds: v3AbsentDbIds() };
+  var subject = v3SubjectCode();
+  if (subject) payload.subjectCode = subject;
+
+  liveBusy = true;
+  var res = null;
+  try { res = await core.v3Score(payload); }
+  catch (e) { res = { ok: false, error: String((e && e.message) || e) }; }
+  liveBusy = false;
+
+  if (!res || res.ok !== true) { closeFab(); toast(v3FailText(res, '全班表扬未写入')); sfx('ink'); return; }
+  if (!(await v3Refresh())) { closeFab(); return; }
+  closeFab();
+  sfx('bell');
+  fireworks(window.innerWidth / 2, window.innerHeight * 0.42);
+  var skipped = Array.isArray(res.skipped) ? res.skipped.length : 0;
+  var done = Math.max(0, ids.length - skipped);
+  toast(skipped
+    ? ('全班表扬：' + done + ' 人已加分，' + skipped + ' 人跳过（缺勤/未解锁）')
+    : ('全班表扬：' + done + ' 位到校同学各 +10 EXP'));
+}
 function praiseAll(){
+  if (DATA_MODE === 'live') { praiseAllLive(); return; }
   if (DATA_MODE !== 'demo') { closeFab(); readonlyHit(); return; }
   var present = state.students.filter(function(s){ return !s.isAbsent; });
   present.forEach(function(s){
@@ -2203,7 +2440,7 @@ function praiseAll(){
 }
 
 /* ============================================================
-   18.5 · 真实数据态装载（批次 2 · 只读）
+   18.5 · 真实数据态装载（批次 2 只读 + 批次 3 写库）
    ============================================================ */
 /* 把 ViewModel 的学生映射成页面既有学生对象：保留数值 id，另存 dbId / no */
 function vmStudents(vm){
