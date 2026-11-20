@@ -57,8 +57,9 @@ app.whenReady().then(async () => {
 
     const lsKeys = await js("Object.keys(localStorage).sort()");
     console.log('  页面写入的 localStorage 键：' + JSON.stringify(lsKeys));
-    const businessInLs = lsKeys.filter(k => /students|pets|score|ledger|exp|level/i.test(k));
-    console.log('  其中像"业务数据"的键：' + JSON.stringify(businessInLs));
+    const businessInLs = lsKeys.filter(k => /^classpet_(v2_students_data|custom_level_thresholds|custom_stage_levels|custom_behavior_rules)/.test(k));
+    assert(businessInLs.length === 0, '有数据库时 localStorage 里没有任何业务数据（只有身份/UI 偏好）', businessInLs);
+    console.log('  实际键：' + JSON.stringify(lsKeys));
 
     // 关键：清空 localStorage 再重新加载，数据必须还在
     await js("localStorage.clear(); sessionStorage.clear();");

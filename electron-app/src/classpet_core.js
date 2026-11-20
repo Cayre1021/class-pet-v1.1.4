@@ -414,14 +414,18 @@ class ClassPetStore {
         if (typeof window !== 'undefined') {
             window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
         }
-        localStorage.setItem('classpet_custom_level_thresholds', JSON.stringify(cleanThresholds));
+        if (!safeElectronDB()) {
+            localStorage.setItem('classpet_custom_level_thresholds', JSON.stringify(cleanThresholds));
+        }
 
         if (Array.isArray(newStages) && newStages.length === 6) {
             STAGE_MIN_LEVELS = newStages;
             if (typeof window !== 'undefined') {
                 window.CLASS_STAGE_MIN_LEVELS = STAGE_MIN_LEVELS;
             }
-            localStorage.setItem('classpet_custom_stage_levels', JSON.stringify(newStages));
+            if (!safeElectronDB()) {
+                localStorage.setItem('classpet_custom_stage_levels', JSON.stringify(newStages));
+            }
         }
 
         this.recalculateAllStudentsProgress();
@@ -658,7 +662,6 @@ class ClassPetStore {
                         if (Number.isFinite(lv) && lv >= 0 && lv < nextT.length) nextT[lv] = Number(state.thresholds[k]);
                     });
                     LEVEL_THRESHOLDS = nextT;
-                    try { localStorage.setItem('classpet_custom_level_thresholds', JSON.stringify(nextT)); } catch (e) {}
                 }
                 if (Array.isArray(state.stages) && state.stages.length) {
                     const nextS = STAGE_MIN_LEVELS.map(s => Object.assign({}, s));
@@ -669,7 +672,6 @@ class ClassPetStore {
                         }
                     });
                     STAGE_MIN_LEVELS = nextS;
-                    try { localStorage.setItem('classpet_custom_stage_levels', JSON.stringify(nextS)); } catch (e) {}
                 }
                 if (typeof window !== 'undefined') {
                     window.CLASS_LEVEL_THRESHOLDS = LEVEL_THRESHOLDS;
@@ -833,10 +835,13 @@ class ClassPetStore {
                 this.notify('SYNC', { students: this.students });
                 return true;
             } else if (this.students && this.students.length > 0 && !this.isDemoRoster) {
-                // 若 SQLite 库中暂无该班级名单，自动将现有学生种子同步写入 SQLite
-                // 演示名单除外：空班要显示真实空态，不许把 42 人样例灌进班级库
+                // 老版本本机名单（localStorage 镜像）一次性迁进数据库；演示名单除外
                 if (db && typeof db.importStudents === 'function') {
-                    await db.importStudents(this.students, classId);
+                    const migrate = await db.importStudents(this.students, classId);
+                    if (migrate && migrate.success === true) {
+                        this._v3DropStaleRosterCache();   // 迁完就清镜像，之后以库为准
+                        console.log('[ClassPetStore] 已将本机旧名单迁移到数据库，本地镜像已清理:', this.students.length, '人');
+                    }
                 }
             }
         } catch (e) {
@@ -1670,6 +1675,10 @@ class ClassPetStore {
     }
 
     save() {
+        // 有数据库时数据以库为唯一真相，绝不再往 localStorage 写业务镜像
+        // （镜像曾经被 loadFromSQLite 反向合并回库，导致"撤销后重启经验复活"）。
+        // 浏览器直开（无 electronAPI）仍走老的本地存储，供设计与审计使用。
+        if (safeElectronDB()) return;
         const key = this.getStorageKey();
         const dataStr = JSON.stringify(this.students);
         localStorage.setItem(key, dataStr);
@@ -1679,6 +1688,7 @@ class ClassPetStore {
     }
 
     saveRules() {
+        if (safeElectronDB()) return;
         localStorage.setItem('classpet_custom_behavior_rules', JSON.stringify(this.behaviorRules));
     }
 
