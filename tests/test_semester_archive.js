@@ -33,6 +33,8 @@ const SRC=path.join(root,'database','classpet.sqlite'); const mt=fs.statSync(SRC
  assert(Number(after.ops) === Number(before.ops), '★ 历史台账保留（' + after.ops + ' 笔）', after.ops);
  assert(Number(after.hatched) === 0, '★ 全部宠物回到蛋（无已破壳）', after.hatched);
  assert(Number(after.maxExp) === 0, '★ 经验清零（max exp = 0）', after.maxExp);
+ const activeAfter = svc.query("SELECT COUNT(*) n FROM students WHERE class_id=? AND archived_at IS NULL",[C])[0].n;
+ assert(Number(activeAfter) === 0, '★ 名单一起移出（未归档学生 = 0，老师要的"干净新学期"）', activeAfter);
  const mark = svc.query("SELECT value FROM app_meta WHERE key=?",['semester_archived_at_'+C])[0];
  assert(!!mark, '写了学期归档标记 app_meta', mark);
  const r2 = svc.archiveSemester(C);

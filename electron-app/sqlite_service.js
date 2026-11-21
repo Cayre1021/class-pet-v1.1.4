@@ -794,6 +794,8 @@ class SQLiteService {
             const students = this.query('SELECT COUNT(*) AS n FROM students WHERE class_id = ?', [classId])[0];
             this.db.run('BEGIN TRANSACTION;');
             this.db.run("UPDATE pets SET exp = 0, level = 0, visual_stage = 0, hatched_at = NULL, species_code = 'egg', updated_at = ? WHERE class_id = ?", [now, classId]);
+            /* 名单也一起移出（老师要的是"干净的新学期"）：归档而非删除，历史台账与备份仍可取回 */
+            this.db.run("UPDATE students SET archived_at = ?, updated_at = ? WHERE class_id = ? AND archived_at IS NULL", [now, now, classId]);
             this.db.run("CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT)");
             this.db.run("INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)", ['semester_archived_at_' + classId, String(now)]);
             this.db.run('COMMIT;');

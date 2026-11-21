@@ -475,6 +475,9 @@ button{cursor:pointer}
 .batch-btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
 .batch-btn.primary:hover{filter:brightness(1.06)}
 .batch-btn.danger{background:#C2452A; border-color:#C2452A; color:#fff}
+/* 弹窗内"危险动作"按钮：只描红边，不把文字染红（深色主按钮上红字会看不见） */
+.btn.btn-danger{border-color:#C2452A}
+.btn.btn-danger:not(.btn-primary){color:#8E2F1E}
 .batch-btn:active{transform:translateY(1px)}
 
 /* ============================== 对话框 ============================== */
@@ -1064,7 +1067,7 @@ html.theme-fade *::after{
   </button>
   <button class="menu-item" role="menuitem" data-row-action="archive" data-audit="rm-archive" data-audit-label="移出班级">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M7 7v12h10V7"/><path d="M9 7V4h6v3"/><path d="M10 11v4M14 11v4"/></svg></span>
-    移出班级<span class="mi-sub">可恢复</span>
+    移出班级
   </button>
   <button class="menu-item" role="menuitem" data-row-action="edit" data-audit="rm-edit" data-audit-label="编辑资料">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4l11-11-4-4L4 16z"/><path d="M14 5l4 4"/></svg></span>
@@ -1352,6 +1355,7 @@ html.theme-fade *::after{
         hatchNeed: Number(p.nextLevelExp) || 50,
         isMax: !!p.isMax,
         isAbsent: !!st.isAbsent,
+        isArchived: !!st.isArchived,      /* 没有这个字段，"移出班级"后卡片不会消失 */
         fromVm: true,
         log: []
       };
@@ -2316,7 +2320,7 @@ html.theme-fade *::after{
       b.className = 'btn' + (a.primary ? ' btn-primary' : '');
       b.textContent = a.label;
       b.setAttribute('data-dyn', '1');
-      if (a.danger) b.style.borderColor = '#C2452A', b.style.color = '#C2452A';
+      if (a.danger) b.classList.add('btn-danger');
       b.addEventListener('click', function () { a.onClick && a.onClick(); });
       foot.insertBefore(b, cancel);
     });
@@ -2447,9 +2451,11 @@ html.theme-fade *::after{
             else if (!res || !res.canceled) toast('导出失败：' + ((res && res.error) || '未知原因'), 'warn');
           } },
         { label: '清空本页显示', danger: true, onClick: function () {
-            state.history = []; state.lastOp = null;   /* 只清本页台账记忆，班级库记录保留 */
+            state.history = []; state.lastOp = null;
+            state.ledgerHidden = true;                      /* 本页表格立刻变空，班级库记录不动 */
+            if (state._ledgerPaint) state._ledgerPaint();
             renderDock();
-            toast('已清空本页台账记忆（班级库记录不受影响）');
+            toast('已清空本页显示（班级库记录不受影响；切换范围可恢复）');
           } }
       ],
       onMount: function (body) {
@@ -2458,10 +2464,17 @@ html.theme-fade *::after{
         var count = body.querySelector('#ledger-count');
         function paint() {
           filterValue = sel.value;
+          if (state.ledgerHidden) {
+            table.innerHTML = '<div class="empty-state">本页已清空显示（班级库记录都在）。<br>切换上面的「范围」即可重新读取。</div>';
+            count.value = '0 笔';
+            return;
+          }
           table.innerHTML = ledgerRowsHTML(filterValue);
           count.value = ledgerFilteredRows(filterValue).length + ' 笔';
         }
+        state._ledgerPaint = paint;          /* 供「清空本页显示」按钮立即刷新表格 */
         async function reload() {
+          state.ledgerHidden = false;        /* 重新读库 = 恢复显示 */
           table.innerHTML = '<div class="empty-state">正在读取班级库…</div>';
           var rows = await fetchLedger();
           if (!rows) { table.innerHTML = '<div class="empty-state">台账读取失败，班级库未确认。</div>'; count.value = '—'; return; }
