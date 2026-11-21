@@ -21,7 +21,7 @@ echo "== 2. 安装包与 asar 内容 =="
 [ -f "$UNPACKED/resources/app.asar" ] || bad "缺少 win-unpacked/resources/app.asar"
 if [ -f "$UNPACKED/resources/app.asar" ]; then
   LIST="$(npx --yes asar list "$UNPACKED/resources/app.asar" 2>/dev/null)"
-  for f in main.js preload.js sqlite_service.js update_check.js; do
+  for f in main.js preload.js sqlite_service.js update_check.js xlsx_lite.js; do
     echo "$LIST" | grep -qE "(^|[\\/])${f}$" && ok "asar 含 $f" || bad "asar 缺少 $f（装好会崩）"
   done
   CNT=$(echo "$LIST" | grep -cE "stage[0-9]-(pat|feed|play)\.png$")
