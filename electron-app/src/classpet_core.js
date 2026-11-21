@@ -642,6 +642,7 @@ class ClassPetStore {
         }
         try {
             const classId = this.getClassId();
+            const prevClassId = String(this._v3ClassIdOfMemory || '');   /* 这份内存名单属于哪个班 */
             const state = await db.loadAllState(classId);
             if (state && Array.isArray(state.students) && state.students.length > 0) {
                 console.log('[ClassPetStore] 成功从本地 SQLite 数据库载入班级真实状态，学生数:', state.students.length);
@@ -803,7 +804,9 @@ class ClassPetStore {
                 });
 
                 // 核心安全合并机制：杜绝 SQLite 刚启动滞后导致内存中新增/导入的学生被覆盖删除
-                if (Array.isArray(this.students) && this.students.length > 0 && !this.isDemoRoster) {
+                const sameClass = !prevClassId || prevClassId === String(classId);
+                if (!sameClass) console.warn('[ClassPetStore] 检测到切班：内存名单属于 ' + prevClassId + '，本次载入 ' + classId + '，跳过内存补写');
+                if (sameClass && Array.isArray(this.students) && this.students.length > 0 && !this.isDemoRoster) {
                     const loadedIds = new Set(loadedStudents.map(s => s.id));
                     const missingInDb = this.students.filter(s => !loadedIds.has(s.id));
                     if (missingInDb.length > 0) {
@@ -826,6 +829,7 @@ class ClassPetStore {
                 }
 
                 this.students = loadedStudents;
+                this._v3ClassIdOfMemory = String(classId);   /* 记住这份名单属于哪个班，供下次载入时判断能否补写 */
                 this.save();
                 this.broadcast('STATE_SYNC', { students: this.students });
                 this.notify('STATE_SYNC', { students: this.students });
@@ -835,6 +839,7 @@ class ClassPetStore {
                 // 老版本本机名单（localStorage 镜像）一次性迁进数据库；演示名单除外
                 if (db && typeof db.importStudents === 'function') {
                     const migrate = await db.importStudents(this.students, classId);
+                    this._v3ClassIdOfMemory = String(classId);
                     if (migrate && migrate.success === true) {
                         this._v3DropStaleRosterCache();   // 迁完就清镜像，之后以库为准
                         console.log('[ClassPetStore] 已将本机旧名单迁移到数据库，本地镜像已清理:', this.students.length, '人');
@@ -993,6 +998,8 @@ class ClassPetStore {
             teacher: identity.teacher,
             subject: identity.subject,
             subjectLabel: (V3_SUBJECTS[identity.subject] || V3_SUBJECTS.chinese).label,
+            // 班级主科：读库后覆盖；无桥/老库一律语文（与改动前一致）
+            defaultSubject: normalizeSubjectCode(null),
             maxLevel: Math.max(0, thresholds.length - 1),
             thresholds: thresholds,
             stages: stages,
@@ -1042,6 +1049,7 @@ class ClassPetStore {
         vm.stages = stages;
         vm.maxLevel = Math.max(0, thresholds.length - 1);
         vm.hatchThreshold = Number(thresholds[1]) || 15;
+        vm.defaultSubject = normalizeSubjectCode(state.defaultSubject);
 
         // 行为规则：以库为准，页面不再写死六条
         const ruleRows = Array.isArray(state.behaviorRules) ? state.behaviorRules : [];
@@ -1072,7 +1080,7 @@ class ClassPetStore {
                 petsBySubject[code] = this._v3PetView(rawPets[code], code, stages);
             });
             Object.keys(V3_SUBJECTS).forEach(code => {
-                const u = this._v3UnlockState(petsBySubject, code, vm.maxLevel);
+                const u = this._v3UnlockState(petsBySubject, code, vm.maxLevel, vm.defaultSubject);
                 petsBySubject[code].unlocked = u.allowed;
                 petsBySubject[code].lockReason = u.reason;
             });
@@ -1141,9 +1149,11 @@ class ClassPetStore {
     }
 
     // 学科解锁判定（用 ViewModel 里的宠物视图，DB 真相）
-    _v3UnlockState(pets, subjectCode, maxLevel) {
+    // 语文与班级主科（注册时选的科目）恒解锁，其余按链式规则
+    _v3UnlockState(pets, subjectCode, maxLevel, defaultSubject) {
         const key = normalizeSubjectCode(subjectCode);
         if (key === 'chinese') return { allowed: true, reason: null };
+        if (key === normalizeSubjectCode(defaultSubject)) return { allowed: true, reason: null };
         const cur = pets[key];
         if (cur && cur.isHatched) return { allowed: true, reason: null };
         const cap = Number(maxLevel) || 20;
@@ -1158,14 +1168,16 @@ class ClassPetStore {
     }
 
     // 赋分资格判定（与 canScoreStudentPet 同规则，但读 ViewModel/DB）
-    _v3GuardScore(student, subjectCode, isAbsent) {
+    _v3GuardScore(student, subjectCode, isAbsent, defaultSubject) {
         const code = normalizeSubjectCode(subjectCode);
         const subj = V3_SUBJECTS[code];
+        // 语文与班级主科都按"基础学科"处理：未破壳的蛋也能加分攒破壳能量
+        const isBaseSubject = code === 'chinese' || code === normalizeSubjectCode(defaultSubject);
         if (!student) return { allowed: false, reason: 'NOT_FOUND', message: '学生不存在' };
         if (student.isArchived) return { allowed: false, reason: 'ARCHIVED', message: '学生已归档，不可赋分' };
         if (isAbsent) return { allowed: false, reason: 'ABSENT', message: '学生今日请假，不可赋分' };
         const pet = student.petsBySubject ? student.petsBySubject[code] : null;
-        if (code !== 'chinese') {
+        if (!isBaseSubject) {
             if (pet && pet.unlocked === false) {
                 return { allowed: false, reason: 'LOCKED', message: '【' + subj.label + '】尚未解锁：' + (pet.lockReason || '需前置学科满级') };
             }
@@ -1314,7 +1326,7 @@ class ClassPetStore {
         const allowed = [], skipped = [];
         ids.forEach(id => {
             const s = vm.students.filter(x => x.id === id)[0];
-            const g = this._v3GuardScore(s, subject, absent.has(id));
+            const g = this._v3GuardScore(s, subject, absent.has(id), vm.defaultSubject);
             if (g.allowed) allowed.push(id);
             else skipped.push({ studentId: id, name: s ? s.name : '', reason: g.reason, message: g.message });
         });
@@ -1420,7 +1432,7 @@ class ClassPetStore {
         const nums = thresholds.map(Number);
         if (nums.some(n => !Number.isFinite(n) || n < 0)) return { ok: false, reason: 'bad-thresholds', message: '经验阈值必须是非负数字' };
         for (let i = 1; i < nums.length; i++) {
-            if (nums[i] < nums[i - 1]) return { ok: false, reason: 'bad-thresholds', message: '第 ' + i + ' 级阈值小于上一级，阈值必须单调不减' };
+            if (nums[i] <= nums[i - 1]) return { ok: false, reason: 'bad-thresholds', message: '第 ' + i + ' 级阈值必须大于第 ' + (i - 1) + ' 级（多层共用同一阈值会让一次加分直接跳满级）' };
         }
         const stageList = Array.isArray(stages) ? stages : STAGE_MIN_LEVELS;
         if (stageList.length !== 6) return { ok: false, reason: 'bad-stages', message: '形态阶梯必须是 6 段' };
@@ -2856,13 +2868,19 @@ class ClassPetStore {
             currentPet.icon = info.icon;
             currentPet.image = getPetImagePath(sp, student.visualStage || currentPet.visualStage || 0);
         }
-        this.save();
-
         const classId = this.getClassId();
         const db = safeElectronDB();
         if (db && typeof db.saveStudent === 'function') {
-            await db.saveStudent(student, classId);
+            /* strictStudentNo：撞号必须返回 duplicate-no，绝不能静默改成"最大号+1"（老师以为改成 902 其实成了 911） */
+            let res = null;
+            try { res = await db.saveStudent(student, classId, { strictStudentNo: true }); }
+            catch (e) { res = { success: false, error: String((e && e.message) || e) }; }
+            if (res && res.success === false) {
+                await this.loadFromSQLite();        /* 被拒时按库回滚内存，避免页面显示改成功 */
+                return { ok: false, reason: (res.error || '').indexOf('duplicate-no') >= 0 ? 'duplicate-no' : 'save-failed', message: res.error || '保存失败' };
+            }
         }
+        this.save();
 
         this.broadcast('STATE_SYNC', { students: this.students });
         this.notify('STUDENT_UPDATED', student);

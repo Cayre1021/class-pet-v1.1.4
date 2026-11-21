@@ -366,7 +366,9 @@ class SQLiteService {
             behaviorRules: rulesRows,
             thresholds,
             stages,
-            recentOperations: recentOps
+            recentOperations: recentOps,
+            // 班级主科（注册时选的默认学科）：三页据此判定"这一科恒可用"
+            defaultSubject: this.getClassDefaultSubject(classId)
         };
     }
 
@@ -565,9 +567,24 @@ class SQLiteService {
         return this.query(sql, [studentId, realId]);
     }
 
+    // 班级主科（注册时选的默认学科）。classes.default_subject_id 存 'subj_math' 这类 id；
+    // 空值/未知值一律按语文，于是老班级（默认语文）行为完全不变。
+    getClassDefaultSubject(classId = 'c_class02_01') {
+        let raw = '';
+        try {
+            const row = this.query("SELECT default_subject_id FROM classes WHERE id = ? LIMIT 1", [classId])[0];
+            raw = row && row.default_subject_id ? String(row.default_subject_id) : '';
+        } catch (e) { raw = ''; }
+        if (raw === 'subj_math' || raw === 'math') return 'math';
+        if (raw === 'subj_english' || raw === 'english') return 'english';
+        return 'chinese';
+    }
+
     // 学科链式解锁（与 classpet_core.isSubjectUnlocked 同一规则，用库里的宠物行判定）
+    // 例外：班级主科恒可用（注册时选了数学就不该先攒语文满级）
     checkSubjectUnlock(studentId, subjectCode, classId = 'c_class02_01') {
         const key = subjectCode === 'math' ? 'math' : (subjectCode === 'english' ? 'english' : 'chinese');
+        if (key === this.getClassDefaultSubject(classId)) return { allowed: true, reason: null };
         const rows = this.query("SELECT * FROM pets WHERE class_id = ? AND student_id = ?", [classId, studentId]);
         const byKey = {};
         rows.forEach(r => {
@@ -652,7 +669,13 @@ class SQLiteService {
         try {
             if (!classId) return { success: false, error: 'MISSING_CLASS_ID:缺少班级 id' };
             if (!className) return { success: false, error: 'MISSING_CLASS_NAME:缺少班级名称' };
-            const tid = teacherId || ('t_' + now + '_' + Math.random().toString(36).slice(2, 6));
+            /* teacher_id 在 classes 里是 UNIQUE：若给的这个 id 已经绑了别的班，必须换一个新的，
+               否则 INSERT OR REPLACE 会把老师原有班级顶掉（学生行变孤儿）。 */
+            let tid = teacherId || '';
+            const takenBy = tid ? this.query("SELECT id FROM classes WHERE teacher_id = ? AND id <> ?", [tid, classId]) : [];
+            if (!tid || (takenBy && takenBy.length)) {
+                tid = 't_' + now + '_' + Math.random().toString(36).slice(2, 6);
+            }
             const subjId = 'subj_' + (['chinese', 'math', 'english'].indexOf(subjectCode) >= 0 ? subjectCode : 'chinese');
 
             this.db.run('BEGIN TRANSACTION;');

@@ -17,6 +17,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('broadcast-sync', handler);
         return () => ipcRenderer.removeListener('broadcast-sync', handler);
     },
+    // Excel(.xlsx) / CSV 导入导出：dialog 与文件读写都在主进程，渲染层只拿 rows
+    io: {
+        importRoster: (opts) => ipcRenderer.invoke('io:importRoster', opts || {}),
+        exportRoster: (payload) => ipcRenderer.invoke('io:exportRoster', payload || {}),
+        exportLedger: (payload) => ipcRenderer.invoke('io:exportLedger', payload || {})
+    },
     // 本地 SQLite 真实数据库访问与操作接口 (单机零配置)
     db: {
         loadAllState: (classId) => ipcRenderer.invoke('db:loadAllState', classId),

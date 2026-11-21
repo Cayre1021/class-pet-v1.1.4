@@ -677,16 +677,23 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     }
     var api = window.electronAPI;
     if (!api || !api.db || typeof api.db.createClass !== 'function') {
-      return { ok: false, reason: 'no-bridge', message: '桌面端未连接，无法创建班级（请从安装好的程序打开）' };
+      /* 没有桌面端（浏览器直开设计稿 / 演示态）：保留本地档案流程，但要明确告诉老师"没有写入数据库" */
+      return { ok: true, reused: false, degraded: true, account: null };
     }
     var now = Date.now();
     var classId = 'c_acc_' + now;
     var accId = 'acc_' + now;
     var subjectLabel = profile.subject || '语文';
     var code = SUBJECT_CODE[subjectLabel] || 'chinese';
-    var res = await api.db.createClass({
-      classId: classId, className: profile['class'], teacherName: profile.name, subjectCode: code, teacherId: accId
-    });
+    var res = null;
+    try {
+      res = await api.db.createClass({
+        classId: classId, className: profile['class'], teacherName: profile.name, subjectCode: code, teacherId: accId
+      });
+    } catch (e) {
+      /* 通道存在但主进程没有该 handler（旧版本 / 探针）：退化为本地档案，别把注册卡死 */
+      return { ok: true, reused: false, degraded: true, account: null, note: String((e && e.message) || e) };
+    }
     if (!res || res.success !== true) {
       return { ok: false, reason: (res && res.error) || 'create-failed', message: '创建班级失败：' + ((res && res.error) || '未知原因') };
     }
@@ -759,9 +766,13 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     whoami.hidden = false;
     whoChip.textContent = profile['class'] + ' · ' + profile.name + ' · ' + profile.subject;
     /* 绑定结果：新班给出明确反馈，避免"看起来登录成功了、其实还在用别人的班" */
-    if (bind && bind.ok && bind.reused === false) {
-      var note = document.getElementById('entry-note');
+    var note = document.getElementById('entry-note');
+    if (bind && bind.ok && bind.degraded) {
+      if (note) { note.hidden = false; note.textContent = '当前为浏览器预览：未连接桌面端数据库，进入后只显示演示数据。'; }
+    } else if (bind && bind.ok && bind.reused === false) {
       if (note) { note.hidden = false; note.textContent = '已为本机创建独立班级，名单为空，可直接录入学生。'; }
+    } else if (note) {
+      note.hidden = true;
     }
     whoChip.title = whoChip.textContent;
     cardHead.hidden = true;
@@ -950,6 +961,10 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
       clearSwitched();
       setSession(true);
       prefill(profile);
+      if (r.degraded) {
+        var lg = document.getElementById('lg-msg');
+        if (lg) lg.textContent = '';
+      }
       showEntry(profile, r);
     }).catch(function (err) {
       var msg = document.getElementById('rg-submit-msg') || lgFormMsg;

@@ -28,6 +28,12 @@ function regIpc() {
     h('db:archiveStudent', (p) => svc.archiveStudent(p.studentId, p.isArchived, p.classId));
     h('db:deleteStudent', (p) => svc.deleteStudent(p.studentId, p.classId));
     h('db:saveThresholds', (p) => svc.saveThresholds(p.thresholds, p.stages, p.classId || 'c_class02_01'));
+    // 新版导入走 io 通道：这里直接把预置的 CSV 文本解析成行数组返回
+    h('io:importRoster', () => {
+        const rows = String(global.__csvText || '').replace(/^\ufeff/, '').split(/\r?\n/)
+            .filter(l => l.trim()).map(l => l.split(',').map(c => c.trim()));
+        return { ok: true, rows, source: 'csv', fileName: 'roster.csv' };
+    });
     h('db:saveBehaviorRules', (p) => svc.saveBehaviorRules(p.rules, p.classId || 'c_class02_01'));
     h('db:getClassLedger', (p) => svc.getClassLedger(p.classId || 'c_class02_01', p.fromTs, p.toTs));
     h('db:updateStudentProfile', (p) => svc.updateStudentProfile(p.studentId, p.patch || {}, p.classId || 'c_class02_01'));
@@ -60,6 +66,7 @@ app.whenReady().then(async () => {
 
     // 打开数据菜单 → Excel 弹窗 → 点「导入名单 CSV」（置 pendingImport），并用 DataTransfer 注入文件
     const csv = '9902,张伟,2,3,40,cat,在读\n';
+    global.__csvText = csv;   /* 供 io:importRoster 桩读取 */
     await js('window.__csvText = ' + JSON.stringify(csv) + '; true');
     const step = await js(`(function(){
         try {
@@ -67,18 +74,9 @@ app.whenReady().then(async () => {
             var item = document.querySelector('[data-action="excel"]');
             if (!item) return 'no-excel-item';
             item.click();
-            var inp = document.getElementById('file-input');
-            if (!inp) return 'no-input';
-            var orig = inp.click.bind(inp);
-            inp.click = function(){};                       // 拦掉原生文件对话框
-            var importBtn = [].slice.call(document.querySelectorAll('button')).filter(function(b){ return /导入名单 CSV/.test(b.textContent); })[0];
-            if (!importBtn) { inp.click = orig; return 'no-import-btn'; }
-            importBtn.click();                              // 设置 pendingImport='roster'
-            var dt = new DataTransfer();
-            dt.items.add(new File([window.__csvText], 'roster.csv', { type: 'text/csv' }));
-            inp.files = dt.files;
-            inp.dispatchEvent(new Event('change', { bubbles: true }));
-            inp.click = orig;
+            var importBtn = [].slice.call(document.querySelectorAll('#dlg-foot button, button')).filter(function(b){ return /导入名单/.test(b.textContent); })[0];
+            if (!importBtn) return 'no-import-btn';
+            importBtn.click();                              // 新版：直接走 io.importRoster（主进程读文件/解析）
             return 'ok';
         } catch (e) { return 'err:' + e.message; }
     })()`);

@@ -2889,7 +2889,12 @@
             const group = document.getElementById('editStuGroup').value;
             const species = document.getElementById('editStuSpecies').value;
 
-            await store.updateStudent(editingStudentId, { name, no, group, species });
+            var res = await store.updateStudent(editingStudentId, { name, no, group, species });
+            if (res && res.ok === false) {
+                /* 撞号等被服务层拒绝：绝不能提示"修改成功" */
+                showClassroomToast(res.reason === 'duplicate-no' ? '❌ 学号 ' + no + ' 已被占用，未修改' : ('❌ 修改失败：' + (res.message || res.reason || '未知原因')));
+                return;
+            }
             closeEditStudentModal();
             renderStudentList();
             showClassroomToast('✅ 学生资料修改成功！');

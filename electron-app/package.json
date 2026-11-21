@@ -1,6 +1,6 @@
 {
   "name": "class-pet-desktop",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Class Pet 班级电子宠物管理系统 (Windows 11 现代触控版)",
   "main": "main.js",
   "scripts": {
@@ -32,6 +32,7 @@
       "preload.js",
       "sqlite_service.js",
       "update_check.js",
+      "xlsx_lite.js",
       "src/**/*",
       "!src/assets/pets_raw/**/*"
     ],

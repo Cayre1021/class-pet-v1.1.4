@@ -1,8 +1,10 @@
-const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const https = require('https');
 const sqliteService = require('./sqlite_service.js');
 const updateCheck = require('./update_check.js');
+const xlsxLite = require('./xlsx_lite.js');
 
 let mainWindow = null;
 
@@ -154,6 +156,98 @@ ipcMain.handle('update:open', async (event, url) => {
     await shell.openExternal(u);
     return { ok: true, host };
 });
+
+/* ==========================================
+   Excel(.xlsx) / CSV 导入导出：dialog + fs 全在主进程，渲染层永远不碰 Node
+   ========================================== */
+const XLS_HINT = '这是旧版 .xls（Excel 97-2003）格式，暂不支持直接读取。请在 Excel 里「文件 → 另存为」，选「Excel 工作簿(*.xlsx)」后重新导入。';
+
+function ipcWindow(event) {
+    try { return BrowserWindow.fromWebContents(event.sender) || mainWindow; } catch (e) { return mainWindow; }
+}
+
+function errText(err) {
+    return String((err && err.message) || err || '未知错误');
+}
+
+function defaultSaveDir() {
+    try { return app.getPath('documents'); } catch (e) { try { return app.getPath('home'); } catch (e2) { return __dirname; } }
+}
+
+ipcMain.handle('io:importRoster', async (event, opts) => {
+    try {
+        const res = await dialog.showOpenDialog(ipcWindow(event), {
+            title: '导入名单（Excel / CSV）',
+            buttonLabel: '导入',
+            properties: ['openFile'],
+            filters: [{ name: '表格', extensions: ['xlsx', 'csv'] }]
+        });
+        if (!res || res.canceled || !res.filePaths || !res.filePaths.length) return { ok: false, canceled: true };
+        const filePath = res.filePaths[0];
+        const fileName = path.basename(filePath);
+        const ext = path.extname(filePath).toLowerCase();
+        if (ext === '.xls') return { ok: false, error: XLS_HINT, fileName: fileName };   /* 旧二进制格式：给清晰提示 */
+
+        const buf = fs.readFileSync(filePath);
+        const parsed = (ext === '.csv' || ext === '.txt')
+            ? xlsxLite.readCsv(xlsxLite.decodeTextBuffer(buf))
+            : xlsxLite.readXlsx(buf);
+        if (!parsed || !parsed.ok) {
+            return { ok: false, error: (parsed && parsed.error) || '读取失败', fileName: fileName, filePath: filePath };
+        }
+        return {
+            ok: true,
+            rows: parsed.rows,
+            source: ext === '.csv' || ext === '.txt' ? 'csv' : 'xlsx',
+            sheetName: parsed.sheetName || '',
+            fileName: fileName,
+            filePath: filePath
+        };
+    } catch (err) {
+        console.error('[Main IPC] io:importRoster 失败:', err);
+        return { ok: false, error: '读取失败：' + errText(err) };
+    }
+});
+
+/* 名单 / 台账共用：.xlsx 默认，用户把文件名写成 .csv 就导 CSV */
+async function exportTable(event, payload, defaults) {
+    try {
+        const p = payload || {};
+        const rows = p.rows || [];
+        if (!Array.isArray(rows) || !rows.length) return { ok: false, error: '没有可导出的数据' };
+        const sheetName = String(p.sheetName || defaults.sheetName);
+        const suggested = path.basename(String(p.fileName || defaults.fileName));
+
+        const res = await dialog.showSaveDialog(ipcWindow(event), {
+            title: defaults.title,
+            buttonLabel: '导出',
+            defaultPath: path.join(defaultSaveDir(), suggested),
+            filters: [
+                { name: 'Excel 工作簿', extensions: ['xlsx'] },
+                { name: 'CSV', extensions: ['csv'] }
+            ]
+        });
+        if (!res || res.canceled || !res.filePath) return { ok: false, canceled: true };
+
+        let filePath = res.filePath;
+        let ext = path.extname(filePath).toLowerCase();
+        if (ext !== '.xlsx' && ext !== '.csv') { filePath += '.xlsx'; ext = '.xlsx'; }
+
+        if (ext === '.csv') fs.writeFileSync(filePath, xlsxLite.writeCsv(rows), 'utf8');
+        else fs.writeFileSync(filePath, xlsxLite.writeXlsx(rows, { sheetName: sheetName }));
+
+        return { ok: true, filePath: filePath, source: ext === '.csv' ? 'csv' : 'xlsx', bytes: fs.statSync(filePath).size };
+    } catch (err) {
+        console.error('[Main IPC] io:export 失败:', err);
+        return { ok: false, error: '导出失败：' + errText(err) };
+    }
+}
+
+ipcMain.handle('io:exportRoster', (event, payload) =>
+    exportTable(event, payload, { title: '导出名单', fileName: '班级名单.xlsx', sheetName: '名单' }));
+
+ipcMain.handle('io:exportLedger', (event, payload) =>
+    exportTable(event, payload, { title: '导出赋分台账', fileName: '赋分台账.xlsx', sheetName: '赋分台账' }));
 
 ipcMain.handle('db:createClass', async (event, payload) => {
     try {
