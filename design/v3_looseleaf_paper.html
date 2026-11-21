@@ -1097,6 +1097,38 @@ function petOpenRing(stageEl, s) {
   petRingFor = ring;
   sfx('ink');
 }
+/* 从任何表达式图反推基础图：pat/feed/play 后缀一律去掉 */
+function petBaseSrc(src) {
+  return String(src || '').replace(/-(pat|feed|play)\.png$/i, '.png');
+}
+/* 换表情：还原目标永远是"基础图"，并且同一张图只保留一个计时器。
+   否则连点两种互动时，第二个计时器会拿第一个表情当"原始图"，把它还原回去（残留 bug）。 */
+function petApplyExpr(stageEl, s, action) {
+  if (!stageEl || !s || s.isEgg) return;
+  var expr = petExprPath(s, action);
+  if (!expr) return;
+  var img = stageEl.querySelector('img');
+  if (!img) return;
+  var target = img;
+  if (target.__petExprTimer) { clearTimeout(target.__petExprTimer); target.__petExprTimer = null; }
+  var base = petBaseSrc(target.getAttribute('src')) || (s.image ? petBaseSrc(s.image) : null);
+  var seq = (target.__petExprSeq || 0) + 1;
+  target.__petExprSeq = seq;
+  var probe = new Image();
+  probe.onload = function () {
+    if (target.__petExprSeq !== seq) return;      /* 已经有更新的表情了，丢弃这次 */
+    target.setAttribute('src', expr);
+    target.__petExprTimer = setTimeout(function () {
+      target.__petExprTimer = null;
+      var current = target.getAttribute('src');
+      /* 只还原自己贴上的那张表情；若已被更新的表情替换，交给那个计时器处理 */
+      if (current !== expr && String(current).indexOf('-' + action + '.png') < 0) return;
+      target.setAttribute('src', base || petBaseSrc(current));
+    }, 2500);
+  };
+  probe.onerror = function () { /* 缺图：只出气泡 */ };
+  probe.src = expr;
+}
 function petReact(stageEl, s, action) {
   var left = petCoolLeft(s, action);
   if (left > 0) { toast('再等 ' + left + ' 秒就能' + (action === 'pat' ? '摸摸' : action === 'feed' ? '喂食' : '一起玩') + '啦'); return; }
@@ -1109,18 +1141,7 @@ function petReact(stageEl, s, action) {
   petShowBubble(stageEl, petPickLine(action));
   sfx(action === 'feed' ? 'stamp' : action === 'play' ? 'levelup' : 'ink');
   // 有表情图就换脸，2.5 秒后还原；缺图静默退回
-  var expr = petExprPath(s, action);
-  var img = stageEl.querySelector('img');
-  if (expr && img && !s.isEgg) {
-    var probe = new Image();
-    var original = img.getAttribute('src');
-    probe.onload = function () {
-      img.setAttribute('src', expr);
-      setTimeout(function () { img.setAttribute('src', original); }, 2500);
-    };
-    probe.onerror = function () { /* 缺图：只出气泡 */ };
-    probe.src = expr;
-  }
+  petApplyExpr(stageEl, s, action);
   // 冷却倒计时显示
   var tick = setInterval(function () {
     var remain = petCoolLeft(s, action);
