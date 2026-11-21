@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline' file:; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
-<title>班级电子宠物 · 教师操作台 V3</title>
+<title>班级电子宠物 · 教师操作台</title>
 <style>
 /* ============================================================
    V3 · 教师操作台 —— token 与三级边框制（与 v3_student_stage 同源）
@@ -125,6 +125,14 @@ button{cursor:pointer}
 .menu-item .mi-icon{width:22px;height:22px;flex:none;display:grid;place-items:center;color:var(--ink-2)}
 .menu-item .mi-icon svg{width:17px;height:17px}
 .menu-item .mi-sub{margin-left:auto; font-size:var(--t-xs); color:var(--ink-3); font-weight:700}
+/* 检查更新：有新版本时按钮上挂一个小红点（不打断上课） */
+#btn-data-menu.has-update::after{content:'';position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;
+  background:#C2452A;box-shadow:0 0 0 2px var(--paper)}
+#btn-data-menu{position:relative}
+.mi-sub.is-new{color:#C2452A}
+.upd-notes{margin:8px 0 0;padding:10px 12px;max-height:190px;overflow:auto;white-space:pre-wrap;word-break:break-word;
+  font:inherit;font-size:13px;line-height:1.65;color:var(--ink-2);background:var(--surface-2);
+  border:1px solid rgba(17,17,17,.14);border-radius:10px}
 .menu-sep{height:1px;margin:6px 8px;background:rgba(17,17,17,.12)}
 .menu-title{padding:6px 10px 8px; font-size:var(--t-xs); color:var(--ink-3); font-weight:800; letter-spacing:.08em}
 .row-menu{min-width:172px}
@@ -1019,6 +1027,10 @@ html.theme-fade *::after{
   <button class="menu-item" role="menuitem" data-action="backup" data-audit="mi-backup" data-audit-label="备份与还原">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v11"/><path d="M8 7l4-4 4 4"/><path d="M4 15v4h16v-4"/></svg></span>
     备份与还原<span class="mi-sub">JSON</span>
+  </button>
+  <button class="menu-item" role="menuitem" data-action="update" data-audit="mi-update" data-audit-label="检查更新">
+    <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v11"/><path d="M8 11l4 4 4-4"/><path d="M4 17v3h16v-3"/></svg></span>
+    检查更新<span class="mi-sub" id="mi-update-sub">版本</span>
   </button>
   <div class="menu-sep" aria-hidden="true"></div>
   <button class="menu-item" role="menuitem" data-action="theme-orange" data-audit="mi-theme-orange" data-audit-label="主题：活力暖橙"><span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg></span>主题：活力暖橙</button>
@@ -2877,6 +2889,100 @@ html.theme-fade *::after{
       ]
     });
   }
+  /* ============ 检查更新（GitHub Releases）：只提示 + 打开下载，不自动安装 ============ */
+  function updateApi() {
+    var api = window.electronAPI;
+    if (!api || typeof api.checkUpdate !== 'function') return null;
+    return api;
+  }
+  function setUpdateSub(text, isNew) {
+    var el = $('#mi-update-sub');
+    if (el) { el.textContent = text; if (isNew) el.classList.add('is-new'); else el.classList.remove('is-new'); }
+  }
+  function markUpdateBadge(on) {
+    var b = $('#btn-data-menu');
+    if (b) b.classList.toggle('has-update', !!on);
+  }
+  function fmtDate(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+  async function refreshUpdateVersion() {
+    var api = updateApi();
+    if (!api || typeof api.getAppVersion !== 'function') return;
+    try { setUpdateSub('v' + await api.getAppVersion(), false); } catch (e) {}
+  }
+  /* 进教师台静默查一次（主进程每天最多真正请求一次），有新版本只在按钮上挂红点 */
+  async function silentUpdateCheck() {
+    var api = updateApi();
+    if (!api) return;
+    try {
+      var res = await api.checkUpdate({ force: false });
+      if (res && res.ok && res.hasUpdate) { markUpdateBadge(true); setUpdateSub('有新版本 v' + res.latest, true); }
+      else if (res && res.current) { markUpdateBadge(false); setUpdateSub('v' + res.current, false); }
+    } catch (e) { /* 静默失败不影响上课 */ }
+  }
+  async function openUpdateDialog(manual) {
+    closeDataMenu();
+    var api = updateApi();
+    if (!api) { toast('当前是演示模式（未连接桌面端），无法检查更新', 'warn'); return; }
+    toast('正在检查更新…');
+    var res = null;
+    try { res = await api.checkUpdate({ force: !!manual }); } catch (e) { res = { ok: false, message: '检查更新失败：' + ((e && e.message) || e) }; }
+    res = res || { ok: false, message: '没有拿到返回结果' };
+    var cur = res.current || '未知';
+    if (res.ok && res.hasUpdate) {
+      markUpdateBadge(true);
+      setUpdateSub('有新版本 v' + res.latest, true);
+      var sizeTxt = fmtSize(res.sizeBytes);
+      var head = '<p class="note">当前 <b>v' + esc(cur) + '</b> → 最新 <b>v' + esc(res.latest) + '</b>' +
+        (res.publishedAt ? (' · 发布于 ' + esc(fmtDate(res.publishedAt))) : '') +
+        (res.assetName ? ('<br>安装包：' + esc(res.assetName) + (sizeTxt ? ' · ' + esc(sizeTxt) : '')) : '') +
+        '<br>下载完成后双击安装包即可覆盖升级，班级数据会保留（在 %APPDATA%\\class-pet-desktop 目录）。</p>';
+      var notes = res.notes ? ('<div class="ins-sec-t" style="margin-top:10px">更新说明</div><pre class="upd-notes">' + esc(res.notes) + '</pre>') : '';
+      openDialog({
+        title: '发现新版本 v' + res.latest,
+        sub: '检查更新',
+        wide: true,
+        body: head + notes,
+        actions: [
+          { label: '下载新版本', primary: true, onClick: async function () {
+              var r = await api.openUpdateDownload(res.downloadUrl || res.pageUrl);
+              if (r && r.ok) { toast('已在浏览器打开下载，安装包下好后双击安装即可'); closeDialog(); }
+              else toast('打不开下载链接，请手动访问 ' + (res.pageUrl || 'GitHub 发布页'), 'warn');
+            } },
+          { label: '打开发布页', onClick: function () { api.openUpdateDownload(res.pageUrl || res.downloadUrl); } }
+        ]
+      });
+      return;
+    }
+    if (res.ok && !res.hasUpdate) {
+      markUpdateBadge(false);
+      setUpdateSub('v' + res.latest, false);
+      toast('已是最新版本 v' + res.latest + (res.cached ? '（今天已经查过，想看最新可再点一次）' : ''));
+      return;
+    }
+    openDialog({
+      title: '检查更新失败',
+      sub: '检查更新',
+      body: '<p class="note">' + esc(res.message || '未知原因') + '</p>' +
+        '<p class="note" style="margin-top:8px">仓库：' + esc(res.repo || 'GitHub') + ' · 当前版本 v' + esc(cur) + '</p>',
+      actions: [
+        { label: '重试', primary: true, onClick: function () { closeDialog(); setTimeout(function () { openUpdateDialog(true); }, 150); } },
+        { label: '打开发布页', onClick: function () { api.openUpdateDownload('https://github.com/' + (res.repo || 'Cayre1021/class-pet-v1.1.4') + '/releases'); } }
+      ]
+    });
+  }
+  function fmtSize(bytes) {
+    var n = Number(bytes) || 0;
+    if (!n) return '';
+    if (n >= 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
+    if (n >= 1024) return Math.round(n / 1024) + ' KB';
+    return n + ' B';
+  }
+
   function openBackupDialog() {
     if (isRealMode()) { openRealBackupDialog(); return; }   /* 真实数据态：整包备份走班级库（4.5） */
     closeDataMenu();
@@ -3682,6 +3788,7 @@ html.theme-fade *::after{
     else if (a === 'excel') openExcelDialog();
     else if (a === 'threshold') openThresholdDialog();
     else if (a === 'backup') openBackupDialog();
+    else if (a === 'update') openUpdateDialog(true);
 
     else if (a === 'sound') { closeDataMenu(); setSound(!state.sound); }
     else if (a === 'fullscreen') toggleFullscreen();
@@ -4027,6 +4134,9 @@ html.theme-fade *::after{
     var saved = store('classpet_current_teaching_subject');
     if (saved && SUBJECTS.indexOf(saved) >= 0) state.subject = saved;
   })();
+  /* 检查更新：先把当前版本填进菜单，再静默查一次（主进程每天最多真正请求一次） */
+  refreshUpdateVersion();
+  setTimeout(silentUpdateCheck, 4000);
     if (state.mode === 'demo') buildStudents();
     state.extraRules = [
       { name: '朗读之星', value: 2 },

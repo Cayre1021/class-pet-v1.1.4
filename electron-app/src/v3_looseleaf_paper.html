@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>三年级二班 · 班级电子宠物 · 纸感手绘版（模拟数据 · 演示原型）</title>
+<title>班级电子宠物 · 学生大屏</title>
 <style>
 /* ============================================================
    V3 纸感手绘变体 · 学生大屏
@@ -721,7 +721,7 @@ body.is-shaking{animation:shakeIt .3s cubic-bezier(.36,.07,.19,.97)}
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="detail-title" style="width:600px">
     <button class="dlg-close" type="button" id="detail-close" aria-label="关闭详情">✕</button>
     <h2 id="detail-title">完整成长档案</h2>
-    <p class="dlg-sub" id="detail-sub">模拟数据 · 演示原型</p>
+    <p class="dlg-sub" id="detail-sub">本堂课记录</p>
     <div id="detail-body"></div>
     <div class="dlg-actions"><button class="btn" type="button" id="detail-ok">关闭</button></div>
   </div>
@@ -2449,7 +2449,7 @@ function openDetail(){
     ['经验', s.exp + ' / ' + s.maxExp], ['状态', s.isAbsent ? '请假缺勤' : (s.isEgg ? '蛋 · 待破壳' : (isMaxed(s) ? '满级' : '正常'))]
   ];
   var dsub = $('detail-sub');
-  if (dsub && DATA_MODE === 'live') dsub.textContent = '真实数据 · 本班实时记录';
+  if (dsub) dsub.textContent = DATA_MODE === 'live' ? '班级库 · 实时记录' : '本堂课记录';
   var html = '<div class="detail-grid">';
   cells.forEach(function(c){ html += '<div class="detail-cell"><b>' + c[0] + '</b>' + c[1] + '</div>'; });
   html += '</div>';

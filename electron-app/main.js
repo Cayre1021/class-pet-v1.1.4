@@ -1,6 +1,8 @@
-const { app, BrowserWindow, ipcMain, screen, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell } = require('electron');
 const path = require('path');
+const https = require('https');
 const sqliteService = require('./sqlite_service.js');
+const updateCheck = require('./update_check.js');
 
 let mainWindow = null;
 
@@ -39,6 +41,9 @@ function createMainWindow(defaultPage = 'portal_auth.html', defaultTitle = 'Clas
     });
 
     mainWindow.loadFile(path.join(__dirname, 'src', defaultPage));
+    mainWindow.webContents.on('did-finish-load', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setTitle(defaultTitle);   /* 页面 title 不再干扰窗口标题 */
+    });
 
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -59,6 +64,9 @@ function navigateMainWindow(htmlRelativePath, title) {
             mainWindow.setTitle(title);
         }
         mainWindow.loadFile(path.join(__dirname, 'src', htmlRelativePath));
+        mainWindow.webContents.once('did-finish-load', () => {
+            if (title && mainWindow && !mainWindow.isDestroyed()) mainWindow.setTitle(title);
+        });
         mainWindow.focus();
         return mainWindow;
     }
@@ -103,6 +111,91 @@ ipcMain.on('broadcast-sync', (event, data) => {
 // ==========================================
 // 真实本地 SQLite 数据库 IPC 管道与服务处理
 // ==========================================
+/* ============ 检查更新（GitHub Releases，只提示 + 打开下载页；不自动安装） ============ */
+const UPDATE_REPO = process.env.CLASPET_UPDATE_REPO || 'Cayre1021/class-pet-v1.1.4';
+const UPDATE_CACHE_MS = 24 * 60 * 60 * 1000;   // 静默检查每天最多一次
+let updateCache = { at: 0, result: null };
+
+function httpsGetJson(url, timeoutMs = 7000) {
+    return new Promise((resolve) => {
+        let settled = false;
+        const done = (v) => { if (!settled) { settled = true; resolve(v); } };
+        const req = https.get(url, {
+            headers: {
+                'User-Agent': 'ClassPet-Updater/' + app.getVersion(),
+                'Accept': 'application/vnd.github+json'
+            },
+            timeout: timeoutMs
+        }, (res) => {
+            let body = '';
+            res.setEncoding('utf8');
+            res.on('data', (c) => { body += c; if (body.length > 2 * 1024 * 1024) req.destroy(); });
+            res.on('end', () => {
+                let json = null;
+                try { json = JSON.parse(body); } catch (e) { json = null; }
+                done({ status: res.statusCode, json, body });
+            });
+        });
+        req.on('timeout', () => { req.destroy(); done({ status: 0, json: null, error: 'timeout' }); });
+        req.on('error', (err) => { done({ status: 0, json: null, error: (err && err.code) || 'network' }); });
+    });
+}
+
+async function fetchLatestRelease(currentVersion) {
+    /* 自定义更新源（国内镜像 / OSS 上的 latest.json）：设了环境变量就优先走它，换源不用改代码 */
+    const feed = process.env.CLASPET_UPDATE_FEED;
+    if (feed) {
+        const r = await httpsGetJson(feed);
+        if (r.status === 200 && r.json) return updateCheck.parseFeed(r.json, currentVersion);
+        if (r.error) return { ok: false, reason: 'network', message: updateCheck.describeFailure(r.error === 'timeout' ? 'timeout' : 'network') };
+        return { ok: false, reason: 'http', message: updateCheck.describeFailure('http', String(r.status)) };
+    }
+    const api = 'https://api.github.com/repos/' + UPDATE_REPO + '/releases/latest';
+    const first = await httpsGetJson(api);
+    if (first.status === 200 && first.json) return updateCheck.parseRelease(first.json, currentVersion);
+    if (first.error === 'timeout' || first.error) {
+        return { ok: false, reason: 'network', message: updateCheck.describeFailure(first.error === 'timeout' ? 'timeout' : 'network') };
+    }
+    if (first.status === 403 || first.status === 429) {
+        return { ok: false, reason: 'rate-limit', message: updateCheck.describeFailure('rate-limit') };
+    }
+    if (first.status === 404) {
+        /* 还没有 release：退一步看 releases 列表 */
+        const list = await httpsGetJson('https://api.github.com/repos/' + UPDATE_REPO + '/releases?per_page=20');
+        if (list.status === 200 && Array.isArray(list.json)) return updateCheck.selectLatestFromList(list.json, currentVersion);
+        return { ok: false, reason: 'not-found', message: '仓库 ' + UPDATE_REPO + ' 还没有可用发布（或仓库是私有的）' };
+    }
+    return { ok: false, reason: 'http', message: updateCheck.describeFailure('http', String(first.status)) };
+}
+
+ipcMain.handle('app:get-version', () => app.getVersion());
+ipcMain.handle('update:check', async (event, opts) => {
+    const force = !!(opts && opts.force);
+    const now = Date.now();
+    if (!force && updateCache.result && (now - updateCache.at) < UPDATE_CACHE_MS) {
+        return Object.assign({}, updateCache.result, { cached: true, checkedAt: updateCache.at });
+    }
+    let result;
+    try {
+        result = await fetchLatestRelease(app.getVersion());
+    } catch (e) {
+        result = { ok: false, reason: 'network', message: updateCheck.describeFailure('network') };
+    }
+    result.current = app.getVersion();
+    result.repo = process.env.CLASPET_UPDATE_FEED ? String(process.env.CLASPET_UPDATE_FEED) : UPDATE_REPO;
+    updateCache = { at: now, result };
+    return Object.assign({}, result, { cached: false, checkedAt: now });
+});
+ipcMain.handle('update:open', async (event, url) => {
+    const u = String(url || '');
+    let host = '';
+    try { host = new URL(u).hostname; } catch (e) { return { ok: false, reason: 'bad-url' }; }
+    const allowed = ['github.com', 'objects.githubusercontent.com', 'github-releases.githubusercontent.com', 'raw.githubusercontent.com'];
+    if (!allowed.includes(host)) return { ok: false, reason: 'host-not-allowed', host };
+    await shell.openExternal(u);
+    return { ok: true, host };
+});
+
 ipcMain.handle('db:loadAllState', async (event, classId) => {
     try {
         return sqliteService.loadAllState(classId || 'c_class02_01');

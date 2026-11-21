@@ -443,7 +443,7 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
       </figure>
     </div>
 
-    <p class="verinfo">版本 v3 · 演示原型</p>
+    <p class="verinfo" id="verinfo">本地版 · 无需联网</p>
   </section>
 
   <!-- ================= 右栏 ================= -->
@@ -923,7 +923,16 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
   })();
 
   /* ---------- 启动：有身份（账号缓存优先，其次本机档案）就预填；有会话直接进选择入口 ---------- */
-    /* 第6条：门户跟随共享主题（门户不提供切换入口，只跟随教师台/大屏的选择） */
+    /* 版本号：桌面端取真实版本，浏览器直开显示"本地版" */
+  (function fillVersion() {
+    var el = document.getElementById('verinfo');
+    if (!el || !window.electronAPI || typeof window.electronAPI.getAppVersion !== 'function') return;
+    window.electronAPI.getAppVersion().then(function (v) {
+      if (v) el.textContent = '版本 v' + v + ' · 本地版 · 无需联网';
+    }).catch(function () {});
+  })();
+
+  /* 第6条：门户跟随共享主题（门户不提供切换入口，只跟随教师台/大屏的选择） */
   (function followTheme() {
     var apply = function (name) {
       if (name !== 'orange' && name !== 'forest' && name !== 'ocean') name = 'orange';

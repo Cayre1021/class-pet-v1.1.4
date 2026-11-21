@@ -7,6 +7,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openTeacherWindow: () => ipcRenderer.send('open-teacher-window'),
     openPortalWindow: () => ipcRenderer.send('open-portal-window'),
     getDisplays: () => ipcRenderer.invoke('get-displays'),
+    // 检查更新（GitHub Releases）：只返回信息，不自动安装
+    getAppVersion: () => ipcRenderer.invoke('app:get-version'),
+    checkUpdate: (opts) => ipcRenderer.invoke('update:check', opts || {}),
+    openUpdateDownload: (url) => ipcRenderer.invoke('update:open', url),
     broadcastSync: (data) => ipcRenderer.send('broadcast-sync', data),
     onBroadcastSync: (callback) => {
         const handler = (event, data) => callback(data);
