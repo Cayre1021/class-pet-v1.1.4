@@ -3805,10 +3805,11 @@ html.theme-fade *::after{
      不再硬编码"语文永远解锁"——数学班级里语文应当仍是锁着的。
      演示态（没有 VM）才回落到"语文可用"，保证设计稿能点。 */
   function subjectUnlockMap(vm) {
-    var out = { chinese: false, math: false, english: false };
+    var out = {};
+    subjectList(vm).forEach(function (s) { out[s.code] = false; });   /* 科目表里有几科就有几个键（含自定义） */
     var list = (vm && vm.subjectUnlocks);
     if (Array.isArray(list) && list.length) {
-      list.forEach(function (code) { if (out[code] !== undefined) out[code] = true; });
+      list.forEach(function (code) { out[code] = true; });
       return out;
     }
     if (!vm) { out.chinese = true; return out; }          /* 纯演示态 */
@@ -3819,10 +3820,26 @@ html.theme-fade *::after{
   function syncSubjectLocks(vm) {
     renderSubjectSeg(vm);
     var list = subjectList(vm);
-    if (list.length && !list.some(function (s) { return s.name === state.subject; })) {
-      state.subject = list[0].name;                       /* 上次的学科已不存在 → 回到主科 */
-      store('classpet_current_teaching_subject', state.subject);
+    var map0 = subjectUnlockMap(vm);
+    var classId = (vm && vm.classId) || '';
+    if (state.subjectClassId !== classId) {                /* 换班：允许重新按本班主科校正 */
+      state.subjectClassId = classId;
+      state.subjectTouched = false;
     }
+    var primaryCode = (vm && vm.defaultSubject) || (list[0] && list[0].code) || '';
+    var primaryName = labelOfCode(primaryCode, vm) || (list[0] && list[0].name) || state.subject;
+    var perClassKey = 'classpet_current_teaching_subject_' + classId;
+    var stored = store(perClassKey) || store('classpet_current_teaching_subject');
+    var storedOk = !!stored && list.some(function (s) { return s.name === stored; }) &&
+      map0[codeOfLabel(stored, vm)] !== false;
+    if (!state.subjectTouched) {
+      state.subject = storedOk ? stored : primaryName;      /* 没手动选过：按本班记录/主科 */
+    } else if (list.length && !list.some(function (s) { return s.name === state.subject; })) {
+      state.subject = primaryName;                          /* 手动选过的学科已不存在 → 回主科 */
+    }
+    store('classpet_current_teaching_subject', state.subject);
+    if (classId) store(perClassKey, state.subject);
+    syncSubjectUI();
     var map = subjectUnlockMap(vm);
     state.subjectLocks = map;
     var lockSvg = '<svg class="seg-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V8a3.5 3.5 0 017 0v3"/></svg>';
@@ -3890,7 +3907,8 @@ html.theme-fade *::after{
     }
     state.subject = name;
     state.subjectTouched = true;
-    store('classpet_current_teaching_subject', name);   /* 持久化：否则 v3Refresh 会用账号科目覆盖回来 */
+    store('classpet_current_teaching_subject', name);   /* 全局键（其它页读） */
+    if (state.vm && state.vm.classId) store('classpet_current_teaching_subject_' + state.vm.classId, name);   /* 本班各自记住 */
     syncSubjectUI();
     toast('已切换到「' + name + '」赋分' + (isRealMode() ? '（写入班级库）' : '（模拟）'));
     playChime('select');
