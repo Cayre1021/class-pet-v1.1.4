@@ -353,7 +353,7 @@ class SQLiteService {
         const petsByStudent = {};
         petsRows.forEach(p => {
             if (!petsByStudent[p.student_id]) petsByStudent[p.student_id] = {};
-            const subCode = p.subject_id === 'subj_math' ? 'math' : (p.subject_id === 'subj_english' ? 'english' : 'chinese');
+            const subCode = this.resolveSubjectCode(p.subject_id) || 'chinese';
             const existing = petsByStudent[p.student_id][subCode];
             // 优先选取设为大屏展示宠(is_display)或等级更高的真实有效记录，杜绝低级历史脏记录覆盖
             if (!existing || (p.is_display && !existing.is_display) || ((p.level || 0) > (existing.level || 0))) {
@@ -376,7 +376,9 @@ class SQLiteService {
             // 班级主科（注册时选的默认学科）
             defaultSubject: this.getClassDefaultSubject(classId),
             // 已解锁学科集合（唯一真相 class_subject_unlocks 的读取结果）
-            subjectUnlocks: this.getUnlockedSubjects(classId)
+            subjectUnlocks: this.getUnlockedSubjects(classId),
+            // 本班学科列表（数据驱动：含自定义科；主科优先、预设在前）
+            subjects: this.getClassSubjects(classId)
         };
     }
 
@@ -421,26 +423,29 @@ class SQLiteService {
             const entries = [];
             for (const rawSId of studentIds) {
                 const sId = this.normalizeStudentId(rawSId);
-                const subId = subjectCode === 'math' ? 'subj_math' : (subjectCode === 'english' ? 'subj_english' : (subjectCode === 'chinese' ? 'subj_chinese' : null));
+                /* 学科 code 由调用方给，认不出来才退回"取主展示宠"（老行为）；自定义科同样走 subj_<code> */
+                const subCode = this.resolveSubjectCode(subjectCode);
+                const subId = subCode ? this.subjectIdForCode(subCode) : null;
 
                 let pet = null;
                 if (subId) {
                     const petRows = this.query("SELECT * FROM pets WHERE class_id = ? AND student_id = ? AND subject_id = ?", [classId, sId, subId]);
                     pet = petRows[0];
                 } else {
+                    const fallbackSubId = this.subjectIdForCode(this.getClassDefaultSubject(classId));
                     const petRows = this.query(`
                         SELECT p.* FROM pets p 
                         LEFT JOIN students s ON s.id = p.student_id AND s.class_id = p.class_id
                         WHERE p.class_id = ? AND p.student_id = ? 
-                        ORDER BY (CASE WHEN p.id = s.display_pet_id THEN 3 WHEN p.is_display = 1 THEN 2 WHEN p.subject_id = 'subj_chinese' THEN 1 ELSE 0 END) DESC 
+                        ORDER BY (CASE WHEN p.id = s.display_pet_id THEN 3 WHEN p.is_display = 1 THEN 2 WHEN p.subject_id = ? THEN 1 ELSE 0 END) DESC 
                         LIMIT 1
-                    `, [classId, sId]);
+                    `, [classId, sId, fallbackSubId]);
                     pet = petRows[0];
                 }
 
                 if (!pet) {
                     // 不再凭空造宠物：目标学科没有宠物时拒绝本次赋分，由上层先孵化/认领
-                    throw new Error('NO_PET_FOR_SUBJECT:' + (subId || 'subj_chinese'));
+                    throw new Error('NO_PET_FOR_SUBJECT:' + (subId || this.subjectIdForCode(this.getClassDefaultSubject(classId))));
                 }
 
                 const expBefore = pet.exp;
@@ -575,7 +580,8 @@ class SQLiteService {
         return this.query(sql, [studentId, realId]);
     }
 
-    // 班级主科（注册时选的默认学科）。classes.default_subject_id 存 'subj_math' 这类 id；
+    // 班级主科（注册时选的默认学科）。classes.default_subject_id 存 'subj_<code>' 这类 id；
+    // 预设三科 → 'chinese'/'math'/'english'；自定义科（注册时填的「综合」）→ 'custom1'。
     // 空值/未知值一律按语文，于是老班级（默认语文）行为完全不变。
     getClassDefaultSubject(classId = 'c_class02_01') {
         let raw = '';
@@ -583,15 +589,126 @@ class SQLiteService {
             const row = this.query("SELECT default_subject_id FROM classes WHERE id = ? LIMIT 1", [classId])[0];
             raw = row && row.default_subject_id ? String(row.default_subject_id) : '';
         } catch (e) { raw = ''; }
-        if (raw === 'subj_math' || raw === 'math') return 'math';
-        if (raw === 'subj_english' || raw === 'english') return 'english';
-        return 'chinese';
+        return this.resolveSubjectCode(raw) || 'chinese';
     }
 
     // ============ 学科解锁集合（唯一真相：class_subject_unlocks） ============
     // 负责人 2026-11 指令：开局只有主科，其余学科由老师"逐科选择"解锁，不再有自动顺序链。
     // 可解锁条件：当前已解锁的任一学科里，有学生的该科宠物达到满级（classes.max_level，默认 20）。
     staticSubjectOrder() { return ['chinese', 'math', 'english']; }
+
+    // ============ 学科（数据驱动：subjects 表是唯一真相，预设三科只在没数据时兜底） ============
+    presetSubjectNames() { return { chinese: '语文', math: '数学', english: '英语' }; }
+
+    // 'subj_math' / 'math' / 'subj_custom1' → 'math' / 'custom1'；认不出来返回 ''（不猜）
+    resolveSubjectCode(code) {
+        const s = String(code == null ? '' : code).trim();
+        if (!s) return '';
+        const bare = s.indexOf('subj_') === 0 ? s.slice(5) : s;
+        if (!bare) return '';
+        if (this.staticSubjectOrder().indexOf(bare) >= 0) return bare;
+        if (/^custom\d+$/.test(bare)) return bare;
+        return '';
+    }
+
+    subjectIdForCode(code) { return 'subj_' + (this.resolveSubjectCode(code) || 'chinese'); }
+
+    // 学科显示名：以 subjects 表为准，查不到退回预设名，再退回 code 本身
+    subjectLabel(code, classId = 'c_class02_01') {
+        const key = this.resolveSubjectCode(code);
+        if (!key) return String(code == null ? '' : code);
+        const row = this._classSubjectRows(classId).filter(s => s.code === key)[0];
+        return (row && row.name) || this.presetSubjectNames()[key] || key;
+    }
+
+    // 宠物主键：预设三科沿用历史 id（pet_<stu>_c/m/e），自定义科用完整 code 避免与预设撞车
+    petIdForSubject(studentId, code) {
+        const c = this.resolveSubjectCode(code) || 'chinese';
+        return 'pet_' + studentId + '_' + (this.staticSubjectOrder().indexOf(c) >= 0 ? c.charAt(0) : c);
+    }
+
+    // subjects 表的读取结果；一行都没有的老班级按预设三科兜底（写死只发生在这里，VM 不再写死）
+    _classSubjectRows(classId = 'c_class02_01') {
+        let rows = [];
+        try { rows = this.query("SELECT code, name, is_preset FROM subjects WHERE class_id = ? ORDER BY rowid ASC", [classId]); }
+        catch (e) { rows = []; }
+        const list = [];
+        (rows || []).forEach(r => {
+            const code = this.resolveSubjectCode(r && r.code);
+            if (!code || list.some(s => s.code === code)) return;
+            list.push({ code: code, name: String((r && r.name) || '') || code, isPreset: Number(r && r.is_preset) === 1 });
+        });
+        if (!list.length) {
+            const names = this.presetSubjectNames();
+            this.staticSubjectOrder().forEach(code => list.push({ code: code, name: names[code], isPreset: true }));
+        }
+        const defaultCode = this.getClassDefaultSubject(classId);
+        if (!list.some(s => s.code === defaultCode)) {
+            list.push({ code: defaultCode, name: this.presetSubjectNames()[defaultCode] || defaultCode, isPreset: this.staticSubjectOrder().indexOf(defaultCode) >= 0 });
+        }
+        return list;
+    }
+
+    classSubjectOrder(classId = 'c_class02_01') { return this._classSubjectRows(classId).map(s => s.code); }
+
+    // 老师的学科列表：主科优先、预设在前；unlocked 只来自 class_subject_unlocks
+    getClassSubjects(classId = 'c_class02_01') {
+        const rows = this._classSubjectRows(classId);
+        const defaultCode = this.getClassDefaultSubject(classId);
+        const unlocked = this.getUnlockedSubjects(classId);
+        const decorated = rows.map((s, idx) => ({
+            code: s.code, name: s.name, isPreset: !!s.isPreset,
+            isPrimary: s.code === defaultCode,
+            unlocked: unlocked.indexOf(s.code) >= 0,
+            _idx: idx
+        }));
+        decorated.sort((a, b) =>
+            (Number(b.isPrimary) - Number(a.isPrimary)) ||
+            (Number(b.isPreset) - Number(a.isPreset)) ||
+            (a._idx - b._idx));
+        return decorated.map(s => ({ code: s.code, name: s.name, isPreset: s.isPreset, isPrimary: s.isPrimary, unlocked: s.unlocked }));
+    }
+
+    _nextCustomSubjectCode(classId = 'c_class02_01') {
+        const codes = this.classSubjectOrder(classId);
+        let n = 1;
+        codes.forEach(code => {
+            const m = /^custom(\d+)$/.exec(code);
+            if (m) n = Math.max(n, Number(m[1]) + 1);
+        });
+        while (codes.indexOf('custom' + n) >= 0) n += 1;
+        return 'custom' + n;
+    }
+
+    // 老师后来追加自定义科（如「科学」）：生成该班内唯一的 customN，插 subjects 行，不解锁
+    addClassSubject(classId = 'c_class02_01', name = '') {
+        const label = String(name == null ? '' : name).trim();
+        if (!label) return { success: false, error: 'MISSING_NAME:学科名称不能为空' };
+        if (!this.query("SELECT id FROM classes WHERE id = ? LIMIT 1", [classId]).length) {
+            return { success: false, error: 'NO_CLASS:班级不存在' };
+        }
+        const code = this._nextCustomSubjectCode(classId);
+        const subId = this.subjectIdForCode(code);
+        try {
+            const now = Date.now();
+            this.db.run(
+                "INSERT OR REPLACE INTO subjects (id, class_id, code, name, is_preset, created_at) VALUES (?, ?, ?, ?, 0, ?)",
+                [subId + '_' + classId, classId, code, label, now]
+            );
+            /* 班里已有学生：给每人补一条蛋态宠物行，否则新学科永远无法赋分/破壳 */
+            this.query("SELECT id FROM students WHERE class_id = ?", [classId]).forEach(st => {
+                if (this.query("SELECT id FROM pets WHERE student_id = ? AND subject_id = ? LIMIT 1", [st.id, subId]).length) return;
+                this.db.run(
+                    "INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, is_display, created_at, updated_at) VALUES (?, ?, ?, 'egg', ?, '神秘宠物蛋', '#FFAA00', 0, 0, 0, 0, ?, ?)",
+                    [this.petIdForSubject(st.id, code), classId, st.id, subId, now, now]
+                );
+            });
+            this.scheduleSave();
+        } catch (e) {
+            return { success: false, error: 'DB_FAILED:' + String((e && e.message) || e) };
+        }
+        return { success: true, subject: { code: code, name: label, isPreset: false, isPrimary: false, unlocked: false } };
+    }
 
     // 老库补表：initDefaultTables 之外的路径（离线脚本/老库直连）也能安全读写解锁集合
     ensureSubjectUnlockTable() {
@@ -606,12 +723,8 @@ class SQLiteService {
         }
     }
 
-    normalizeUnlockCode(code) {
-        const s = String(code || '');
-        if (s === 'math' || s === 'subj_math') return 'math';
-        if (s === 'english' || s === 'subj_english') return 'english';
-        return 'chinese';
-    }
+    // 解锁集合里的 code：认得出就原样保留（含自定义科的 customN），认不出按语文兜底
+    normalizeUnlockCode(code) { return this.resolveSubjectCode(code) || 'chinese'; }
 
     getClassMaxLevel(classId = 'c_class02_01') {
         const row = this.query("SELECT max_level FROM classes WHERE id = ? LIMIT 1", [classId])[0];
@@ -634,7 +747,7 @@ class SQLiteService {
                 : (Number(r.visual_stage) >= 1 && String(r.species_code || 'egg') !== 'egg');
             if (hatched) codes.push(this.normalizeUnlockCode(r.subject_id));
         });
-        return this.staticSubjectOrder().filter(c => codes.indexOf(c) >= 0);
+        return this.classSubjectOrder(classId).filter(c => codes.indexOf(c) >= 0);
     }
 
     // 一个班没有任何解锁行时，按推断补齐（老库/种子路径都靠这一步兜底，绝不给出空集合）
@@ -664,7 +777,7 @@ class SQLiteService {
     // 可解锁候选：已解锁学科里出现满级宠物 → 剩余未解锁学科全部成为候选（顺序故意不排，由老师选）
     getSubjectUnlockCandidates(classId = 'c_class02_01') {
         const unlocked = this.getUnlockedSubjects(classId);
-        const locked = this.staticSubjectOrder().filter(c => unlocked.indexOf(c) < 0);
+        const locked = this.classSubjectOrder(classId).filter(c => unlocked.indexOf(c) < 0);
         if (!locked.length) return [];
         const maxLevel = this.getClassMaxLevel(classId);
         const thresh = this.query("SELECT min_exp FROM class_level_thresholds WHERE class_id = ? AND level = ? LIMIT 1", [classId, maxLevel])[0];
@@ -772,7 +885,7 @@ class SQLiteService {
     // 破壳前的学科门禁：只认落库的解锁集合（与 core 同一真相）
     checkSubjectUnlock(studentId, subjectCode, classId = 'c_class02_01') {
         const key = this.normalizeUnlockCode(subjectCode);
-        const label = key === 'math' ? '数学' : (key === 'english' ? '英语' : '语文');
+        const label = this.subjectLabel(key, classId);
         if (this.getUnlockedSubjects(classId).indexOf(key) >= 0) return { allowed: true, reason: null };
         return { allowed: false, reason: '【' + label + '】尚未解锁：需已解锁学科出现 Lv.' + this.getClassMaxLevel(classId) + ' 满级宠物后由老师选择解锁' };
     }
@@ -782,8 +895,9 @@ class SQLiteService {
         this.ensurePetsHatchColumn();
         const now = Date.now();
         const realId = this.normalizeStudentId(studentId);
-        const subId = subjectCode === 'math' ? 'subj_math' : (subjectCode === 'english' ? 'subj_english' : 'subj_chinese');
-        const petId = 'pet_' + realId + '_' + subjectCode.charAt(0);
+        const subCode = this.resolveSubjectCode(subjectCode) || 'chinese';
+        const subId = this.subjectIdForCode(subCode);
+        const petId = this.petIdForSubject(realId, subCode);
 
         const existing = this.query("SELECT * FROM pets WHERE student_id = ? AND subject_id = ?", [realId, subId]);
 
@@ -829,13 +943,13 @@ class SQLiteService {
         this.execute("UPDATE pets SET is_display = 1 WHERE id = ?", [targetPetId]);
         this.execute("UPDATE students SET display_pet_id = ?, updated_at = ? WHERE id = ? AND class_id = ?", [targetPetId, now, realId, classId]);
 
-        return { success: true, studentId, realId, subjectCode, speciesCode };
+        return { success: true, studentId, realId, subjectCode: subCode, speciesCode };
     }
 
 
     // ============ 新建班级（V3 门户注册用）：默认阈值/形态/三科/13 条规则，名单为空 ============
     // 之前 V3 门户的"注册"只写 localStorage，不建库，于是新账号会沿用上一个账号的班级数据（严重串号）
-    createClassWithDefaults({ classId, className, teacherName, schoolName = '实验小学本部', subjectCode = 'chinese', teacherId = '' } = {}) {
+    createClassWithDefaults({ classId, className, teacherName, schoolName = '实验小学本部', subjectCode = 'chinese', subjectLabel = '', teacherId = '' } = {}) {
         const now = Date.now();
         try {
             if (!classId) return { success: false, error: 'MISSING_CLASS_ID:缺少班级 id' };
@@ -847,7 +961,14 @@ class SQLiteService {
             if (!tid || (takenBy && takenBy.length)) {
                 tid = 't_' + now + '_' + Math.random().toString(36).slice(2, 6);
             }
-            const subjId = 'subj_' + (['chinese', 'math', 'english'].indexOf(subjectCode) >= 0 ? subjectCode : 'chinese');
+            /* 主科：预设三科原样用；其余（门户注册选「自定义」填「综合」）在 subjects 里生成 customN */
+            const presetCode = this.resolveSubjectCode(subjectCode);
+            const isPresetPrimary = this.staticSubjectOrder().indexOf(presetCode) >= 0;
+            const primaryCode = isPresetPrimary ? presetCode : this._nextCustomSubjectCode(classId);
+            const primaryName = isPresetPrimary
+                ? this.presetSubjectNames()[primaryCode]
+                : (String(subjectLabel == null ? '' : subjectLabel).trim() || String(subjectCode == null ? '' : subjectCode).trim() || '自定义科目');
+            const subjId = this.subjectIdForCode(primaryCode);
 
             this.ensureSubjectUnlockTable();
             this.db.run('BEGIN TRANSACTION;');
@@ -860,12 +981,16 @@ class SQLiteService {
                 "INSERT OR REPLACE INTO classes (id, teacher_id, school_name, class_name, class_norm, default_subject_id, max_level, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 20, ?, ?)",
                 [classId, tid, schoolName, className, className, subjId, now, now]
             );
-            const subjects = [['subj_chinese', 'chinese', '语文'], ['subj_math', 'math', '数学'], ['subj_english', 'english', '英语']];
-            subjects.forEach(([sid, code, name]) => {
-                this.db.run("INSERT OR REPLACE INTO subjects (id, class_id, code, name, is_preset, created_at) VALUES (?, ?, ?, ?, 1, ?)", [sid + '_' + classId, classId, code, name, now]);
+            /* 一个班永远是「3 个预设科 + 自定义科」：预设科的 subjects 行照旧，自定义科只多一行 is_preset=0 */
+            const presetNames = this.presetSubjectNames();
+            this.staticSubjectOrder().forEach(code => {
+                this.db.run("INSERT OR REPLACE INTO subjects (id, class_id, code, name, is_preset, created_at) VALUES (?, ?, ?, ?, 1, ?)", [this.subjectIdForCode(code) + '_' + classId, classId, code, presetNames[code], now]);
             });
+            if (!isPresetPrimary) {
+                this.db.run("INSERT OR REPLACE INTO subjects (id, class_id, code, name, is_preset, created_at) VALUES (?, ?, ?, ?, 0, ?)", [this.subjectIdForCode(primaryCode) + '_' + classId, classId, primaryCode, primaryName, now]);
+            }
             /* 新班级只解锁主科（注册时选的科目），其余学科由老师逐科选择解锁 */
-            this.db.run("INSERT OR IGNORE INTO class_subject_unlocks (class_id, code, unlocked_at) VALUES (?, ?, ?)", [classId, this.normalizeUnlockCode(subjId), now]);
+            this.db.run("INSERT OR IGNORE INTO class_subject_unlocks (class_id, code, unlocked_at) VALUES (?, ?, ?)", [classId, primaryCode, now]);
             const NEW = [0, 50, 150, 250, 350, 450, 550, 650, 750, 850, 950, 1050, 1150, 1250, 1350, 1450, 1550, 1650, 1750, 1850, 1950];
             NEW.forEach((exp, level) => {
                 this.db.run("INSERT OR REPLACE INTO class_level_thresholds (class_id, level, min_exp) VALUES (?, ?, ?)", [classId, level, exp]);
@@ -891,7 +1016,7 @@ class SQLiteService {
             });
             this.db.run('COMMIT;');
             this.saveToDiskSync();
-            return { success: true, classId: classId, teacherId: tid, thresholds: NEW.length, stages: stages.length, rules: rules.length, students: 0 };
+            return { success: true, classId: classId, teacherId: tid, defaultSubject: primaryCode, subjectCode: primaryCode, subjectLabel: primaryName, thresholds: NEW.length, stages: stages.length, rules: rules.length, students: 0 };
         } catch (err) {
             try { this.db.run('ROLLBACK;'); } catch (e) {}
             console.error('[SQLiteService] 建班失败:', err);
@@ -996,11 +1121,11 @@ class SQLiteService {
             this.db.run("DELETE FROM pets WHERE class_id = ?;", [classId]);
             this.db.run("DELETE FROM students WHERE class_id = ?;", [classId]);
 
-            const subjects = [
-                { key: 'chinese', subId: 'subj_chinese', defaultName: '神秘宠物蛋' },
-                { key: 'math', subId: 'subj_math', defaultName: '神秘宠物蛋 (待破壳)' },
-                { key: 'english', subId: 'subj_english', defaultName: '神秘宠物蛋 (待破壳)' }
-            ];
+            const subjects = this._classSubjectRows(classId).map(s => ({
+                key: s.code,
+                subId: this.subjectIdForCode(s.code),
+                defaultName: s.code === 'chinese' ? '神秘宠物蛋' : '神秘宠物蛋 (待破壳)'
+            }));
             for (let idx = 0; idx < payload.students.length; idx++) {
                 const student = payload.students[idx] || {};
                 if (!student.id) throw new Error('BAD_STUDENT:第 ' + (idx + 1) + ' 条缺少 id');
@@ -1012,7 +1137,7 @@ class SQLiteService {
 
                 for (const sub of subjects) {
                     const p = (student.pets && student.pets[sub.key]) || {};
-                    const pId = p.id || ('pet_' + student.id + '_' + sub.key.charAt(0));
+                    const pId = p.id || this.petIdForSubject(student.id, sub.key);
                     const spCode = p.species || p.speciesCode || 'egg';
                     const nickname = p.name || (spCode === 'egg' ? sub.defaultName : sub.defaultName);
                     this.db.run(`INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, is_display, created_at, updated_at)
@@ -1108,8 +1233,9 @@ class SQLiteService {
                 student.no = safeNo;
             }
 
-            const targetDisplaySub = student.activeSubject || 'chinese';
-            const displayPetId = 'pet_' + student.id + '_' + targetDisplaySub.charAt(0);
+            const primaryCode = this.getClassDefaultSubject(classId);
+            const targetDisplaySub = this.resolveSubjectCode(student.activeSubject) || primaryCode;
+            const displayPetId = this.petIdForSubject(student.id, targetDisplaySub);
             if (existing.length > 0) {
                 this.db.run(`
                     UPDATE students 
@@ -1123,23 +1249,33 @@ class SQLiteService {
                 `, [student.id, classId, safeNo, name, groupName, note, displayPetId, archivedAt, now, now]);
             }
 
-            const subjects = [
-                { key: 'chinese', subId: 'subj_chinese', defaultSpecies: 'cat', defaultName: '语文萌宠' },
-                { key: 'math', subId: 'subj_math', defaultSpecies: 'dog', defaultName: '数学萌宠' },
-                { key: 'english', subId: 'subj_english', defaultSpecies: 'fox', defaultName: '英语萌宠' }
-            ];
+            /* 每个学科一行宠物：学科清单来自 subjects 表（含自定义科），不再写死三科 */
+            const presetSpecies = { chinese: 'cat', math: 'dog', english: 'fox' };
+            const presetPetNames = { chinese: '语文萌宠', math: '数学萌宠', english: '英语萌宠' };
+            const subjects = this._classSubjectRows(classId).map(s => ({
+                key: s.code,
+                subId: this.subjectIdForCode(s.code),
+                isPreset: !!s.isPreset,
+                defaultSpecies: presetSpecies[s.code] || 'egg',
+                defaultName: presetPetNames[s.code] || (s.name + '萌宠')
+            }));
 
             for (const sub of subjects) {
-                const p = (student.pets && student.pets[sub.key]) || {};
-                const pId = p.id || `pet_${student.id}_${sub.key.charAt(0)}`;
-                const spCode = p.species || (sub.key === 'chinese' ? (student.species || 'egg') : 'egg');
-                const pLevel = typeof p.level === 'number' ? p.level : (sub.key === 'chinese' ? (student.level || 0) : 0);
-                const pExp = typeof p.exp === 'number' ? p.exp : (sub.key === 'chinese' ? (student.exp || 0) : 0);
-                const pStage = typeof p.visualStage === 'number' ? p.visualStage : (sub.key === 'chinese' ? (student.visualStage || 0) : 0);
+                const hasPayload = !!(student.pets && Object.prototype.hasOwnProperty.call(student.pets, sub.key));
+                const p = (hasPayload ? student.pets[sub.key] : null) || {};
+                const pId = p.id || this.petIdForSubject(student.id, sub.key);
+                const spCode = p.species || (sub.key === primaryCode ? (student.species || 'egg') : 'egg');
+                const pLevel = typeof p.level === 'number' ? p.level : (sub.key === primaryCode ? (student.level || 0) : 0);
+                const pExp = typeof p.exp === 'number' ? p.exp : (sub.key === primaryCode ? (student.exp || 0) : 0);
+                const pStage = typeof p.visualStage === 'number' ? p.visualStage : (sub.key === primaryCode ? (student.visualStage || 0) : 0);
                 const nickname = p.name || (spCode === 'egg' ? '神秘宠物蛋' : sub.defaultName);
-                const isDisplay = (student.activeSubject ? student.activeSubject === sub.key : sub.key === 'chinese') ? 1 : 0;
+                const isDisplay = (student.activeSubject ? this.resolveSubjectCode(student.activeSubject) === sub.key : sub.key === primaryCode) ? 1 : 0;
 
                 const existingPet = this.query("SELECT id, species_code, nickname FROM pets WHERE id = ? OR (student_id = ? AND subject_id = ?) LIMIT 1", [pId, student.id, sub.subId]);
+                if (existingPet.length > 0 && !hasPayload && !sub.isPreset) {
+                    /* 追加自定义科后，老调用方（不带该科 pets 数据）不得把库里已攒的经验清零 */
+                    continue;
+                }
                 if (existingPet.length > 0) {
                     const savedNickname = strictNo && !p.name && existingPet[0].species_code === spCode ? existingPet[0].nickname : nickname;
                     this.db.run(`
@@ -1183,11 +1319,13 @@ class SQLiteService {
             this.db.run("DELETE FROM students WHERE class_id = ?;", [classId]);
 
             // 2. 批量写入新导入的学生与初始宠物蛋
-            const subjects = [
-                { key: 'chinese', subId: 'subj_chinese', defaultSpecies: 'cat', defaultName: '神秘宠物蛋' },
-                { key: 'math', subId: 'subj_math', defaultSpecies: 'egg', defaultName: '神秘宠物蛋 (待破壳)' },
-                { key: 'english', subId: 'subj_english', defaultSpecies: 'egg', defaultName: '神秘宠物蛋 (待破壳)' }
-            ];
+            const primaryCode = this.getClassDefaultSubject(classId);
+            const subjects = this._classSubjectRows(classId).map(s => ({
+                key: s.code,
+                subId: this.subjectIdForCode(s.code),
+                isPreset: !!s.isPreset,
+                defaultName: s.code === 'chinese' ? '神秘宠物蛋' : '神秘宠物蛋 (待破壳)'
+            }));
 
             const usedNos = new Set();
             for (let idx = 0; idx < students.length; idx++) {
@@ -1213,13 +1351,13 @@ class SQLiteService {
 
                 for (const sub of subjects) {
                     const p = (student.pets && student.pets[sub.key]) || {};
-                    const pId = p.id || `pet_${student.id}_${sub.key.charAt(0)}`;
-                    const spCode = p.species || (sub.key === 'chinese' ? (student.species || 'egg') : 'egg');
-                    const pLevel = typeof p.level === 'number' ? p.level : (sub.key === 'chinese' ? (student.level || 0) : 0);
-                    const pExp = typeof p.exp === 'number' ? p.exp : (sub.key === 'chinese' ? (student.exp || 0) : 0);
-                    const pStage = typeof p.visualStage === 'number' ? p.visualStage : (sub.key === 'chinese' ? (student.visualStage || 0) : 0);
+                    const pId = p.id || this.petIdForSubject(student.id, sub.key);
+                    const spCode = p.species || (sub.key === primaryCode ? (student.species || 'egg') : 'egg');
+                    const pLevel = typeof p.level === 'number' ? p.level : (sub.key === primaryCode ? (student.level || 0) : 0);
+                    const pExp = typeof p.exp === 'number' ? p.exp : (sub.key === primaryCode ? (student.exp || 0) : 0);
+                    const pStage = typeof p.visualStage === 'number' ? p.visualStage : (sub.key === primaryCode ? (student.visualStage || 0) : 0);
                     const nickname = p.name || sub.defaultName;
-                    const isDisplay = (student.activeSubject ? student.activeSubject === sub.key : sub.key === 'chinese') ? 1 : 0;
+                    const isDisplay = (student.activeSubject ? this.resolveSubjectCode(student.activeSubject) === sub.key : sub.key === primaryCode) ? 1 : 0;
 
                     this.db.run(`
                         INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, is_display, created_at, updated_at)

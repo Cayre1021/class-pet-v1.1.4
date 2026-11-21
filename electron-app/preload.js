@@ -42,7 +42,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         restoreClassBackup: (classId, payload) => ipcRenderer.invoke('db:restoreClassBackup', { classId, payload }),
         saveBehaviorRules: (rules, classId) => ipcRenderer.invoke('db:saveBehaviorRules', { rules, classId }),
         getSubjectUnlocks: (classId) => ipcRenderer.invoke('db:getSubjectUnlocks', classId),
-    unlockSubject: (payload) => ipcRenderer.invoke('db:unlockSubject', payload || {}),
+        unlockSubject: (payload) => ipcRenderer.invoke('db:unlockSubject', payload || {}),
+        getClassSubjects: (classId) => ipcRenderer.invoke('db:getClassSubjects', classId),
+        addClassSubject: (payload) => ipcRenderer.invoke('db:addClassSubject', payload || {}),
     query: (sql, params) => ipcRenderer.invoke('db:query', { sql, params }),
         execute: (sql, params) => ipcRenderer.invoke('db:execute', { sql, params })
     }

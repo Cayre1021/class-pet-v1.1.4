@@ -1229,8 +1229,8 @@ html.theme-fade *::after{
   function isRealMode() { return state.mode === 'real'; }
   function isRealStu(s) { return !!(s && s.fromVm === true); }
   /* 批次 3 写库链路（D18=A：全部等数据库确认才返回成功）。演示态一律不经过这里 */
-  var SUBJECT_CODE = { '语文': 'chinese', '数学': 'math', '英语': 'english' };
-  function subjectCodeFor(label) { return SUBJECT_CODE[label] || 'chinese'; }
+  /* 科目代码一律查班级科目表（支持自定义科目）；查不到才回落语文 */
+  function subjectCodeFor(label) { return codeOfLabel(label) || 'chinese'; }
   var v3Busy = false;
   async function v3Core(methods) {
     var core = await v3LoadCore();

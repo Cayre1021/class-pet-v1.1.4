@@ -295,33 +295,93 @@ function getPetImagePath(species, stage = 1) {
 // ==========================================
 // 2.4 V3 统一 ViewModel 的学科/形态/身份常量（批次 2 · 只读适配）
 // ==========================================
+// 预设三科只是"库里没数据时的兜底"，本班真实学科清单一律来自 subjects 表（VM.subjects）
 const V3_SUBJECTS = {
     chinese: { code: 'chinese', subjectId: 'subj_chinese', label: '语文' },
     math: { code: 'math', subjectId: 'subj_math', label: '数学' },
     english: { code: 'english', subjectId: 'subj_english', label: '英语' }
 };
 
+// 当前班级的学科注册表：code -> { code, subjectId, label, isPreset, isPrimary }
+// 每次 getV3ViewModel() 读库后用 subjects 重建，于是自定义科（综合/科学…）和预设三科走同一套代码
+let V3_ACTIVE_SUBJECTS = null;
+
+function v3PresetSubjectRows() {
+    return Object.keys(V3_SUBJECTS).map(code => ({ code: code, name: V3_SUBJECTS[code].label, isPreset: true, isPrimary: code === 'chinese' }));
+}
+
+function buildV3SubjectMap(rows) {
+    const map = {};
+    (Array.isArray(rows) ? rows : []).forEach(row => {
+        const code = String((row && row.code) || '').trim();
+        if (!code || map[code]) return;
+        map[code] = {
+            code: code,
+            subjectId: 'subj_' + code,
+            label: String((row && row.name) || '') || code,
+            isPreset: !!(row && row.isPreset),
+            isPrimary: !!(row && row.isPrimary)
+        };
+    });
+    if (!Object.keys(map).length) {
+        v3PresetSubjectRows().forEach(row => {
+            map[row.code] = { code: row.code, subjectId: 'subj_' + row.code, label: row.name, isPreset: true, isPrimary: row.isPrimary };
+        });
+    }
+    return map;
+}
+
+function v3ActiveSubjects() {
+    if (!V3_ACTIVE_SUBJECTS) V3_ACTIVE_SUBJECTS = buildV3SubjectMap(v3PresetSubjectRows());
+    return V3_ACTIVE_SUBJECTS;
+}
+
+function setV3ActiveSubjects(rows) { V3_ACTIVE_SUBJECTS = buildV3SubjectMap(rows); }
+
+function v3Subject(code) { return v3ActiveSubjects()[code] || null; }
+
+function v3SubjectCodes() { return Object.keys(v3ActiveSubjects()); }
+
+function v3SubjectLabel(code) {
+    const subj = v3Subject(code);
+    return subj ? subj.label : String(code == null ? '' : code);
+}
+
+function v3PrimarySubjectCode() {
+    const codes = v3SubjectCodes();
+    return codes.filter(c => v3ActiveSubjects()[c].isPrimary)[0] || 'chinese';
+}
+
+// 'subj_math' / 'math' / 'custom1' / '综合' → 本班认可 code；认不出来返回 ''
+function v3SubjectCodeOf(value) {
+    const raw = String(value == null ? '' : value).trim();
+    if (!raw) return '';
+    if (v3Subject(raw)) return raw;
+    const byLabel = v3SubjectCodes().filter(c => v3Subject(c).label === raw)[0];
+    if (byLabel) return byLabel;
+    const bare = raw.indexOf('subj_') === 0 ? raw.slice(5) : raw;
+    if (bare !== raw && v3Subject(bare)) return bare;
+    return '';
+}
+
 function normalizeSubjectCode(value) {
     const raw = String(value == null ? '' : value).trim();
     if (!raw) return 'chinese';
-    if (V3_SUBJECTS[raw]) return raw;
-    const byLabel = Object.keys(V3_SUBJECTS).filter(k => V3_SUBJECTS[k].label === raw)[0];
-    if (byLabel) return byLabel;
-    if (raw === 'subj_math') return 'math';
-    if (raw === 'subj_english') return 'english';
+    const hit = v3SubjectCodeOf(raw);
+    if (hit) return hit;
+    /* 注册时选的自定义主科：还没读库也要认得出 code（否则会被误判成语文） */
+    const bare = raw.indexOf('subj_') === 0 ? raw.slice(5) : raw;
+    if (/^custom\d+$/.test(bare)) return bare;
     return 'chinese';
 }
 
-// 解锁集合 -> Set（只认三科 code / subj_ 前缀，忽略脏值；绝不把空值默认成"语文可用"）
+// 解锁集合 -> Set（只认本班学科 code / subj_ 前缀，忽略脏值；绝不把空值默认成"语文可用"）
 function unlockCodeSet(value) {
     const list = Array.isArray(value) ? value : (value && typeof value.forEach === 'function' ? Array.from(value) : []);
     const set = new Set();
     list.forEach(code => {
-        const raw = String(code == null ? '' : code).trim();
-        if (V3_SUBJECTS[raw]) set.add(raw);
-        else if (raw === 'subj_chinese') set.add('chinese');
-        else if (raw === 'subj_math') set.add('math');
-        else if (raw === 'subj_english') set.add('english');
+        const hit = v3SubjectCodeOf(code);
+        if (hit) set.add(hit);
     });
     return set;
 }
@@ -329,14 +389,7 @@ function unlockCodeSet(value) {
 // 解锁集合 -> 有序 code 数组（保留库里"解锁先后"的顺序，去重，忽略脏值）
 function unlockCodeList(value) {
     const list = Array.isArray(value) ? value : (value && typeof value.forEach === 'function' ? Array.from(value) : []);
-    const codes = list.map(code => {
-        const raw = String(code == null ? '' : code).trim();
-        if (V3_SUBJECTS[raw]) return raw;
-        if (raw === 'subj_chinese') return 'chinese';
-        if (raw === 'subj_math') return 'math';
-        if (raw === 'subj_english') return 'english';
-        return '';
-    }).filter(code => !!code);
+    const codes = list.map(code => v3SubjectCodeOf(code)).filter(code => !!code);
     return codes.filter((code, idx) => codes.indexOf(code) === idx);
 }
 
@@ -740,7 +793,7 @@ class ClassPetStore {
                     const finalEngStage = Math.max(existing?.pets?.english?.visualStage ?? 0, stPets.english?.visual_stage ?? 0, this.calcVisualStage(finalEngLvl, 0));
                     const isEngHatched = (finalEngStage >= 1) || !!(existing?.pets?.english?.isHatched);
 
-                    const activeSubject = existing?.activeSubject || (primaryPetRow?.subject_id === 'subj_math' ? 'math' : (primaryPetRow?.subject_id === 'subj_english' ? 'english' : 'chinese'));
+                    const activeSubject = existing?.activeSubject || v3SubjectCodeOf(primaryPetRow?.subject_id) || 'chinese';
 
                     // 学生顶层属性与当前 activeSubject 保持绝对同步
                     let activeExp = finalChineseExp;
@@ -772,6 +825,70 @@ class ClassPetStore {
                         stamp = null;
                     }
 
+                    /* 学科 → 宠物行：chinese/math/english 走原有字段，其余（自定义科）按同一份 stPets 补一行 */
+                    const legacyPets = {
+                        chinese: {
+                            id: stPets.chinese?.id || 'pet_' + stRow.id + '_c',
+                            species: isHatched ? (stPets.chinese?.species_code || spCode) : 'egg',
+                            subject: '语文',
+                            name: isHatched ? (stPets.chinese?.nickname || spInfo.name) : '神秘宠物蛋',
+                            icon: isHatched ? spInfo.icon : '🐣',
+                            image: getPetImagePath(isHatched ? (stPets.chinese?.species_code || spCode) : 'egg', finalChineseStage),
+                            level: finalChineseLvl,
+                            exp: finalChineseExp,
+                            visualStage: finalChineseStage,
+                            isHatched,
+                            affection: 70, fullness: 80, energy: 80
+                        },
+                        math: {
+                            id: stPets.math?.id || 'pet_' + stRow.id + '_m',
+                            species: isMathHatched ? (stPets.math?.species_code || 'cat') : 'egg',
+                            subject: '数学',
+                            name: isMathHatched ? (stPets.math?.nickname || '数学萌宠') : '神秘宠物蛋 (待破壳)',
+                            icon: isMathHatched ? (PET_SPECIES_CATALOG[stPets.math?.species_code]?.icon || '📐') : '🐣',
+                            image: getPetImagePath(isMathHatched ? (stPets.math?.species_code || 'cat') : 'egg', finalMathStage),
+                            level: finalMathLvl,
+                            exp: finalMathExp,
+                            visualStage: finalMathStage,
+                            isHatched: isMathHatched,
+                            affection: 20, fullness: 50, energy: 50
+                        },
+                        english: {
+                            id: stPets.english?.id || 'pet_' + stRow.id + '_e',
+                            species: isEngHatched ? (stPets.english?.species_code || 'cat') : 'egg',
+                            subject: '英语',
+                            name: isEngHatched ? (stPets.english?.nickname || '英语萌宠') : '神秘宠物蛋 (待破壳)',
+                            icon: isEngHatched ? (PET_SPECIES_CATALOG[stPets.english?.species_code]?.icon || '🔤') : '🐣',
+                            image: getPetImagePath(isEngHatched ? (stPets.english?.species_code || 'cat') : 'egg', finalEngStage),
+                            level: finalEngLvl,
+                            exp: finalEngExp,
+                            visualStage: finalEngStage,
+                            isHatched: isEngHatched,
+                            affection: 20, fullness: 50, energy: 50
+                        }
+                    };
+                    v3SubjectCodes().forEach(code => {
+                        if (legacyPets[code]) return;
+                        const row = stPets[code] || {};
+                        const sp = (row.species_code && PET_SPECIES_CATALOG[row.species_code]) ? row.species_code : 'egg';
+                        const hatched = (row.hatched_at !== null && row.hatched_at !== undefined) || Number(row.visual_stage) >= 1;
+                        const lvl = Number(row.level) || 0;
+                        const expVal = Math.max(0, Number(row.exp) || 0);
+                        const stageVal = Number(row.visual_stage) || 0;
+                        const info = PET_SPECIES_CATALOG[sp];
+                        legacyPets[code] = {
+                            id: row.id || 'pet_' + stRow.id + '_' + code,
+                            species: hatched ? sp : 'egg',
+                            subject: v3SubjectLabel(code),
+                            name: hatched ? (row.nickname || (info && info.name) || '宠物') : '神秘宠物蛋',
+                            icon: hatched ? ((info && info.icon) || '🐾') : '🐣',
+                            image: getPetImagePath(hatched ? sp : 'egg', stageVal),
+                            level: lvl, exp: expVal, visualStage: stageVal,
+                            isHatched: hatched,
+                            affection: 20, fullness: 50, energy: 50
+                        };
+                    });
+
                     return {
                         id: stRow.id,
                         no: stRow.student_no || (idx + 1).toString().padStart(2, '0'),
@@ -787,47 +904,7 @@ class ClassPetStore {
                         minExpForCurrentLevel: this.getCurrentLevelMinExp(activeLvl),
                         nextLevelExp: this.getNextLevelThreshold(activeLvl),
                         activeSubject: activeSubject,
-                        pets: {
-                            chinese: {
-                                id: stPets.chinese?.id || 'pet_' + stRow.id + '_c',
-                                species: isHatched ? (stPets.chinese?.species_code || spCode) : 'egg',
-                                subject: '语文',
-                                name: isHatched ? (stPets.chinese?.nickname || spInfo.name) : '神秘宠物蛋',
-                                icon: isHatched ? spInfo.icon : '🐣',
-                                image: getPetImagePath(isHatched ? (stPets.chinese?.species_code || spCode) : 'egg', finalChineseStage),
-                                level: finalChineseLvl,
-                                exp: finalChineseExp,
-                                visualStage: finalChineseStage,
-                                isHatched,
-                                affection: 70, fullness: 80, energy: 80
-                            },
-                            math: {
-                                id: stPets.math?.id || 'pet_' + stRow.id + '_m',
-                                species: isMathHatched ? (stPets.math?.species_code || 'cat') : 'egg',
-                                subject: '数学',
-                                name: isMathHatched ? (stPets.math?.nickname || '数学萌宠') : '神秘宠物蛋 (待破壳)',
-                                icon: isMathHatched ? (PET_SPECIES_CATALOG[stPets.math?.species_code]?.icon || '📐') : '🐣',
-                                image: getPetImagePath(isMathHatched ? (stPets.math?.species_code || 'cat') : 'egg', finalMathStage),
-                                level: finalMathLvl,
-                                exp: finalMathExp,
-                                visualStage: finalMathStage,
-                                isHatched: isMathHatched,
-                                affection: 20, fullness: 50, energy: 50
-                            },
-                            english: {
-                                id: stPets.english?.id || 'pet_' + stRow.id + '_e',
-                                species: isEngHatched ? (stPets.english?.species_code || 'cat') : 'egg',
-                                subject: '英语',
-                                name: isEngHatched ? (stPets.english?.nickname || '英语萌宠') : '神秘宠物蛋 (待破壳)',
-                                icon: isEngHatched ? (PET_SPECIES_CATALOG[stPets.english?.species_code]?.icon || '🔤') : '🐣',
-                                image: getPetImagePath(isEngHatched ? (stPets.english?.species_code || 'cat') : 'egg', finalEngStage),
-                                level: finalEngLvl,
-                                exp: finalEngExp,
-                                visualStage: finalEngStage,
-                                isHatched: isEngHatched,
-                                affection: 20, fullness: 50, energy: 50
-                            }
-                        }
+                        pets: legacyPets,
                     };
                 });
 
@@ -959,13 +1036,15 @@ class ClassPetStore {
             classId: classId,
             teacherId: teacherId,
             teacher: { id: teacherId, name: teacherName, className: className, school: school },
-            subject: normalizeSubjectCode(subjectRaw)
+            subject: normalizeSubjectCode(subjectRaw),
+            /* 原始文本（如「综合」）：预设三科以外的主科要等读库拿到学科清单才认得出来 */
+            subjectRaw: String(subjectRaw || '')
         };
     }
 
     // 单只宠物的 ViewModel：等级/经验读库，形态读 STAGE_MIN_LEVELS（只升不降，取已获得形态）
     _v3PetView(petRow, subjectCode, stages) {
-        const subj = V3_SUBJECTS[subjectCode] || V3_SUBJECTS.chinese;
+        const subj = v3Subject(subjectCode) || { code: subjectCode, subjectId: 'subj_' + subjectCode, label: String(subjectCode || '') };
         const row = petRow || null;
         const rawSpecies = (row && row.species_code) ? String(row.species_code) : 'egg';
         const speciesCode = PET_SPECIES_CATALOG[rawSpecies] ? rawSpecies : 'egg';
@@ -1025,7 +1104,7 @@ class ClassPetStore {
             teacherId: identity.teacherId,
             teacher: identity.teacher,
             subject: identity.subject,
-            subjectLabel: (V3_SUBJECTS[identity.subject] || V3_SUBJECTS.chinese).label,
+            subjectLabel: v3SubjectLabel(identity.subject),
             // 班级主科：读库后覆盖；无桥/老库一律语文（与改动前一致）
             defaultSubject: normalizeSubjectCode(null),
             maxLevel: Math.max(0, thresholds.length - 1),
@@ -1077,7 +1156,13 @@ class ClassPetStore {
         vm.stages = stages;
         vm.maxLevel = Math.max(0, thresholds.length - 1);
         vm.hatchThreshold = Number(thresholds[1]) || 15;
+        /* 学科清单数据驱动：本班有哪些科目、谁是主科，一律以库里的 subjects 为准 */
+        setV3ActiveSubjects(Array.isArray(state.subjects) && state.subjects.length ? state.subjects : v3PresetSubjectRows());
         vm.defaultSubject = normalizeSubjectCode(state.defaultSubject);
+        /* 学科清单到手后再认一次授课科目：「综合」这类自定义主科不再被误判成语文 */
+        const teachingCode = v3SubjectCodeOf(identity.subjectRaw);
+        if (teachingCode) vm.subject = teachingCode;
+        vm.subjectLabel = v3SubjectLabel(vm.subject);
 
         // 行为规则：以库为准，页面不再写死六条
         const ruleRows = Array.isArray(state.behaviorRules) ? state.behaviorRules : [];
@@ -1107,13 +1192,24 @@ class ClassPetStore {
         const candidateCodes = this._v3UnlockCandidates(petsByStudent, unlockCodes, vm.maxLevel);
         vm.subjectUnlocks = unlockCodes;
         vm.subjectCandidates = candidateCodes;
+        // 同 getClassSubjects 的结构：主科优先、预设在前（顺序 = 库里学科清单的顺序）
+        vm.subjects = v3SubjectCodes().map(code => {
+            const s = v3Subject(code);
+            return {
+                code: code,
+                name: s.label,
+                isPreset: !!s.isPreset,
+                isPrimary: code === vm.defaultSubject,
+                unlocked: unlockedSet.has(code)
+            };
+        });
         vm.students = state.students.filter(row => row && row.id).map(row => {
             const rawPets = (petsByStudent[row.id] && typeof petsByStudent[row.id] === 'object') ? petsByStudent[row.id] : {};
             const petsBySubject = {};
-            Object.keys(V3_SUBJECTS).forEach(code => {
+            v3SubjectCodes().forEach(code => {
                 petsBySubject[code] = this._v3PetView(rawPets[code], code, stages);
             });
-            Object.keys(V3_SUBJECTS).forEach(code => {
+            v3SubjectCodes().forEach(code => {
                 const u = this._v3UnlockState(code, unlockedSet, candidateCodes);
                 petsBySubject[code].unlocked = u.allowed;
                 petsBySubject[code].lockReason = u.reason;
@@ -1127,7 +1223,7 @@ class ClassPetStore {
             }
             if (!displayKey) {
                 if (rawPets[subjectCode]) displayKey = subjectCode;
-                else if (rawPets.chinese) displayKey = 'chinese';
+                else if (rawPets[vm.defaultSubject]) displayKey = vm.defaultSubject;
                 else if (Object.keys(rawPets).length) displayKey = normalizeSubjectCode(Object.keys(rawPets)[0]);
                 else displayKey = subjectCode;
             }
@@ -1207,8 +1303,8 @@ class ClassPetStore {
     // 可解锁候选：已解锁学科里出现满级宠物（level >= classes.max_level，默认 20）→ 剩余学科全部候选
     // 顺序故意不排序成"语文→数学→英语"，由老师自己选一科
     _v3UnlockCandidates(petsByStudent, unlockedCodes, maxLevel) {
-        const unlocked = (Array.isArray(unlockedCodes) ? unlockedCodes : []).filter(code => !!V3_SUBJECTS[code]);
-        const locked = Object.keys(V3_SUBJECTS).filter(code => unlocked.indexOf(code) < 0);
+        const unlocked = (Array.isArray(unlockedCodes) ? unlockedCodes : []).filter(code => !!v3Subject(code));
+        const locked = v3SubjectCodes().filter(code => unlocked.indexOf(code) < 0);
         if (!locked.length) return [];
         const cap = Number(maxLevel) || 20;
         const capExp = Number(LEVEL_THRESHOLDS[cap]);
@@ -1241,7 +1337,7 @@ class ClassPetStore {
         const key = normalizeSubjectCode(subjectCode);
         const cache = this._v3UnlockCacheForCurrentClass();
         const unlocked = unlockCodeSet(unlockedCodes != null ? unlockedCodes : cache.unlocked);
-        const label = (V3_SUBJECTS[key] || {}).label || key;
+        const label = v3SubjectLabel(key);
         if (unlocked.has(key)) return { allowed: true, reason: null };
         const candidates = Array.isArray(candidateCodes) ? candidateCodes : (cache.candidates || []);
         if (candidates.indexOf(key) >= 0) {
@@ -1254,7 +1350,7 @@ class ClassPetStore {
     // 赋分资格判定（读 ViewModel/DB）：解锁 = 老师逐科选的集合，未解锁一律 LOCKED
     _v3GuardScore(student, subjectCode, isAbsent, unlockedCodes) {
         const code = normalizeSubjectCode(subjectCode);
-        const subj = V3_SUBJECTS[code];
+        const label = v3SubjectLabel(code);
         const cache = this._v3UnlockCacheForCurrentClass();
         const source = unlockedCodes != null ? unlockedCodes : cache.unlocked;
         const unlocked = unlockCodeSet(source);
@@ -1264,10 +1360,10 @@ class ClassPetStore {
         const pet = student.petsBySubject ? student.petsBySubject[code] : null;
         if (!unlocked.has(code)) {
             const u = this._v3UnlockState(code, source, cache.candidates);
-            return { allowed: false, reason: 'LOCKED', message: u.reason || ('【' + subj.label + '】尚未解锁') };
+            return { allowed: false, reason: 'LOCKED', message: u.reason || ('【' + label + '】尚未解锁') };
         }
         // 已解锁学科：未破壳的蛋也能加分攒破壳能量，否则解锁后永远孵不出宠物
-        if (!pet) return { allowed: false, reason: 'UNHATCHED', message: '【' + subj.label + '】暂无该学科宠物，请先破壳认领' };
+        if (!pet) return { allowed: false, reason: 'UNHATCHED', message: '【' + label + '】暂无该学科宠物，请先破壳认领' };
         return { allowed: true, reason: 'OK', message: '', pet: pet };
     }
 
@@ -1282,10 +1378,9 @@ class ClassPetStore {
         try { rows = await db.getClassLedger(vm.classId, fromTs, toTs); }
         catch (e) { return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200), rows: [] }; }
         if (!Array.isArray(rows)) return { ok: false, reason: 'db-failed', error: '台账查询未返回数组', rows: [] };
-        const subjectLabel = r => {
-            if (r === 'subj_math') return '数学';
-            if (r === 'subj_english') return '英语';
-            return '语文';
+        const ledgerSubjectCode = r => {
+            const bare = String(r == null ? '' : r).indexOf('subj_') === 0 ? String(r).slice(5) : '';
+            return v3Subject(bare) ? bare : 'chinese';
         };
         return {
             ok: true,
@@ -1301,8 +1396,8 @@ class ClassPetStore {
                 studentName: r.student_name || '',
                 studentNo: r.student_no || '',
                 groupName: r.group_name || '',
-                subjectCode: r.pet_subject_id === 'subj_math' ? 'math' : (r.pet_subject_id === 'subj_english' ? 'english' : 'chinese'),
-                subjectLabel: subjectLabel(r.pet_subject_id),
+                subjectCode: ledgerSubjectCode(r.pet_subject_id),
+                subjectLabel: v3SubjectLabel(ledgerSubjectCode(r.pet_subject_id)),
                 expBefore: r.exp_before === null || r.exp_before === undefined ? null : Number(r.exp_before),
                 expAfter: r.exp_after === null || r.exp_after === undefined ? null : Number(r.exp_after),
                 levelAfter: r.level_after === null || r.level_after === undefined ? null : Number(r.level_after)
@@ -2405,7 +2500,8 @@ class ClassPetStore {
     isSubjectUnlocked(studentId, subjectKey) {
         const student = this.students.find(s => s.id === studentId);
         if (!student) return false;
-        if (subjectKey === 'chinese') return true;
+        /* 主科恒解锁（预设语文班即老行为；自定义主科班不再被误判成锁着） */
+        if (subjectKey === v3PrimarySubjectCode()) return true;
 
         const curPet = student.pets?.[subjectKey];
         if (curPet && (curPet.isHatched || (curPet.species && curPet.species !== 'egg') || (curPet.visualStage && curPet.visualStage >= 1))) {
@@ -2575,7 +2671,7 @@ class ClassPetStore {
         const hatchedSubjects = [];
         const unhatchedSubjects = [];
         const lockedSubjects = [];
-        ['chinese', 'math', 'english'].forEach(sub => {
+        v3SubjectCodes().forEach(sub => {
             const p = student?.pets?.[sub];
             if (p && p.species && p.species !== 'egg' && (p.isHatched || (p.visualStage && p.visualStage >= 1))) {
                 hatchedSubjects.push(sub);
@@ -2601,9 +2697,8 @@ class ClassPetStore {
             };
         }
 
-        // 规则 2：如果是单科教师（语文 / 数学 / 英语）：
-        const subjectMap = { '语文': 'chinese', '数学': 'math', '英语': 'english' };
-        const mySubject = subjectMap[teacherSubject] || 'chinese';
+        // 规则 2：如果是单科教师（学科名以本班学科清单为准）
+        const mySubject = v3SubjectCodeOf(teacherSubject) || v3PrimarySubjectCode();
 
         if (!hatchedSubjects.includes(mySubject)) {
             const isUnlocked = this.isSubjectUnlocked(studentId, mySubject);
@@ -2822,6 +2917,33 @@ class ClassPetStore {
         }
     }
 
+    // 新学生的初始宠物行：按本班学科清单逐科建蛋（预设语文沿用历史初始值，其余与自定义科都是蛋）
+    _buildEmptySubjectPets(studentId, base) {
+        const hasChinese = !!v3Subject('chinese');
+        const pets = {};
+        v3SubjectCodes().forEach(code => {
+            const suffix = code === 'chinese' ? 'c' : (code === 'math' ? 'm' : (code === 'english' ? 'e' : code));
+            const primary = hasChinese ? code === 'chinese' : code === v3PrimarySubjectCode();
+            const hatched = !!(primary && base.isHatched);
+            pets[code] = {
+                id: 'pet_' + suffix + '_' + studentId,
+                species: hatched ? base.sp : 'egg',
+                subject: v3SubjectLabel(code),
+                name: hatched ? base.info.name : '神秘宠物蛋',
+                icon: hatched ? base.info.icon : '🐣',
+                image: getPetImagePath(hatched ? base.sp : 'egg', primary ? base.visualStage : 0),
+                level: primary ? base.level : 0,
+                exp: primary ? base.exp : 0,
+                visualStage: primary ? base.visualStage : 0,
+                isHatched: hatched,
+                affection: primary && base.isHatched ? 60 : 20,
+                fullness: primary && base.isHatched ? 80 : 50,
+                energy: primary && base.isHatched ? 90 : 50
+            };
+        });
+        return pets;
+    }
+
     // 学生日常管理：单个新增 (默认初始为蛋形态，0分0级)
     async addStudent({ name, no = null, group = 1, species = 'egg', initialHatched = false }) {
         const nextIdNum = this.students.length + 1;
@@ -2850,53 +2972,15 @@ class ClassPetStore {
             minExpForCurrentLevel: this.getCurrentLevelMinExp(level),
             nextLevelExp: this.getNextLevelThreshold(level),
             activeSubject: 'chinese',
-            pets: {
-                chinese: {
-                    id: 'pet_c_' + id,
-                    species: isHatched ? sp : 'egg',
-                    subject: '语文',
-                    name: isHatched ? info.name : '神秘宠物蛋',
-                    icon: !isHatched ? '🐣' : info.icon,
-                    image: getPetImagePath(isHatched ? sp : 'egg', visualStage),
-                    level,
-                    exp,
-                    visualStage,
-                    isHatched,
-                    affection: isHatched ? 60 : 20,
-                    fullness: isHatched ? 80 : 50,
-                    energy: isHatched ? 90 : 50
-                },
-                math: {
-                    id: 'pet_m_' + id,
-                    species: 'egg',
-                    subject: '数学',
-                    name: '神秘宠物蛋',
-                    icon: '🐣',
-                    image: getPetImagePath('egg', 0),
-                    level: 0,
-                    exp: 0,
-                    visualStage: 0,
-                    isHatched: false,
-                    affection: 20,
-                    fullness: 50,
-                    energy: 50
-                },
-                english: {
-                    id: 'pet_e_' + id,
-                    species: 'egg',
-                    subject: '英语',
-                    name: '神秘宠物蛋',
-                    icon: '🐣',
-                    image: getPetImagePath('egg', 0),
-                    level: 0,
-                    exp: 0,
-                    visualStage: 0,
-                    isHatched: false,
-                    affection: 20,
-                    fullness: 50,
-                    energy: 50
-                }
-            }
+            /* 每个学科一行宠物：学科清单来自库（v3SubjectCodes），不再写死三科 */
+            pets: this._buildEmptySubjectPets(id, {
+                isHatched,
+                sp,
+                info,
+                level,
+                exp,
+                visualStage
+            })
         };
 
         this.students.push(newStudent);
@@ -2970,7 +3054,7 @@ class ClassPetStore {
                 student.pets[activeSub] = {
                     id: `pet_${activeSub[0]}_${student.id}`,
                     species: sp,
-                    subject: activeSub === 'chinese' ? '语文' : (activeSub === 'math' ? '数学' : '英语'),
+                    subject: v3SubjectLabel(activeSub),
                     name: info.name,
                     icon: info.icon,
                     level: student.level || 1,

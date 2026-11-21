@@ -410,6 +410,25 @@ ipcMain.handle('db:unlockSubject', async (event, { classId, code }) => {
     }
 });
 
+// 学科清单（数据驱动，含自定义科）：老师端的学科选择/设置都读这里
+ipcMain.handle('db:getClassSubjects', async (event, classId) => {
+    try {
+        return sqliteService.getClassSubjects(classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:getClassSubjects 失败:', err);
+        return [];
+    }
+});
+
+ipcMain.handle('db:addClassSubject', async (event, { classId, name }) => {
+    try {
+        return sqliteService.addClassSubject(classId || 'c_class02_01', name);
+    } catch (err) {
+        console.error('[Main IPC] db:addClassSubject 失败:', err);
+        return { success: false, error: String((err && err.message) || err) };
+    }
+});
+
 ipcMain.handle('db:query', async (event, { sql, params }) => {
     try {
         return sqliteService.query(sql, params);
