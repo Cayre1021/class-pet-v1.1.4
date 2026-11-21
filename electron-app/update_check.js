@@ -110,4 +110,54 @@ function parseFeed(json, currentVersion) {
     };
 }
 
-module.exports = { compareVersions, pickAsset, parseRelease, parseFeed, selectLatestFromList, describeFailure, formatSize };
+/* ---------------- 网络层（纯 node，可单测；main.js 直接复用） ---------------- */
+function httpsGetJson(url, timeoutMs) {
+    const https = require('https');
+    const limit = timeoutMs || 8000;
+    return new Promise((resolve) => {
+        let settled = false;
+        const done = (v) => { if (!settled) { settled = true; resolve(v); } };
+        const req = https.get(url, {
+            headers: { 'User-Agent': 'ClassPet-Updater', 'Accept': 'application/vnd.github+json' },
+            timeout: limit
+        }, (res) => {
+            let body = '';
+            res.setEncoding('utf8');
+            res.on('data', (c) => { body += c; if (body.length > 2 * 1024 * 1024) req.destroy(); });
+            res.on('end', () => {
+                let json = null;
+                try { json = JSON.parse(body); } catch (e) { json = null; }
+                done({ status: res.statusCode, json, body });
+            });
+        });
+        req.on('timeout', () => { req.destroy(); done({ status: 0, json: null, error: 'timeout' }); });
+        req.on('error', (err) => { done({ status: 0, json: null, error: (err && err.code) || 'network' }); });
+    });
+}
+
+/** 查最新版本：自定义 feed 优先，其次 GitHub Releases（先 latest，404 再退回列表） */
+async function fetchLatestRelease(opts) {
+    const o = opts || {};
+    const current = String(o.currentVersion || '');
+    const timeoutMs = Number(o.timeoutMs) || 8000;
+    if (o.feed) {
+        const r = await httpsGetJson(o.feed, timeoutMs);
+        if (r.status === 200 && r.json) return parseFeed(r.json, current);
+        if (r.error) return { ok: false, reason: 'network', message: describeFailure(r.error === 'timeout' ? 'timeout' : 'network') };
+        return { ok: false, reason: 'http', message: describeFailure('http', String(r.status)) };
+    }
+    const repo = o.repo || 'Cayre1021/class-pet-v1.1.4';
+    const first = await httpsGetJson('https://api.github.com/repos/' + repo + '/releases/latest', timeoutMs);
+    if (first.status === 200 && first.json) return parseRelease(first.json, current);
+    if (first.error) return { ok: false, reason: 'network', message: describeFailure(first.error === 'timeout' ? 'timeout' : 'network') };
+    if (first.status === 403 || first.status === 429) return { ok: false, reason: 'rate-limit', message: describeFailure('rate-limit') };
+    if (first.status === 404) {
+        const list = await httpsGetJson('https://api.github.com/repos/' + repo + '/releases?per_page=20', timeoutMs);
+        if (list.status === 200 && Array.isArray(list.json)) return selectLatestFromList(list.json, current);
+        if (list.status === 404) return { ok: false, reason: 'not-found', message: '仓库 ' + repo + ' 不存在、是私有的，或还没有发布版本' };
+        return { ok: false, reason: 'http', message: describeFailure('http', String(list.status)) };
+    }
+    return { ok: false, reason: 'http', message: describeFailure('http', String(first.status)) };
+}
+
+module.exports = { compareVersions, pickAsset, parseRelease, parseFeed, selectLatestFromList, describeFailure, formatSize, httpsGetJson, fetchLatestRelease };

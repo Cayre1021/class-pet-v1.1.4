@@ -116,57 +116,16 @@ const UPDATE_REPO = process.env.CLASPET_UPDATE_REPO || 'Cayre1021/class-pet-v1.1
 const UPDATE_CACHE_MS = 24 * 60 * 60 * 1000;   // 静默检查每天最多一次
 let updateCache = { at: 0, result: null };
 
-function httpsGetJson(url, timeoutMs = 7000) {
-    return new Promise((resolve) => {
-        let settled = false;
-        const done = (v) => { if (!settled) { settled = true; resolve(v); } };
-        const req = https.get(url, {
-            headers: {
-                'User-Agent': 'ClassPet-Updater/' + app.getVersion(),
-                'Accept': 'application/vnd.github+json'
-            },
-            timeout: timeoutMs
-        }, (res) => {
-            let body = '';
-            res.setEncoding('utf8');
-            res.on('data', (c) => { body += c; if (body.length > 2 * 1024 * 1024) req.destroy(); });
-            res.on('end', () => {
-                let json = null;
-                try { json = JSON.parse(body); } catch (e) { json = null; }
-                done({ status: res.statusCode, json, body });
-            });
-        });
-        req.on('timeout', () => { req.destroy(); done({ status: 0, json: null, error: 'timeout' }); });
-        req.on('error', (err) => { done({ status: 0, json: null, error: (err && err.code) || 'network' }); });
+async function fetchLatestRelease(currentVersion) {
+    /* 网络与解析都在 update_check.js 里（可单测）；这里只负责选源与缓存 */
+    return updateCheck.fetchLatestRelease({
+        currentVersion: currentVersion,
+        repo: UPDATE_REPO,
+        feed: process.env.CLASPET_UPDATE_FEED || '',
+        timeoutMs: 8000
     });
 }
 
-async function fetchLatestRelease(currentVersion) {
-    /* 自定义更新源（国内镜像 / OSS 上的 latest.json）：设了环境变量就优先走它，换源不用改代码 */
-    const feed = process.env.CLASPET_UPDATE_FEED;
-    if (feed) {
-        const r = await httpsGetJson(feed);
-        if (r.status === 200 && r.json) return updateCheck.parseFeed(r.json, currentVersion);
-        if (r.error) return { ok: false, reason: 'network', message: updateCheck.describeFailure(r.error === 'timeout' ? 'timeout' : 'network') };
-        return { ok: false, reason: 'http', message: updateCheck.describeFailure('http', String(r.status)) };
-    }
-    const api = 'https://api.github.com/repos/' + UPDATE_REPO + '/releases/latest';
-    const first = await httpsGetJson(api);
-    if (first.status === 200 && first.json) return updateCheck.parseRelease(first.json, currentVersion);
-    if (first.error === 'timeout' || first.error) {
-        return { ok: false, reason: 'network', message: updateCheck.describeFailure(first.error === 'timeout' ? 'timeout' : 'network') };
-    }
-    if (first.status === 403 || first.status === 429) {
-        return { ok: false, reason: 'rate-limit', message: updateCheck.describeFailure('rate-limit') };
-    }
-    if (first.status === 404) {
-        /* 还没有 release：退一步看 releases 列表 */
-        const list = await httpsGetJson('https://api.github.com/repos/' + UPDATE_REPO + '/releases?per_page=20');
-        if (list.status === 200 && Array.isArray(list.json)) return updateCheck.selectLatestFromList(list.json, currentVersion);
-        return { ok: false, reason: 'not-found', message: '仓库 ' + UPDATE_REPO + ' 还没有可用发布（或仓库是私有的）' };
-    }
-    return { ok: false, reason: 'http', message: updateCheck.describeFailure('http', String(first.status)) };
-}
 
 ipcMain.handle('app:get-version', () => app.getVersion());
 ipcMain.handle('update:check', async (event, opts) => {

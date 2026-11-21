@@ -56,5 +56,20 @@ assert(/超时/.test(U.describeFailure('timeout')), '超时有中文提示');
 assert(/连不上 GitHub/.test(U.describeFailure('network')), '网络失败有中文提示');
 assert(U.formatSize(114900000) === '109.6 MB', '体积格式化', U.formatSize(114900000));
 
-console.log('\n结果: ' + passed + ' passed, ' + failed + ' failed');
-if (failed > 0) process.exitCode = 1;
+(async () => {
+  console.log('\n== 真实 GitHub（依赖网络，失败只告警不算失败） ==');
+  try {
+    const real = await U.fetchLatestRelease({ repo: 'Cayre1021/class-pet-v1.1.4', currentVersion: '1.2.0', timeoutMs: 12000 });
+    if (real && real.ok) {
+      assert(real.hasUpdate === true, '真实源：以 1.2.0 检查能发现有新版本（' + real.latest + '）', real.latest);
+      assert(/setup/i.test(real.assetName || ''), '真实源：自动挑中 Setup 安装包', real.assetName);
+      assert(/github\.com/.test(real.downloadUrl || ''), '真实源：给出下载地址', String(real.downloadUrl).slice(0, 60));
+    } else {
+      console.log('  WARN  真实源不可达：' + (real && real.message || '未知') + '（网络问题不计失败）');
+    }
+  } catch (e) {
+    console.log('  WARN  真实源异常：' + e.message + '（网络问题不计失败）');
+  }
+  console.log('\n结果: ' + passed + ' passed, ' + failed + ' failed');
+  if (failed > 0) process.exitCode = 1;
+})();
