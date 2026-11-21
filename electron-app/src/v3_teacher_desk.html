@@ -1037,6 +1037,10 @@ html.theme-fade *::after{
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v11"/><path d="M8 7l4-4 4 4"/><path d="M4 15v4h16v-4"/></svg></span>
     备份与还原<span class="mi-sub">JSON</span>
   </button>
+  <button class="menu-item" role="menuitem" data-action="archived" data-audit="mi-archived" data-audit-label="已移出名单">
+    <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18"/><path d="M6 7v13h12V7"/><path d="M10 11v6M14 11v6"/><path d="M9 7V4h6v3"/></svg></span>
+    已移出名单<span class="mi-sub" id="mi-archived-sub">0 人</span>
+  </button>
   <button class="menu-item" role="menuitem" data-action="semester" data-audit="mi-semester" data-audit-label="学期归档">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16v13H4z"/><path d="M8 3v4M16 3v4"/><path d="M8 12h8M8 16h5"/></svg></span>
     学期归档<span class="mi-sub">清零重养</span>
@@ -3911,6 +3915,8 @@ html.theme-fade *::after{
       if (pendingUnlockChoices.indexOf(code) < 0) pendingUnlockChoices.push(code);
     });
     state.unlockedSeen = map;
+    var ark = $('#mi-archived-sub');
+    if (ark) ark.textContent = String(((vm && vm.students) || []).filter(function (x) { return x.isArchived; }).length) + ' 人';
     var sub = $('#mi-unlock-sub');
     if (sub) {
       var n = (Array.isArray(vm && vm.subjectCandidates) ? vm.subjectCandidates.length : 0);
@@ -4040,6 +4046,7 @@ html.theme-fade *::after{
     else if (a === 'update') openUpdateDialog(true);
     else if (a === 'unlock-subject') openUnlockMenu();
     else if (a === 'semester') openSemesterDialog();
+    else if (a === 'archived') openArchivedDialog();
 
     else if (a === 'sound') { closeDataMenu(); setSound(!state.sound); }
     else if (a === 'fullscreen') toggleFullscreen();
@@ -4079,7 +4086,10 @@ html.theme-fade *::after{
               return;
             }
             var vm = state.vm || {};
-            var res = await api.db.archiveStudent(String(id), true, vm.classId);
+            /* 关键：必须用数据库 id。页面 id 是 1..N 的序号，新注册班级的 dbId 是 st_1970… 这种，
+               传序号会更新 0 行且不报错（老师看到"点了没反应"）。 */
+            var targetId = s.dbId || String(id);
+            var res = await api.db.archiveStudent(targetId, true, vm.classId);
             if (!res || res.success !== true) { toast('移出失败：' + ((res && res.error) || '班级库未确认'), 'warn'); return; }
             closeDialog();
             await v3Refresh();
@@ -4099,6 +4109,32 @@ html.theme-fade *::after{
   function readAccountsList() {
     try { var raw = store('classpet_accounts_list'); var list = raw ? JSON.parse(raw) : []; return Array.isArray(list) ? list : []; } catch (e) { return []; }
   }
+  /* 已移出名单：列出归档学生并支持恢复（"移出班级"是可恢复的，这里给它一个真实入口） */
+  function openArchivedDialog() {
+    closeDataMenu();
+    var vm = state.vm || {};
+    var list = (vm.students || []).filter(function (s) { return s.isArchived; });
+    var body = list.length
+      ? '<div class="rule-list">' + list.map(function (s) {
+          return '<div class="rule-item"><span>#' + esc(String(s.no || '')) + ' ' + esc(s.name) +
+            '</span><span class="val">' + (Number(s.group) || 1) + ' 组</span></div>';
+        }).join('') + '</div>'
+      : '<div class="empty-state">没有被移出的学生。<br>学生行「⋯ → 移出班级」后会出现在这里。</div>';
+    var actions = list.slice(0, 6).map(function (s) {
+      return { label: '恢复 ' + s.name, onClick: async function () {
+        var api = window.electronAPI;
+        if (!isRealMode() || !api || !api.db) { toast('演示态不支持恢复', 'warn'); return; }
+        var res = await api.db.archiveStudent(String(s.id), false, vm.classId);
+        if (!res || res.success !== true) { toast('恢复失败：' + ((res && res.error) || '班级库未确认'), 'warn'); return; }
+        closeDialog();
+        await v3Refresh();
+        toast('已把「' + s.name + '」恢复到名单');
+      } };
+    });
+    actions.push({ label: '关闭', onClick: function () { closeDialog(); } });
+    openDialog({ title: '已移出名单', sub: '共 ' + list.length + ' 人 · 可恢复', body: body, actions: actions });
+  }
+
   /* 学期归档：先导出一份 JSON 备份，再把全班宠物清零回蛋（名单/规则/阈值/台账保留） */
   function openSemesterDialog() {
     closeDataMenu();
