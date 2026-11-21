@@ -944,9 +944,7 @@ html.theme-fade *::after{
       <div class="dock-subject-row">
         <span class="mini-label">赋分学科</span>
         <div class="seg subject-seg" id="subject-seg-2" role="group" aria-label="赋分学科">
-          <button data-subject="语文" data-audit="subject2-yuwen" aria-pressed="true">语文</button>
-          <button data-subject="数学" data-audit="subject2-shuxue" aria-pressed="false">数学</button>
-          <button data-subject="英语" data-audit="subject2-yingyu" aria-pressed="false">英语</button>
+          <!-- 按钮由 renderSubjectSeg() 按班级科目动态生成（支持自定义科目，如"综合"） -->
         </div>
       </div>
       <div class="dock-scroll" id="dock-scroll">
@@ -1104,7 +1102,7 @@ html.theme-fade *::after{
     fox: { name: '小狐狸', tint: '#FFDCE0' }
   };
   var SPECIES_ORDER = ['cat', 'dog', 'bunny', 'hamster', 'bird', 'deer', 'fish', 'fox'];
-  var SUBJECTS = ['语文', '数学', '英语'];
+  var SUBJECTS = ['语文', '数学', '英语'];   /* 仅作演示态兜底；真实态以 vm.subjects 为准 */
   var PET_SUBJECT_KEYS = ['chinese', 'math', 'english'];
   var EGG_PATH = '../electron-app/src/assets/pets/shared/egg.png';
   /* 演示态（浏览器直开、无 preload）专用：等级→形态的演示阈值表，逐级取值与旧公式一致 */
@@ -2696,7 +2694,7 @@ html.theme-fade *::after{
     openDialog({
       title: '名单导入导出',
       sub: io ? '班级库 · Excel / CSV' : '班级库 · CSV（桌面端未连接）',
-      body: '<p class="note">导出为 <b>.xlsx</b>（Excel / WPS 直接打开，中文不乱码）；导入支持 <b>.xlsx</b> 与 <b>.csv</b>，按学号更新或新增学生，空学号自动分配，<b>文件里没有的学生不会被删除</b>。<br>列顺序：学号, 姓名, 小组, 等级, 经验, 物种。</p>' +
+      body: '<p class="note">列顺序：学号, 姓名, 小组, 等级, 经验, 物种</p>' +
         '<div class="rule-list">' +
           '<div class="rule-item"><span>导出班级名单</span><span class="val">' + state.students.length + ' 人 · XLSX</span></div>' +
           '<div class="rule-item"><span>导入名单（合并）</span><span class="val">XLSX / CSV</span></div>' +
@@ -3746,8 +3744,54 @@ html.theme-fade *::after{
   }
 
   /* 第11条：学科没被任何学生解锁时显示锁，且滑块不能切过去；新解锁时弹卡片让老师选下一科 */
-  var SUBJECT_CODES = { '语文': 'chinese', '数学': 'math', '英语': 'english' };
-  var SUBJECT_LABELS = { chinese: '语文', math: '数学', english: '英语' };
+  /* 科目一律以班级库为准（vm.subjects），不再写死三科——自定义科目（如"综合"）也要能显示和赋分 */
+  var PRESET_SUBJECTS = [
+    { code: 'chinese', name: '语文' }, { code: 'math', name: '数学' }, { code: 'english', name: '英语' }
+  ];
+  function subjectList(vm) {
+    var raw = (vm && Array.isArray(vm.subjects)) ? vm.subjects : null;
+    if (raw && raw.length) {
+      var primary = (vm && vm.defaultSubject) || '';
+      var order = function (s) { return (s.isPrimary ? 0 : 1); };
+      return raw.map(function (s) {
+        var code = String(s.code || '');
+        return {
+          code: code,
+          name: String(s.name || code),
+          isPrimary: !!s.isPrimary || code === primary,
+          unlocked: s.unlocked !== false
+        };
+      }).sort(function (a, b) { return order(a) - order(b); });
+    }
+    return PRESET_SUBJECTS.map(function (p) {
+      return { code: p.code, name: p.name, isPrimary: p.code === 'chinese', unlocked: p.code === 'chinese' };
+    });
+  }
+  function subjectLabels(vm) { return subjectList(vm).map(function (s) { return s.name; }); }
+  function codeOfLabel(label, vm) {
+    var hit = subjectList(vm || state.vm).filter(function (s) { return s.name === label; })[0];
+    return hit ? hit.code : '';
+  }
+  function labelOfCode(code, vm) {
+    var hit = subjectList(vm || state.vm).filter(function (s) { return s.code === code; })[0];
+    return hit ? hit.name : String(code || '');
+  }
+  /* 按科目表重画按钮；科目集合没变就不重建，避免丢焦点 */
+  function renderSubjectSeg(vm) {
+    var box = $('#subject-seg-2');
+    if (!box) return;
+    var list = subjectList(vm || state.vm);
+    var signature = list.map(function (s) { return s.code + ':' + s.name; }).join('|');
+    if (box.getAttribute('data-signature') === signature) return;
+    box.setAttribute('data-signature', signature);
+    box.innerHTML = list.map(function (s) {
+      return '<button data-subject="' + esc(s.name) + '" data-code="' + esc(s.code) + '" data-audit="subject2-' + esc(s.code) +
+        '" aria-pressed="' + (s.name === state.subject ? 'true' : 'false') + '">' + esc(s.name) + '</button>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('button'), function (b) {
+      b.addEventListener('click', function () { setSubject(b.getAttribute('data-subject')); });
+    });
+  }
   var pendingUnlockChoices = [];
   var UNLOCK_SEEN_KEY = 'classpet_v3_unlock_seen';
   function readUnlockSeen() { try { return JSON.parse(store(UNLOCK_SEEN_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3773,17 +3817,23 @@ html.theme-fade *::after{
     return out;
   }
   function syncSubjectLocks(vm) {
+    renderSubjectSeg(vm);
+    var list = subjectList(vm);
+    if (list.length && !list.some(function (s) { return s.name === state.subject; })) {
+      state.subject = list[0].name;                       /* 上次的学科已不存在 → 回到主科 */
+      store('classpet_current_teaching_subject', state.subject);
+    }
     var map = subjectUnlockMap(vm);
     state.subjectLocks = map;
     var lockSvg = '<svg class="seg-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V8a3.5 3.5 0 017 0v3"/></svg>';
     $$('#subject-seg button, #subject-seg-2 button').forEach(function (b) {
-      var code = SUBJECT_CODES[b.getAttribute('data-subject')] || 'chinese';
+      var code = b.getAttribute('data-code') || codeOfLabel(b.getAttribute('data-subject'), vm);
       var locked = map[code] === false;
       b.classList.toggle('is-locked', locked);
       b.setAttribute('aria-disabled', String(locked));
       if (locked && !b.querySelector('.seg-lock')) b.insertAdjacentHTML('beforeend', lockSvg);
       if (!locked) { var lk = b.querySelector('.seg-lock'); if (lk) lk.remove(); }
-      b.title = locked ? ('该学科还没有学生解锁：需【语文】宠物升到 Lv.' + (state.maxLevel || 20) + ' 满级') : '';
+      b.title = locked ? ('【' + b.getAttribute('data-subject') + '】还没有解锁：先把已解锁科目的宠物练到 Lv.' + (state.maxLevel || 20) + ' 满级，再选择解锁它') : '';
     });
     // 与"本机已提示过"的基线比对：语文早在本页打开前就满级时，也要提示一次
     var seen = readUnlockSeen();
@@ -3803,7 +3853,7 @@ html.theme-fade *::after{
     var codes = pendingUnlockChoices.slice();
     markUnlockSeen(codes);   /* 只要提示过就记基线：不因为点了"稍后再说"而每次开页都弹 */
     var actions = codes.map(function (code) {
-      return { label: '唤醒「' + SUBJECT_LABELS[code] + '」', primary: true, onClick: async function () {
+      return { label: '唤醒「' + labelOfCode(code) + '」', primary: true, onClick: async function () {
         var api = window.electronAPI;
         var vm = state.vm || {};
         if (isRealMode() && api && api.db && typeof api.db.unlockSubject === 'function') {
@@ -3818,8 +3868,8 @@ html.theme-fade *::after{
         state.unlockPrompted = false;
         closeDialog();
         await v3Refresh();
-        setSubject(SUBJECT_LABELS[code]);
-        toast('「' + SUBJECT_LABELS[code] + '」已解锁：每位学生的这一科从一颗蛋开始，攒够破壳经验再认领');
+        setSubject(labelOfCode(code));
+        toast('「' + labelOfCode(code) + '」已解锁：每位学生的这一科从一颗蛋开始，攒够破壳经验再认领');
       } };
     });
     actions.push({ label: '稍后再说', onClick: function () { markUnlockSeen(codes); pendingUnlockChoices = []; state.unlockPrompted = false; closeDialog(); } });
@@ -3832,8 +3882,8 @@ html.theme-fade *::after{
   }
   /* D7=A：切授课科目只换赋分目标；卡片宠物固定跟随 display_pet_id（真实态即 VM 的 activePet），不随之切换 */
   function setSubject(name) {
-    if (SUBJECTS.indexOf(name) < 0) return;
-    var code = SUBJECT_CODES[name];
+    if (subjectLabels().indexOf(name) < 0) return;
+    var code = codeOfLabel(name);
     if (code && state.subjectLocks && state.subjectLocks[code] === false) {
       toast('【' + name + '】还没有解锁：先把已解锁科目的宠物练到 Lv.' + (state.maxLevel || 20) + ' 满级，再在「数据与设置」或提示里选择解锁它', 'warn');
       return;
@@ -4236,7 +4286,7 @@ html.theme-fade *::after{
   if (typeof syncThemeMenu === 'function') syncThemeMenu();   /* 第8条：首屏也要显示当前主题的勾 */
   (function restoreSubject() {                                /* 第11条：演示态也要记住上次选的学科 */
     var saved = store('classpet_current_teaching_subject');
-    if (saved && SUBJECTS.indexOf(saved) >= 0) state.subject = saved;
+    if (saved) state.subject = saved;   /* 自定义科目也要能恢复；合法性在 VM 到达后校验 */
   })();
   /* 检查更新：先把当前版本填进菜单，再静默查一次（主进程每天最多真正请求一次） */
   refreshUpdateVersion();

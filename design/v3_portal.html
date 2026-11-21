@@ -684,11 +684,12 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     var classId = 'c_acc_' + now;
     var accId = 'acc_' + now;
     var subjectLabel = profile.subject || '语文';
-    var code = SUBJECT_CODE[subjectLabel] || 'chinese';
+    var code = SUBJECT_CODE[subjectLabel] || 'custom';   /* 自定义科目：按名字交给服务层建 */
     var res = null;
     try {
       res = await api.db.createClass({
-        classId: classId, className: profile['class'], teacherName: profile.name, subjectCode: code, teacherId: accId
+        classId: classId, className: profile['class'], teacherName: profile.name,
+        subjectCode: code, subjectLabel: subjectLabel, teacherId: accId
       });
     } catch (e) {
       /* 通道存在但主进程没有该 handler（旧版本 / 探针）：退化为本地档案，别把注册卡死 */
