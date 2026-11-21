@@ -491,6 +491,10 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
               </div>
               <p class="form-msg" id="lg-form-msg" role="status" aria-live="polite"></p>
             </div>
+            <div id="local-classes" hidden style="margin:2px 0 12px">
+              <p class="group-label" style="margin:0 0 6px">本机已有班级（点一下直接进）</p>
+              <div id="local-class-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+            </div>
             <button class="btn-primary" type="submit">登录</button>
             <p class="card-note">登录只比对本机档案，不会联网</p>
           </form>
@@ -598,6 +602,7 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
   /* 账号缓存（只读）：与另两页同一身份来源，写入者是 portal_auth.html */
   var ACCOUNT_KEY = 'classpet_current_account';
   var ACTIVE_KEY = 'classpet_active_account_id';
+  /* 列表在 boot 末尾渲染一次即可（账号发生变化后也会重绘） */
   function switchedAccount() { try { return localStorage.getItem(SWITCH_KEY) === '1'; } catch (e) { return false; } }
   function clearSwitched() { try { localStorage.removeItem(SWITCH_KEY); } catch (e) {} }
 
@@ -646,6 +651,37 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     lsSet(PROFILE_KEY, JSON.stringify({ 'class': p['class'], name: p.name, subject: p.subject }));
   }
   function hasSession() { return lsGet(SESSION_KEY) === '1'; }
+
+  /* ---------- 本机已有班级：一个老师带多个班时，点一下就能回到任意一个班 ---------- */
+  function renderLocalClasses() {
+    var box = document.getElementById('local-classes');
+    var list = document.getElementById('local-class-list');
+    if (!box || !list) return;
+    var accounts = readAccountsList().filter(function (a) { return a && a.classId && a.className; });
+    if (accounts.length < 1) { box.hidden = true; list.innerHTML = ''; return; }
+    box.hidden = false;
+    list.innerHTML = accounts.map(function (a) {
+      var active = '';
+      try { var cur = JSON.parse(lsGet(ACCOUNT_KEY) || 'null'); if (cur && cur.classId === a.classId) active = ' style="outline:3px solid var(--accent)"'; } catch (e) {}
+      return '<button type="button" class="btn-ghost" data-class-id="' + String(a.classId) + '"' + active + '>' +
+        (a.className || '未命名') + (a.teacherName ? ' · ' + a.teacherName : '') + '</button>';
+    }).join('');
+    Array.prototype.forEach.call(list.querySelectorAll('[data-class-id]'), function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-class-id');
+        var acc = accounts.filter(function (a) { return String(a.classId) === String(id); })[0];
+        if (!acc) return;
+        lsSet(ACCOUNT_KEY, JSON.stringify(acc));
+        lsSet(ACTIVE_KEY, acc.id || '');
+        clearSwitched();
+        setSession(true);
+        var profile = { 'class': acc.className || '', name: acc.teacherName || '', subject: acc.subject || '' };
+        saveProfile(profile);
+        prefill(profile);
+        showEntry(profile, { ok: true, reused: true });
+      });
+    });
+  }
 
   /* ---------- 关键：把"本机档案"绑定到数据库里真实存在的班级 ----------
      历史缺陷：V3 门户的注册只写 localStorage，从不建库；页面按 classpet_current_account.classId 取数，
@@ -1040,6 +1076,7 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
 (function boot() {
     var identity = readIdentity();
     if (identity && !switchedAccount()) { prefill(identity); }
+    renderLocalClasses();                 /* 本机已有班级：一个老师带多个班时点一下就能回 */
     if (identity && hasSession()) {
       showEntry(identity);
     } else {

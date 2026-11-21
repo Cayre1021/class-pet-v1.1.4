@@ -249,6 +249,13 @@ ipcMain.handle('io:exportRoster', (event, payload) =>
 ipcMain.handle('io:exportLedger', (event, payload) =>
     exportTable(event, payload, { title: '导出赋分台账', fileName: '赋分台账.xlsx', sheetName: '赋分台账' }));
 
+ipcMain.handle('db:archiveSemester', async (event, payload) => {
+    try {
+        return sqliteService.archiveSemester((payload && payload.classId) || 'c_class02_01');
+    } catch (err) {
+        return { success: false, error: String((err && err.message) || err) };
+    }
+});
 ipcMain.handle('db:createClass', async (event, payload) => {
     try {
         return sqliteService.createClassWithDefaults(payload || {});

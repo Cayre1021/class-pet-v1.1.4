@@ -27,10 +27,7 @@ const assert=(c,m,x)=>{ if(c){console.log('  PASS  '+m);passed++;} else {console
    restoreClassBackup:(c,p)=>svc.restoreClassBackup(c,p), query:(s,p)=>svc.query(s,p), execute:(s,p)=>svc.execute(s,p),
    getSubjectUnlocks:(c)=>svc.getUnlockedSubjects(c), unlockSubject:(c,code)=>svc.unlockSubject(c,code), getClassSubjects:(c)=>svc.getClassSubjects(c)
  }};
- const {ClassPetStore}=require(path.join(root,'electron-app','src','classpet_core.js'));
- const store=new ClassPetStore(); await new Promise(r=>setTimeout(r,200));
- const vm=await store.getV3ViewModel();
- const before = (vm.rules||svc.query("SELECT * FROM behavior_rules WHERE class_id=? ORDER BY sort_order",[CLASS]));
+ const before = svc.query("SELECT * FROM behavior_rules WHERE class_id=? ORDER BY sort_order",[CLASS]);
  console.log('== 规则增删循环 ==');
  assert(before.length === 13, '初始 13 条规则', before.length);
 

@@ -777,6 +777,26 @@ class SQLiteService {
         return true;
     }
 
+
+    // ============ 学期归档：清零经验与形态（回到蛋），保留名单/规则/阈值/历史台账 ============
+    archiveSemester(classId = 'c_class02_01') {
+        const now = Date.now();
+        try {
+            const pets = this.query('SELECT COUNT(*) AS n FROM pets WHERE class_id = ?', [classId])[0];
+            const students = this.query('SELECT COUNT(*) AS n FROM students WHERE class_id = ?', [classId])[0];
+            this.db.run('BEGIN TRANSACTION;');
+            this.db.run("UPDATE pets SET exp = 0, level = 0, visual_stage = 0, hatched_at = NULL, species_code = 'egg', updated_at = ? WHERE class_id = ?", [now, classId]);
+            this.db.run("CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT)");
+            this.db.run("INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)", ['semester_archived_at_' + classId, String(now)]);
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            return { success: true, classId: classId, students: Number(students && students.n) || 0, pets: Number(pets && pets.n) || 0, archivedAt: now };
+        } catch (err) {
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            console.error('[SQLiteService] 学期归档失败，已回滚:', err);
+            return { success: false, error: String((err && err.message) || err) };
+        }
+    }
     // 按解锁先后返回（插入顺序）：主科先解锁，老师后选的排在后面
     getUnlockedSubjects(classId = 'c_class02_01') {
         this._migrateSubjectUnlockV1Once();

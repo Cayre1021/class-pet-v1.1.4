@@ -1238,7 +1238,13 @@ class ClassPetStore {
                 // D9=A：缺勤是当日开关、不落历史，读库时一律为 false
                 isAbsent: false,
                 displayPetId: displayPetId,
-                activePet: petsBySubject[displayKey] || petsBySubject[subjectCode] || petsBySubject.chinese,
+                /* 展示宠（卡片/教师台行都用它）：显示与"当前授课科目"解耦——
+                   否则老师切到数学后，全班行会显示数学蛋 LV0，与大屏（展示宠）不一致，像数据丢了。 */
+                activePet: petsBySubject[displayKey]
+                    || petsBySubject[normalizeSubjectCode(identity && identity.defaultSubject)]
+                    || petsBySubject.chinese
+                    || petsBySubject[subjectCode]
+                    || petsBySubject[Object.keys(petsBySubject)[0]],
                 petsBySubject: petsBySubject
             };
         });

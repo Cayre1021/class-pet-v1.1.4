@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     db: {
         loadAllState: (classId) => ipcRenderer.invoke('db:loadAllState', classId),
         createClass: (payload) => ipcRenderer.invoke('db:createClass', payload),
+        archiveSemester: (payload) => ipcRenderer.invoke('db:archiveSemester', payload),
         recordScore: (payload) => ipcRenderer.invoke('db:recordScore', payload),
         undoScore: (operationId) => ipcRenderer.invoke('db:undoScore', operationId),
         getStudentAuditLogs: (studentId) => ipcRenderer.invoke('db:getStudentAuditLogs', studentId),

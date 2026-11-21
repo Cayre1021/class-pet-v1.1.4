@@ -1034,6 +1034,10 @@ html.theme-fade *::after{
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v11"/><path d="M8 7l4-4 4 4"/><path d="M4 15v4h16v-4"/></svg></span>
     备份与还原<span class="mi-sub">JSON</span>
   </button>
+  <button class="menu-item" role="menuitem" data-action="semester" data-audit="mi-semester" data-audit-label="学期归档">
+    <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16v13H4z"/><path d="M8 3v4M16 3v4"/><path d="M8 12h8M8 16h5"/></svg></span>
+    学期归档<span class="mi-sub">清零重养</span>
+  </button>
   <button class="menu-item" role="menuitem" data-action="unlock-subject" data-audit="mi-unlock-subject" data-audit-label="唤醒新学科">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><circle cx="12" cy="12" r="4"/></svg></span>
     唤醒新学科<span class="mi-sub" id="mi-unlock-sub">查看</span>
@@ -4022,6 +4026,7 @@ html.theme-fade *::after{
     else if (a === 'backup') openBackupDialog();
     else if (a === 'update') openUpdateDialog(true);
     else if (a === 'unlock-subject') openUnlockMenu();
+    else if (a === 'semester') openSemesterDialog();
 
     else if (a === 'sound') { closeDataMenu(); setSound(!state.sound); }
     else if (a === 'fullscreen') toggleFullscreen();
@@ -4068,6 +4073,70 @@ html.theme-fade *::after{
             toast('已把「' + s.name + '」移出班级（历史记录保留）');
           } }
       ]
+    });
+  }
+
+  /* 顶栏班级徽标：列出本机已有班级，点一下切换（配合门户的"本机已有班级"） */
+  var chip = $('#class-chip');
+  if (chip) {
+    chip.style.cursor = 'pointer';
+    chip.title = '切换班级';
+    chip.addEventListener('click', openClassSwitcher);
+  }
+  function readAccountsList() {
+    try { var raw = store('classpet_accounts_list'); var list = raw ? JSON.parse(raw) : []; return Array.isArray(list) ? list : []; } catch (e) { return []; }
+  }
+  /* 学期归档：先导出一份 JSON 备份，再把全班宠物清零回蛋（名单/规则/阈值/台账保留） */
+  function openSemesterDialog() {
+    closeDataMenu();
+    if (!isRealMode()) { toast('演示数据不需要学期归档（不写库）', 'warn'); return; }
+    var n = (state.students || []).length;
+    openDialog({
+      title: '学期归档',
+      sub: '先备份，再清零',
+      body: '<p class="note">新学期的班级带旧经验会很难看，这里把 <b>' + n + ' 名学生</b>的宠物经验/等级/形态清零、宠物回到蛋形态；' +
+        '<b>名单、规则、阈值、历史台账都会保留</b>。</p>' +
+        '<p class="note warn" style="margin-top:8px">操作前会自动导出一份 JSON 备份到「下载」文件夹；想反悔就用「备份与还原」把它导回来。</p>',
+      actions: [
+        { label: '导出备份并清零', primary: true, danger: true, onClick: async function () {
+            var payload = buildRealBackup();
+            downloadFile('学期归档备份-' + todayStamp() + '.json', JSON.stringify(payload, null, 2), 'application/json', true);
+            var api = window.electronAPI;
+            var vm = state.vm || {};
+            if (!api || !api.db || typeof api.db.archiveSemester !== 'function') { toast('桌面端未连接，未清零', 'warn'); return; }
+            var res = await api.db.archiveSemester({ classId: vm.classId });
+            if (!res || res.success !== true) { toast('清零失败：' + ((res && res.error) || '班级库未确认'), 'warn'); return; }
+            closeDialog();
+            await v3Refresh();
+            toast('学期归档完成：' + res.students + ' 人已清零（备份已下载）');
+          } }
+      ]
+    });
+  }
+
+  function openClassSwitcher() {
+    var list = readAccountsList().filter(function (a) { return a && a.classId && a.className; });
+    var cur = (state.vm && state.vm.classId) || '';
+    if (!list.length) { toast('本机只有一个班级，无需切换', 'warn'); return; }
+    closeDataMenu();
+    openDialog({
+      title: '切换班级',
+      sub: '本机已有 ' + list.length + ' 个班',
+      body: '<div class="rule-list">' + list.map(function (a) {
+        var on = String(a.classId) === String(cur);
+        return '<div class="rule-item"><span>' + esc(a.className) + (a.teacherName ? ' · ' + esc(a.teacherName) : '') +
+          '</span><span class="val">' + (on ? '当前' : '点「进入」') + '</span></div>';
+      }).join('') + '</div>',
+      actions: list.map(function (a) {
+        return { label: (String(a.classId) === String(cur) ? '（当前）' : '进入 ') + a.className, primary: String(a.classId) === String(cur), onClick: function () {
+          if (String(a.classId) === String(cur)) { closeDialog(); return; }
+          store('classpet_current_account', JSON.stringify(a));
+          store('classpet_active_account_id', a.id || '');
+          closeDialog();
+          toast('正在进入「' + a.className + '」…');
+          setTimeout(function () { location.reload(); }, 200);
+        } };
+      })
     });
   }
 
