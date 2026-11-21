@@ -211,6 +211,12 @@ class SQLiteService {
             level_before INTEGER,
             level_after INTEGER
         );
+        CREATE TABLE IF NOT EXISTS class_subject_unlocks (
+            class_id TEXT,
+            code TEXT,
+            unlocked_at INTEGER,
+            PRIMARY KEY (class_id, code)
+        );
         `;
         this.db.run(ddl);
         this.ensurePetsHatchColumn();
@@ -367,8 +373,10 @@ class SQLiteService {
             thresholds,
             stages,
             recentOperations: recentOps,
-            // 班级主科（注册时选的默认学科）：三页据此判定"这一科恒可用"
-            defaultSubject: this.getClassDefaultSubject(classId)
+            // 班级主科（注册时选的默认学科）
+            defaultSubject: this.getClassDefaultSubject(classId),
+            // 已解锁学科集合（唯一真相 class_subject_unlocks 的读取结果）
+            subjectUnlocks: this.getUnlockedSubjects(classId)
         };
     }
 
@@ -580,30 +588,152 @@ class SQLiteService {
         return 'chinese';
     }
 
-    // 学科链式解锁（与 classpet_core.isSubjectUnlocked 同一规则，用库里的宠物行判定）
-    // 例外：班级主科恒可用（注册时选了数学就不该先攒语文满级）
-    checkSubjectUnlock(studentId, subjectCode, classId = 'c_class02_01') {
-        const key = subjectCode === 'math' ? 'math' : (subjectCode === 'english' ? 'english' : 'chinese');
-        if (key === this.getClassDefaultSubject(classId)) return { allowed: true, reason: null };
-        const rows = this.query("SELECT * FROM pets WHERE class_id = ? AND student_id = ?", [classId, studentId]);
-        const byKey = {};
-        rows.forEach(r => {
-            const k = r.subject_id === 'subj_math' ? 'math' : (r.subject_id === 'subj_english' ? 'english' : 'chinese');
-            const prev = byKey[k];
-            if (!prev || (Number(r.exp) || 0) > (Number(prev.exp) || 0)) byKey[k] = r;
+    // ============ 学科解锁集合（唯一真相：class_subject_unlocks） ============
+    // 负责人 2026-11 指令：开局只有主科，其余学科由老师"逐科选择"解锁，不再有自动顺序链。
+    // 可解锁条件：当前已解锁的任一学科里，有学生的该科宠物达到满级（classes.max_level，默认 20）。
+    staticSubjectOrder() { return ['chinese', 'math', 'english']; }
+
+    // 老库补表：initDefaultTables 之外的路径（离线脚本/老库直连）也能安全读写解锁集合
+    ensureSubjectUnlockTable() {
+        if (this._subjectUnlockTableReady) return true;
+        try {
+            this.db.run("CREATE TABLE IF NOT EXISTS class_subject_unlocks (class_id TEXT, code TEXT, unlocked_at INTEGER, PRIMARY KEY (class_id, code))");
+            this._subjectUnlockTableReady = true;
+            return true;
+        } catch (e) {
+            console.warn('[SQLiteService] 补 class_subject_unlocks 失败:', e && e.message);
+            return false;
+        }
+    }
+
+    normalizeUnlockCode(code) {
+        const s = String(code || '');
+        if (s === 'math' || s === 'subj_math') return 'math';
+        if (s === 'english' || s === 'subj_english') return 'english';
+        return 'chinese';
+    }
+
+    getClassMaxLevel(classId = 'c_class02_01') {
+        const row = this.query("SELECT max_level FROM classes WHERE id = ? LIMIT 1", [classId])[0];
+        const n = row ? Number(row.max_level) : 0;
+        return Number.isFinite(n) && n > 0 ? n : 20;
+    }
+
+    // 老班级推断：语文 + 主科 + 任何"有已破壳宠物"的学科（不推断则会把老用户锁死）
+    _inferUnlockCodes(classId) {
+        const codes = ['chinese', String(this.getClassDefaultSubject(classId) || 'chinese')];
+        const hasCol = this.query("PRAGMA table_info(pets)").some(c => c.name === 'hatched_at');
+        const cols = hasCol ? 'subject_id, hatched_at, visual_stage, species_code' : 'subject_id, visual_stage, species_code';
+        this.query("SELECT " + cols + " FROM pets WHERE class_id = ?", [classId]).forEach(r => {
+            const hatched = hasCol
+                ? (r.hatched_at !== null && r.hatched_at !== undefined)
+                : (Number(r.visual_stage) >= 1 && String(r.species_code || 'egg') !== 'egg');
+            if (hatched) codes.push(this.normalizeUnlockCode(r.subject_id));
         });
-        const hatched = r => !!(r && Number(r.visual_stage) >= 1 && String(r.species_code || 'egg') !== 'egg');
-        if (key === 'chinese') return { allowed: true, reason: null };
-        if (hatched(byKey[key])) return { allowed: true, reason: null };
-        const maxLevel = Number((this.query("SELECT max_level FROM classes WHERE id = ? LIMIT 1", [classId])[0] || {}).max_level) || 20;
-        const cn = byKey.chinese;
-        const cnMax = hatched(cn) && (Number(cn.level) || 0) >= maxLevel;
-        if (!cnMax) return { allowed: false, reason: '需【语文】学科宠物升至 Lv.' + maxLevel + ' 满级方可唤醒' };
-        const otherKey = key === 'math' ? 'english' : 'math';
-        if (!hatched(byKey[otherKey])) return { allowed: true, reason: null };
-        const otherMax = (Number(byKey[otherKey].level) || 0) >= maxLevel;
-        if (otherMax) return { allowed: true, reason: null };
-        return { allowed: false, reason: '需【语文】与【' + (otherKey === 'math' ? '数学' : '英语') + '】均升至 Lv.' + maxLevel + ' 满级方可唤醒' };
+        return this.staticSubjectOrder().filter(c => codes.indexOf(c) >= 0);
+    }
+
+    // 一个班没有任何解锁行时，按推断补齐（老库/种子路径都靠这一步兜底，绝不给出空集合）
+    _ensureSubjectUnlockRows(classId) {
+        if (!classId) return false;
+        this.ensureSubjectUnlockTable();
+        const has = this.query("SELECT code FROM class_subject_unlocks WHERE class_id = ?", [classId]);
+        if (has.length) return true;
+        const now = Date.now();
+        /* 不包事务：本方法与调用方（loadAllState / saveStudent）可能已在外层事务里 */
+        this._inferUnlockCodes(classId).forEach(code => {
+            this.db.run("INSERT OR IGNORE INTO class_subject_unlocks (class_id, code, unlocked_at) VALUES (?, ?, ?)", [classId, code, now]);
+        });
+        this.scheduleSave();
+        return true;
+    }
+
+    // 按解锁先后返回（插入顺序）：主科先解锁，老师后选的排在后面
+    getUnlockedSubjects(classId = 'c_class02_01') {
+        this._migrateSubjectUnlockV1Once();
+        this._ensureSubjectUnlockRows(classId);
+        const rows = this.query("SELECT code FROM class_subject_unlocks WHERE class_id = ? ORDER BY unlocked_at ASC, rowid ASC", [classId]);
+        const codes = rows.map(r => this.normalizeUnlockCode(r.code));
+        return codes.filter((code, idx) => codes.indexOf(code) === idx);
+    }
+
+    // 可解锁候选：已解锁学科里出现满级宠物 → 剩余未解锁学科全部成为候选（顺序故意不排，由老师选）
+    getSubjectUnlockCandidates(classId = 'c_class02_01') {
+        const unlocked = this.getUnlockedSubjects(classId);
+        const locked = this.staticSubjectOrder().filter(c => unlocked.indexOf(c) < 0);
+        if (!locked.length) return [];
+        const maxLevel = this.getClassMaxLevel(classId);
+        const thresh = this.query("SELECT min_exp FROM class_level_thresholds WHERE class_id = ? AND level = ? LIMIT 1", [classId, maxLevel])[0];
+        const maxExp = thresh && Number.isFinite(Number(thresh.min_exp)) ? Number(thresh.min_exp) : null;
+        const subIds = unlocked.map(c => 'subj_' + c);
+        if (!subIds.length) return [];
+        const rows = this.query(
+            "SELECT subject_id, MAX(level) AS max_level_row, MAX(exp) AS max_exp FROM pets WHERE class_id = ? AND subject_id IN (" + subIds.map(() => '?').join(',') + ") GROUP BY subject_id",
+            [classId].concat(subIds)
+        );
+        const reached = rows.some(r => (Number(r.max_level_row) || 0) >= maxLevel || (maxExp !== null && (Number(r.max_exp) || 0) >= maxExp));
+        return reached ? locked : [];
+    }
+
+    // 幂等解锁：满足候选条件才允许；重复调用返回当前集合
+    unlockSubject(classId = 'c_class02_01', code = '') {
+        this.ensureSubjectUnlockTable();
+        const key = this.normalizeUnlockCode(code);
+        if (!this.query("SELECT id FROM classes WHERE id = ? LIMIT 1", [classId]).length) {
+            return { ok: false, reason: 'no-class', unlocked: [] };
+        }
+        const before = this.getUnlockedSubjects(classId);
+        if (before.indexOf(key) >= 0) return { ok: true, unlocked: before, already: true };
+        const candidates = this.getSubjectUnlockCandidates(classId);
+        if (candidates.indexOf(key) < 0) return { ok: false, reason: 'not-eligible', unlocked: before, candidates: candidates };
+        this.db.run("INSERT OR IGNORE INTO class_subject_unlocks (class_id, code, unlocked_at) VALUES (?, ?, ?)", [classId, key, Date.now()]);
+        this.scheduleSave();
+        return { ok: true, unlocked: this.getUnlockedSubjects(classId), unlockedNow: key };
+    }
+
+    // 一次性迁移：把"改动前本来就可用"的推断结果落成行（app_meta 记标记，只跑一次）
+    migrateSubjectUnlockV1() {
+        try {
+            this.ensureSubjectUnlockTable();
+            const done = this.query("SELECT value FROM app_meta WHERE key = 'subject_unlock_v1'")[0];
+            if (done) { this._subjectUnlockMigrated = true; return { migrated: 0, skipped: true }; }
+            const classIds = this.query("SELECT id FROM classes").map(r => String(r.id));
+            let rows = 0;
+            this.db.run('BEGIN TRANSACTION;');
+            classIds.forEach(id => {
+                if (this.query("SELECT code FROM class_subject_unlocks WHERE class_id = ? LIMIT 1", [id]).length) return;
+                const now = Date.now();
+                this._inferUnlockCodes(id).forEach(code => {
+                    this.db.run("INSERT OR IGNORE INTO class_subject_unlocks (class_id, code, unlocked_at) VALUES (?, ?, ?)", [id, code, now]);
+                    rows += 1;
+                });
+            });
+            this.db.run("INSERT OR REPLACE INTO app_meta (key, value) VALUES ('subject_unlock_v1', ?)", [String(Date.now())]);
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            this._subjectUnlockMigrated = true;
+            console.log('[SQLiteService] 学科解锁集合 v1 已迁移：' + classIds.length + ' 个班级、' + rows + ' 行');
+            return { migrated: rows, classes: classIds.length, skipped: false };
+        } catch (e) {
+            try { this.db.run('ROLLBACK;'); } catch (e2) {}
+            console.warn('[SQLiteService] 学科解锁集合 v1 迁移失败:', e && e.message);
+            return { migrated: 0, error: String((e && e.message) || e) };
+        }
+    }
+
+    // 首次读解锁时跑一次迁移（此时破壳规则迁移已完成，hatched_at 才是可信的）
+    _migrateSubjectUnlockV1Once() {
+        if (this._subjectUnlockMigrated) return true;
+        this.migrateSubjectUnlockV1();
+        return this._subjectUnlockMigrated === true;
+    }
+
+    // 破壳前的学科门禁：只认落库的解锁集合（与 core 同一真相）
+    checkSubjectUnlock(studentId, subjectCode, classId = 'c_class02_01') {
+        const key = this.normalizeUnlockCode(subjectCode);
+        const label = key === 'math' ? '数学' : (key === 'english' ? '英语' : '语文');
+        if (this.getUnlockedSubjects(classId).indexOf(key) >= 0) return { allowed: true, reason: null };
+        return { allowed: false, reason: '【' + label + '】尚未解锁：需已解锁学科出现 Lv.' + this.getClassMaxLevel(classId) + ' 满级宠物后由老师选择解锁' };
     }
 
     // 核心业务：破壳认领或自选学科宠物形态
@@ -678,6 +808,7 @@ class SQLiteService {
             }
             const subjId = 'subj_' + (['chinese', 'math', 'english'].indexOf(subjectCode) >= 0 ? subjectCode : 'chinese');
 
+            this.ensureSubjectUnlockTable();
             this.db.run('BEGIN TRANSACTION;');
             /* 注意：种子库的 teachers 有 NOT NULL 列（password_hash / password_algo / profile_color），必须给值 */
             this.db.run(
@@ -692,6 +823,8 @@ class SQLiteService {
             subjects.forEach(([sid, code, name]) => {
                 this.db.run("INSERT OR REPLACE INTO subjects (id, class_id, code, name, is_preset, created_at) VALUES (?, ?, ?, ?, 1, ?)", [sid + '_' + classId, classId, code, name, now]);
             });
+            /* 新班级只解锁主科（注册时选的科目），其余学科由老师逐科选择解锁 */
+            this.db.run("INSERT OR IGNORE INTO class_subject_unlocks (class_id, code, unlocked_at) VALUES (?, ?, ?)", [classId, this.normalizeUnlockCode(subjId), now]);
             const NEW = [0, 50, 150, 250, 350, 450, 550, 650, 750, 850, 950, 1050, 1150, 1250, 1350, 1450, 1550, 1650, 1750, 1850, 1950];
             NEW.forEach((exp, level) => {
                 this.db.run("INSERT OR REPLACE INTO class_level_thresholds (class_id, level, min_exp) VALUES (?, ?, ?)", [classId, level, exp]);

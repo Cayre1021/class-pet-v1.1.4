@@ -312,6 +312,34 @@ function normalizeSubjectCode(value) {
     return 'chinese';
 }
 
+// 解锁集合 -> Set（只认三科 code / subj_ 前缀，忽略脏值；绝不把空值默认成"语文可用"）
+function unlockCodeSet(value) {
+    const list = Array.isArray(value) ? value : (value && typeof value.forEach === 'function' ? Array.from(value) : []);
+    const set = new Set();
+    list.forEach(code => {
+        const raw = String(code == null ? '' : code).trim();
+        if (V3_SUBJECTS[raw]) set.add(raw);
+        else if (raw === 'subj_chinese') set.add('chinese');
+        else if (raw === 'subj_math') set.add('math');
+        else if (raw === 'subj_english') set.add('english');
+    });
+    return set;
+}
+
+// 解锁集合 -> 有序 code 数组（保留库里"解锁先后"的顺序，去重，忽略脏值）
+function unlockCodeList(value) {
+    const list = Array.isArray(value) ? value : (value && typeof value.forEach === 'function' ? Array.from(value) : []);
+    const codes = list.map(code => {
+        const raw = String(code == null ? '' : code).trim();
+        if (V3_SUBJECTS[raw]) return raw;
+        if (raw === 'subj_chinese') return 'chinese';
+        if (raw === 'subj_math') return 'math';
+        if (raw === 'subj_english') return 'english';
+        return '';
+    }).filter(code => !!code);
+    return codes.filter((code, idx) => codes.indexOf(code) === idx);
+}
+
 // 形态阶梯只认 STAGE_MIN_LEVELS（禁止 ceil(level/2)、level-2 之类的演示公式）
 function v3StageForLevel(level, stages) {
     const list = (Array.isArray(stages) && stages.length) ? stages : STAGE_MIN_LEVELS;
@@ -1073,6 +1101,12 @@ class ClassPetStore {
 
         const petsByStudent = (state.petsByStudent && typeof state.petsByStudent === 'object') ? state.petsByStudent : {};
         const subjectCode = identity.subject;
+        // 解锁集合的唯一真相是库里的 class_subject_unlocks（新班级只有主科一行，其余由老师逐科解锁）
+        const unlockCodes = await this._v3LoadUnlockCodes(identity.classId, state, vm.defaultSubject);
+        const unlockedSet = unlockCodeSet(unlockCodes);
+        const candidateCodes = this._v3UnlockCandidates(petsByStudent, unlockCodes, vm.maxLevel);
+        vm.subjectUnlocks = unlockCodes;
+        vm.subjectCandidates = candidateCodes;
         vm.students = state.students.filter(row => row && row.id).map(row => {
             const rawPets = (petsByStudent[row.id] && typeof petsByStudent[row.id] === 'object') ? petsByStudent[row.id] : {};
             const petsBySubject = {};
@@ -1080,7 +1114,7 @@ class ClassPetStore {
                 petsBySubject[code] = this._v3PetView(rawPets[code], code, stages);
             });
             Object.keys(V3_SUBJECTS).forEach(code => {
-                const u = this._v3UnlockState(petsBySubject, code, vm.maxLevel, vm.defaultSubject);
+                const u = this._v3UnlockState(code, unlockedSet, candidateCodes);
                 petsBySubject[code].unlocked = u.allowed;
                 petsBySubject[code].lockReason = u.reason;
             });
@@ -1112,6 +1146,13 @@ class ClassPetStore {
                 petsBySubject: petsBySubject
             };
         });
+        // 页面/测试可随后直接调 _v3UnlockState(code) 单科查询：这里记住本次 VM 的解锁视图
+        this._v3UnlockCache = {
+            classId: identity.classId,
+            unlocked: unlockCodes,
+            candidates: candidateCodes,
+            maxLevel: vm.maxLevel
+        };
         vm.ok = true;
         vm.reason = 'db';
         return vm;
@@ -1148,43 +1189,85 @@ class ClassPetStore {
         } : null;
     }
 
-    // 学科解锁判定（用 ViewModel 里的宠物视图，DB 真相）
-    // 语文与班级主科（注册时选的科目）恒解锁，其余按链式规则
-    _v3UnlockState(pets, subjectCode, maxLevel, defaultSubject) {
-        const key = normalizeSubjectCode(subjectCode);
-        if (key === 'chinese') return { allowed: true, reason: null };
-        if (key === normalizeSubjectCode(defaultSubject)) return { allowed: true, reason: null };
-        const cur = pets[key];
-        if (cur && cur.isHatched) return { allowed: true, reason: null };
-        const cap = Number(maxLevel) || 20;
-        const cn = pets.chinese;
-        const cnMax = !!(cn && cn.isHatched && Number(cn.level) >= cap);
-        if (!cnMax) return { allowed: false, reason: '需【语文】学科宠物升至 Lv.' + cap + ' 满级方可唤醒' };
-        const otherKey = key === 'math' ? 'english' : 'math';
-        const other = pets[otherKey];
-        if (!other || !other.isHatched) return { allowed: true, reason: null };
-        if (Number(other.level) >= cap) return { allowed: true, reason: null };
-        return { allowed: false, reason: '需【语文】与【' + (otherKey === 'math' ? '数学' : '英语') + '】均升至 Lv.' + cap + ' 满级方可唤醒' };
+    // 从库里读已解锁学科集合：唯一真相 class_subject_unlocks
+    // 桥不可用/旧快照时退回"只有主科"，绝不默认放行语文
+    async _v3LoadUnlockCodes(classId, state, defaultSubject) {
+        const db = safeElectronDB();
+        if (db && typeof db.getSubjectUnlocks === 'function') {
+            try {
+                const codes = unlockCodeList(await db.getSubjectUnlocks(classId));
+                if (codes.length) return codes;
+            } catch (e) { /* 退回快照 */ }
+        }
+        const fromState = unlockCodeList(state && state.subjectUnlocks);
+        if (fromState.length) return fromState;
+        return [normalizeSubjectCode(defaultSubject)];
     }
 
-    // 赋分资格判定（与 canScoreStudentPet 同规则，但读 ViewModel/DB）
-    _v3GuardScore(student, subjectCode, isAbsent, defaultSubject) {
+    // 可解锁候选：已解锁学科里出现满级宠物（level >= classes.max_level，默认 20）→ 剩余学科全部候选
+    // 顺序故意不排序成"语文→数学→英语"，由老师自己选一科
+    _v3UnlockCandidates(petsByStudent, unlockedCodes, maxLevel) {
+        const unlocked = (Array.isArray(unlockedCodes) ? unlockedCodes : []).filter(code => !!V3_SUBJECTS[code]);
+        const locked = Object.keys(V3_SUBJECTS).filter(code => unlocked.indexOf(code) < 0);
+        if (!locked.length) return [];
+        const cap = Number(maxLevel) || 20;
+        const capExp = Number(LEVEL_THRESHOLDS[cap]);
+        const byStudent = (petsByStudent && typeof petsByStudent === 'object') ? petsByStudent : {};
+        const reached = Object.keys(byStudent).some(studentId => {
+            const row = byStudent[studentId] || {};
+            return unlocked.some(code => {
+                const pet = row[code];
+                if (!pet) return false;
+                const level = Number(pet.level);
+                if (Number.isFinite(level) && level >= cap) return true;
+                const exp = Number(pet.exp);
+                return Number.isFinite(exp) && Number.isFinite(capExp) && exp >= capExp;
+            });
+        });
+        return reached ? locked : [];
+    }
+
+    // 最近一次 VM 的解锁视图（班级变了就作废，避免跨班串用）
+    _v3UnlockCacheForCurrentClass() {
+        const cache = this._v3UnlockCache;
+        if (!cache) return {};
+        if (cache.classId !== this.getV3Identity().classId) return {};
+        return cache;
+    }
+
+    // 学科解锁判定：只读落库的解锁集合（不再有"语文恒解锁 / 语文→数学→英语"的固定链）
+    // 不传 unlocked/candidates 时使用最近一次 getV3ViewModel() 的视图
+    _v3UnlockState(subjectCode, unlockedCodes, candidateCodes) {
+        const key = normalizeSubjectCode(subjectCode);
+        const cache = this._v3UnlockCacheForCurrentClass();
+        const unlocked = unlockCodeSet(unlockedCodes != null ? unlockedCodes : cache.unlocked);
+        const label = (V3_SUBJECTS[key] || {}).label || key;
+        if (unlocked.has(key)) return { allowed: true, reason: null };
+        const candidates = Array.isArray(candidateCodes) ? candidateCodes : (cache.candidates || []);
+        if (candidates.indexOf(key) >= 0) {
+            return { allowed: false, reason: '【' + label + '】已满足解锁条件：等老师在学科设置里选择解锁' };
+        }
+        const cap = Number(cache.maxLevel) || 20;
+        return { allowed: false, reason: '【' + label + '】尚未解锁：需已解锁学科的宠物升至 Lv.' + cap + ' 满级后，由老师选择解锁' };
+    }
+
+    // 赋分资格判定（读 ViewModel/DB）：解锁 = 老师逐科选的集合，未解锁一律 LOCKED
+    _v3GuardScore(student, subjectCode, isAbsent, unlockedCodes) {
         const code = normalizeSubjectCode(subjectCode);
         const subj = V3_SUBJECTS[code];
-        // 语文与班级主科都按"基础学科"处理：未破壳的蛋也能加分攒破壳能量
-        const isBaseSubject = code === 'chinese' || code === normalizeSubjectCode(defaultSubject);
+        const cache = this._v3UnlockCacheForCurrentClass();
+        const source = unlockedCodes != null ? unlockedCodes : cache.unlocked;
+        const unlocked = unlockCodeSet(source);
         if (!student) return { allowed: false, reason: 'NOT_FOUND', message: '学生不存在' };
         if (student.isArchived) return { allowed: false, reason: 'ARCHIVED', message: '学生已归档，不可赋分' };
         if (isAbsent) return { allowed: false, reason: 'ABSENT', message: '学生今日请假，不可赋分' };
         const pet = student.petsBySubject ? student.petsBySubject[code] : null;
-        if (!isBaseSubject) {
-            if (pet && pet.unlocked === false) {
-                return { allowed: false, reason: 'LOCKED', message: '【' + subj.label + '】尚未解锁：' + (pet.lockReason || '需前置学科满级') };
-            }
-            if (!pet || !pet.isHatched) {
-                return { allowed: false, reason: 'UNHATCHED', message: '【' + subj.label + '】尚未破壳认领，请先破壳' };
-            }
+        if (!unlocked.has(code)) {
+            const u = this._v3UnlockState(code, source, cache.candidates);
+            return { allowed: false, reason: 'LOCKED', message: u.reason || ('【' + subj.label + '】尚未解锁') };
         }
+        // 已解锁学科：未破壳的蛋也能加分攒破壳能量，否则解锁后永远孵不出宠物
+        if (!pet) return { allowed: false, reason: 'UNHATCHED', message: '【' + subj.label + '】暂无该学科宠物，请先破壳认领' };
         return { allowed: true, reason: 'OK', message: '', pet: pet };
     }
 
@@ -1326,7 +1409,7 @@ class ClassPetStore {
         const allowed = [], skipped = [];
         ids.forEach(id => {
             const s = vm.students.filter(x => x.id === id)[0];
-            const g = this._v3GuardScore(s, subject, absent.has(id), vm.defaultSubject);
+            const g = this._v3GuardScore(s, subject, absent.has(id), vm.subjectUnlocks);
             if (g.allowed) allowed.push(id);
             else skipped.push({ studentId: id, name: s ? s.name : '', reason: g.reason, message: g.message });
         });
@@ -1422,6 +1505,40 @@ class ClassPetStore {
             return { ok: false, reason: 'db-failed', error: (res && res.error) || '数据库未确认' };
         }
         return { ok: true, studentId: s.id, subjectCode: subject, speciesCode: speciesCode };
+    }
+
+    // 老师选择解锁下一科（幂等）：候选来自 VM.subjectCandidates，服务层还会再判一次，页面绕不过去
+    async v3UnlockSubject({ subjectCode } = {}) {
+        const db = safeElectronDB();
+        if (!db || typeof db.unlockSubject !== 'function') return { ok: false, reason: 'no-bridge' };
+        const vm = await this.getV3ViewModel();
+        if (!vm.ok) return { ok: false, reason: vm.reason, error: vm.error };
+        const code = normalizeSubjectCode(subjectCode);
+        let res;
+        try { res = await db.unlockSubject({ classId: vm.classId, code: code }); }
+        catch (e) { return { ok: false, reason: 'db-failed', error: String((e && e.message) || e).slice(0, 200) }; }
+        if (!res || res.ok !== true) {
+            return {
+                ok: false,
+                reason: (res && res.reason) || 'db-failed',
+                unlocked: (res && Array.isArray(res.unlocked)) ? res.unlocked : vm.subjectUnlocks,
+                candidates: (res && Array.isArray(res.candidates)) ? res.candidates : vm.subjectCandidates
+            };
+        }
+        return { ok: true, unlocked: res.unlocked || [], unlockedNow: res.unlockedNow || code, already: !!res.already };
+    }
+
+    // 只读：当前班级已解锁的学科集合
+    async v3GetUnlockedSubjects() {
+        const db = safeElectronDB();
+        if (!db || typeof db.getSubjectUnlocks !== 'function') return { ok: false, reason: 'no-bridge', unlocked: [] };
+        const identity = this.getV3Identity();
+        try {
+            const codes = unlockCodeList(await db.getSubjectUnlocks(identity.classId));
+            return { ok: true, unlocked: codes };
+        } catch (e) {
+            return { ok: false, reason: 'db-failed', unlocked: [] };
+        }
     }
 
     // 批次 3.5 阈值保存：21 级 + 6 阶段对象一起写库

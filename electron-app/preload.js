@@ -41,7 +41,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         updateStudentProfile: (studentId, patch, classId) => ipcRenderer.invoke('db:updateStudentProfile', { studentId, patch, classId }),
         restoreClassBackup: (classId, payload) => ipcRenderer.invoke('db:restoreClassBackup', { classId, payload }),
         saveBehaviorRules: (rules, classId) => ipcRenderer.invoke('db:saveBehaviorRules', { rules, classId }),
-        query: (sql, params) => ipcRenderer.invoke('db:query', { sql, params }),
+        getSubjectUnlocks: (classId) => ipcRenderer.invoke('db:getSubjectUnlocks', classId),
+    unlockSubject: (payload) => ipcRenderer.invoke('db:unlockSubject', payload || {}),
+    query: (sql, params) => ipcRenderer.invoke('db:query', { sql, params }),
         execute: (sql, params) => ipcRenderer.invoke('db:execute', { sql, params })
     }
 });

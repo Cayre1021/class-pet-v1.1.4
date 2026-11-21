@@ -3757,15 +3757,19 @@ html.theme-fade *::after{
     codes.forEach(function (c) { seen[c] = true; });
     try { store(UNLOCK_SEEN_KEY, JSON.stringify(seen)); } catch (e) {}
   }
+  /* 解锁集合只认班级库里的落库结果（vm.subjectUnlocks）；
+     不再硬编码"语文永远解锁"——数学班级里语文应当仍是锁着的。
+     演示态（没有 VM）才回落到"语文可用"，保证设计稿能点。 */
   function subjectUnlockMap(vm) {
-    var list = (vm && vm.students) || [];
-    var out = { chinese: true, math: false, english: false };
-    ['math', 'english'].forEach(function (code) {
-      out[code] = list.some(function (s) { return s.petsBySubject && s.petsBySubject[code] && s.petsBySubject[code].unlocked; });
-    });
-    /* 班级主科（注册时老师选的科目）恒可用：名单为空也不能把它锁上 */
-    var main = (vm && vm.defaultSubject) || 'chinese';
-    if (out[main] !== undefined) out[main] = true;
+    var out = { chinese: false, math: false, english: false };
+    var list = (vm && vm.subjectUnlocks);
+    if (Array.isArray(list) && list.length) {
+      list.forEach(function (code) { if (out[code] !== undefined) out[code] = true; });
+      return out;
+    }
+    if (!vm) { out.chinese = true; return out; }          /* 纯演示态 */
+    var main = vm.defaultSubject || 'chinese';
+    if (out[main] !== undefined) out[main] = true;         /* 老 VM 没有 subjectUnlocks 时的兜底：至少主科可用 */
     return out;
   }
   function syncSubjectLocks(vm) {
@@ -3783,10 +3787,11 @@ html.theme-fade *::after{
     });
     // 与"本机已提示过"的基线比对：语文早在本页打开前就满级时，也要提示一次
     var seen = readUnlockSeen();
-    var mainSubject = (vm && vm.defaultSubject) || 'chinese';   /* 主科本来就能用，不该弹"新学科可解锁" */
-    ['math', 'english'].forEach(function (code) {
-      if (code === mainSubject) return;
-      if (map[code] && !seen[code] && pendingUnlockChoices.indexOf(code) < 0) pendingUnlockChoices.push(code);
+    var cands = (vm && Array.isArray(vm.subjectCandidates)) ? vm.subjectCandidates : [];
+    cands.forEach(function (code) {
+      if (map[code]) return;                        /* 已解锁的不再提示 */
+      if (seen[code]) return;                       /* 提示过的按基线跳过 */
+      if (pendingUnlockChoices.indexOf(code) < 0) pendingUnlockChoices.push(code);
     });
     state.unlockedSeen = map;
     var dlgEl = document.getElementById('dlg');
@@ -3798,19 +3803,29 @@ html.theme-fade *::after{
     var codes = pendingUnlockChoices.slice();
     markUnlockSeen(codes);   /* 只要提示过就记基线：不因为点了"稍后再说"而每次开页都弹 */
     var actions = codes.map(function (code) {
-      return { label: '唤醒「' + SUBJECT_LABELS[code] + '」', primary: true, onClick: function () {
+      return { label: '唤醒「' + SUBJECT_LABELS[code] + '」', primary: true, onClick: async function () {
+        var api = window.electronAPI;
+        var vm = state.vm || {};
+        if (isRealMode() && api && api.db && typeof api.db.unlockSubject === 'function') {
+          var res = await api.db.unlockSubject({ classId: vm.classId, code: code });
+          if (!res || res.ok !== true) {
+            toast('解锁失败：' + ((res && (res.message || res.reason)) || '班级库未确认'), 'warn');
+            return;
+          }
+        }
         markUnlockSeen([code]);
         pendingUnlockChoices = pendingUnlockChoices.filter(function (c) { return c !== code; });
         state.unlockPrompted = false;
+        closeDialog();
+        await v3Refresh();
         setSubject(SUBJECT_LABELS[code]);
         toast('「' + SUBJECT_LABELS[code] + '」已解锁：每位学生的这一科从一颗蛋开始，攒够破壳经验再认领');
-        closeDialog();
       } };
     });
     actions.push({ label: '稍后再说', onClick: function () { markUnlockSeen(codes); pendingUnlockChoices = []; state.unlockPrompted = false; closeDialog(); } });
     openDialog({
       title: '新学科可以解锁了',
-      sub: '语文已满级',
+      sub: ((state.vm && state.vm.subjectUnlockReason) || '已解锁科目已满级'),
       body: '<p class="note">现在可以唤醒一门新学科。新学科的宠物从<b>一颗蛋</b>开始：先攒破壳经验，再认领萌宠；解锁的那一科会出现在「赋分学科」里，可以正常赋分。</p>',
       actions: actions
     });
@@ -3820,7 +3835,7 @@ html.theme-fade *::after{
     if (SUBJECTS.indexOf(name) < 0) return;
     var code = SUBJECT_CODES[name];
     if (code && state.subjectLocks && state.subjectLocks[code] === false) {
-      toast('【' + name + '】还没有任何学生解锁：需【语文】宠物升到 Lv.' + (state.maxLevel || 20) + ' 满级', 'warn');
+      toast('【' + name + '】还没有解锁：先把已解锁科目的宠物练到 Lv.' + (state.maxLevel || 20) + ' 满级，再在「数据与设置」或提示里选择解锁它', 'warn');
       return;
     }
     state.subject = name;

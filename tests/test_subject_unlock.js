@@ -1,4 +1,6 @@
 // test_subject_unlock.js —— 注册时选的科目（班级主科）必须一开始就可用
+// 2026-11 模型变更：开局只解锁主科（class_subject_unlocks），语文不再恒解锁，其余学科由老师逐科选择解锁。
+// 序列/候选/迁移的完整覆盖见 tests/test_subject_unlock_sequence.js
 // 跑法：node tests/test_subject_unlock.js
 const path = require('path');
 const fs = require('fs');
@@ -82,8 +84,8 @@ const useAccount = (classId, subject) => {
     const stu = vm.students.filter(s => s.id === MATH_STU)[0];
     assert(!!stu, 'VM 里找得到这名学生');
     assert(stu.petsBySubject.math.unlocked === true && stu.petsBySubject.math.lockReason === null, '★ 主科数学 unlocked=true 且无锁理由', { u: stu.petsBySubject.math.unlocked, r: stu.petsBySubject.math.lockReason });
-    assert(stu.petsBySubject.chinese.unlocked === true, '语文仍恒解锁');
-    assert(stu.petsBySubject.english.unlocked === false && /满级/.test(String(stu.petsBySubject.english.lockReason)), '英语仍按链式规则锁着（无宠物/语文未满级）', { u: stu.petsBySubject.english.unlocked, r: stu.petsBySubject.english.lockReason });
+    assert(stu.petsBySubject.chinese.unlocked === false, '语文在这个数学主科班里锁着（不再恒解锁）', { u: stu.petsBySubject.chinese.unlocked, r: stu.petsBySubject.chinese.lockReason });
+    assert(stu.petsBySubject.english.unlocked === false && /满级/.test(String(stu.petsBySubject.english.lockReason)), '英语未解锁（数学未满级 → 无候选）', { u: stu.petsBySubject.english.unlocked, r: stu.petsBySubject.english.lockReason });
 
     // ---------- 2. 主科可直接赋分（未破壳的蛋也能加分攒破壳能量）----------
     let score = await store.v3Score({ studentIds: [MATH_STU], delta: 20, reason: '数学主科加分', subjectCode: 'math' });
@@ -104,12 +106,12 @@ const useAccount = (classId, subject) => {
     // ---------- 3. 其它科目规则不变：英语仍被拦 ----------
     const scoreEn = await store.v3Score({ studentIds: [MATH_STU], delta: 20, reason: '英语加分', subjectCode: 'english' });
     assert(scoreEn.ok === false && scoreEn.reason === 'no-eligible', '英语赋分被拦（no-eligible）', { ok: scoreEn.ok, reason: scoreEn.reason });
-    assert(scoreEn.skipped.length === 1 && scoreEn.skipped[0].reason === 'LOCKED', '英语拦截理由仍是 LOCKED（链式解锁未变）', scoreEn.skipped);
+    assert(scoreEn.skipped.length === 1 && scoreEn.skipped[0].reason === 'LOCKED', '英语拦截理由 LOCKED（未解锁）', scoreEn.skipped);
     assert(expOf(svc, MATH_STU, 'subj_english') === 0, '被拦后英语经验没被写库', expOf(svc, MATH_STU, 'subj_english'));
 
-    // 语文照旧可用（回归基线）
+    // 语文未解锁 → 赋分按新模型拦住
     const scoreCn = await store.v3Score({ studentIds: [MATH_STU], delta: 5, reason: '语文加分', subjectCode: 'chinese' });
-    assert(scoreCn.ok === true, '语文赋分照旧成功', scoreCn && scoreCn.reason);
+    assert(scoreCn.ok === false && scoreCn.skipped[0].reason === 'LOCKED', '语文未解锁 → 赋分被 LOCKED 拦住', scoreCn && scoreCn.skipped);
 
     // ---------- 4. 主科能破壳（原本会被 SUBJECT_LOCKED 挡住）----------
     const scoreMath2 = await store.v3Score({ studentIds: [MATH_STU], delta: 30, reason: '数学加到破壳线', subjectCode: 'math' });
@@ -137,7 +139,7 @@ const useAccount = (classId, subject) => {
     assert(vmL.ok === true && vmL.defaultSubject === 'chinese', '老班级 VM 的 defaultSubject=chinese', { ok: vmL.ok, d: vmL.defaultSubject });
     const stuL = vmL.students.filter(s => s.id === LEGACY_STU)[0];
     assert(!!stuL && stuL.petsBySubject.math.unlocked === false, '老班级数学仍然锁着（与改动前一致）', stuL && { u: stuL.petsBySubject.math.unlocked, r: stuL.petsBySubject.math.lockReason });
-    assert(/需【语文】学科宠物升至 Lv\.20 满级/.test(String(stuL.petsBySubject.math.lockReason)), '老班级锁理由文案未变', stuL.petsBySubject.math.lockReason);
+    assert(/需已解锁学科的宠物升至 Lv\.20 满级/.test(String(stuL.petsBySubject.math.lockReason)), '老班级锁理由按新模型（满级后由老师选择解锁）', stuL.petsBySubject.math.lockReason);
     const scoreLMath = await store.v3Score({ studentIds: [LEGACY_STU], delta: 10, reason: '老班数学加分', subjectCode: 'math' });
     assert(scoreLMath.ok === false && scoreLMath.reason === 'no-eligible' && scoreLMath.skipped[0].reason === 'LOCKED', '老班级数学赋分仍被 LOCKED 拦住', scoreLMath.skipped);
     const scoreLCn = await store.v3Score({ studentIds: [LEGACY_STU], delta: 10, reason: '老班语文加分', subjectCode: 'chinese' });

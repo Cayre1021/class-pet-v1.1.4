@@ -391,6 +391,25 @@ ipcMain.handle('db:restoreClassBackup', async (event, { classId, payload }) => {
     }
 });
 
+// 学科解锁集合：开局只有主科，其余由老师逐科选择解锁
+ipcMain.handle('db:getSubjectUnlocks', async (event, classId) => {
+    try {
+        return sqliteService.getUnlockedSubjects(classId || 'c_class02_01');
+    } catch (err) {
+        console.error('[Main IPC] db:getSubjectUnlocks 失败:', err);
+        return [];
+    }
+});
+
+ipcMain.handle('db:unlockSubject', async (event, { classId, code }) => {
+    try {
+        return sqliteService.unlockSubject(classId || 'c_class02_01', code);
+    } catch (err) {
+        console.error('[Main IPC] db:unlockSubject 失败:', err);
+        return { ok: false, reason: 'db-failed', error: String((err && err.message) || err) };
+    }
+});
+
 ipcMain.handle('db:query', async (event, { sql, params }) => {
     try {
         return sqliteService.query(sql, params);

@@ -69,7 +69,8 @@ app.whenReady().then(async () => {
 
     const st1 = await js(SUBJECT_BTN_JS);
     assert(!!st1 && st1['数学'] && st1['数学'].locked === false && st1['数学'].hasLock === false && st1['数学'].ariaDisabled === 'false', '★ 教师台「数学」按钮无锁、可点（aria-disabled=false）', st1 && st1['数学']);
-    assert(!!st1 && st1['语文'] && st1['语文'].locked === false, '「语文」仍无锁', st1 && st1['语文']);
+    /* 新模型：数学班开局只有数学解锁，语文应当是锁着的（原来这里断言"语文仍无锁"是旧模型的错误预期） */
+    assert(!!st1 && st1['语文'] && st1['语文'].locked === true && st1['语文'].hasLock === true, '★ 「语文」在数学班里锁着（新模型）', st1 && st1['语文']);
     assert(!!st1 && st1['英语'] && st1['英语'].locked === true && st1['英语'].hasLock === true, '「英语」仍按链式规则显示锁', st1 && st1['英语']);
 
     const dockText = await js(CLICK_SUBJECT_JS('数学'));
