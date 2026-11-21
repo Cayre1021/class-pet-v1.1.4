@@ -155,6 +155,13 @@ ipcMain.handle('update:open', async (event, url) => {
     return { ok: true, host };
 });
 
+ipcMain.handle('db:createClass', async (event, payload) => {
+    try {
+        return sqliteService.createClassWithDefaults(payload || {});
+    } catch (err) {
+        return { success: false, error: String((err && err.message) || err) };
+    }
+});
 ipcMain.handle('db:loadAllState', async (event, classId) => {
     try {
         return sqliteService.loadAllState(classId || 'c_class02_01');

@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 本地 SQLite 真实数据库访问与操作接口 (单机零配置)
     db: {
         loadAllState: (classId) => ipcRenderer.invoke('db:loadAllState', classId),
+        createClass: (payload) => ipcRenderer.invoke('db:createClass', payload),
         recordScore: (payload) => ipcRenderer.invoke('db:recordScore', payload),
         undoScore: (operationId) => ipcRenderer.invoke('db:undoScore', operationId),
         getStudentAuditLogs: (studentId) => ipcRenderer.invoke('db:getStudentAuditLogs', studentId),

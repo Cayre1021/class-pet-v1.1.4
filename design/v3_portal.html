@@ -541,6 +541,7 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
           <div class="panel done" id="panel-done" hidden>
             <h2 class="gate-title">选择入口</h2>
             <p class="gate-sub">同一份班级数据，两种进入方式。</p>
+            <p class="verinfo" id="entry-note" hidden style="margin:2px 0 10px"></p>
 
             <div class="gates">
               <a class="gate a" href="v3_looseleaf_paper.html">
@@ -645,6 +646,58 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     lsSet(PROFILE_KEY, JSON.stringify({ 'class': p['class'], name: p.name, subject: p.subject }));
   }
   function hasSession() { return lsGet(SESSION_KEY) === '1'; }
+
+  /* ---------- 关键：把"本机档案"绑定到数据库里真实存在的班级 ----------
+     历史缺陷：V3 门户的注册只写 localStorage，从不建库；页面按 classpet_current_account.classId 取数，
+     于是新账号沿用上一个账号的班级 -> 串号（看到别人班的学生）。这里补上建班 + 写账号缓存。 */
+  var SUBJECT_CODE = { '语文': 'chinese', '数学': 'math', '英语': 'english' };
+  function accountMatchesProfile(acc, profile) {
+    if (!acc || !acc.classId || !profile) { return false; }
+    var sameName = String(acc.teacherName || '') === String(profile.name || '');
+    var sameClass = String(acc.className || '') === String(profile['class'] || '');
+    return sameName && sameClass;
+  }
+  function readAccountsList() {
+    try { var raw = lsGet('classpet_accounts_list'); var list = raw ? JSON.parse(raw) : []; return Array.isArray(list) ? list : []; }
+    catch (e) { return []; }
+  }
+  function writeAccountCache(acc) {
+    var list = readAccountsList().filter(function (a) { return !a || a.id !== acc.id; });
+    list.push(acc);
+    lsSet('classpet_accounts_list', JSON.stringify(list));
+    lsSet('classpet_current_account', JSON.stringify(acc));
+    lsSet('classpet_active_account_id', acc.id);
+  }
+  /* 绑定：已有账号且与本机档案一致 -> 直接复用；否则在数据库里新建一个空班级 */
+  async function bindAccountForProfile(profile) {
+    var cur = readAccountCache();
+    if (cur && accountMatchesProfile(cur, profile)) {
+      writeAccountCache(cur);
+      return { ok: true, reused: true, account: cur };
+    }
+    var api = window.electronAPI;
+    if (!api || !api.db || typeof api.db.createClass !== 'function') {
+      return { ok: false, reason: 'no-bridge', message: '桌面端未连接，无法创建班级（请从安装好的程序打开）' };
+    }
+    var now = Date.now();
+    var classId = 'c_acc_' + now;
+    var accId = 'acc_' + now;
+    var subjectLabel = profile.subject || '语文';
+    var code = SUBJECT_CODE[subjectLabel] || 'chinese';
+    var res = await api.db.createClass({
+      classId: classId, className: profile['class'], teacherName: profile.name, subjectCode: code, teacherId: accId
+    });
+    if (!res || res.success !== true) {
+      return { ok: false, reason: (res && res.error) || 'create-failed', message: '创建班级失败：' + ((res && res.error) || '未知原因') };
+    }
+    var acc = {
+      id: accId, classId: classId, school: '', className: profile['class'], teacherName: profile.name,
+      subject: subjectLabel, isPreset: false, lastUsed: '本机新建'
+    };
+    writeAccountCache(acc);
+    try { lsSet('classpet_v2_students_data_' + accId, '[]'); } catch (e) {}
+    return { ok: true, reused: false, account: acc };
+  }
   function setSession(on) { if (on) { lsSet(SESSION_KEY, '1'); } else { lsDel(SESSION_KEY); } }
 
   /* ---------- 统一身份：账号缓存优先 → 本机档案 → 无身份（保持原登录/注册表单） ---------- */
@@ -702,9 +755,14 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
     panelDone.hidden = true;
     selectTab(which || 'login', false);
   }
-  function showEntry(profile) {
+  function showEntry(profile, bind) {
     whoami.hidden = false;
     whoChip.textContent = profile['class'] + ' · ' + profile.name + ' · ' + profile.subject;
+    /* 绑定结果：新班给出明确反馈，避免"看起来登录成功了、其实还在用别人的班" */
+    if (bind && bind.ok && bind.reused === false) {
+      var note = document.getElementById('entry-note');
+      if (note) { note.hidden = false; note.textContent = '已为本机创建独立班级，名单为空，可直接录入学生。'; }
+    }
     whoChip.title = whoChip.textContent;
     cardHead.hidden = true;
     tabset.hidden = true;
@@ -852,8 +910,17 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
       return;
     }
     clearSwitched();
-    setSession(true);
-    showEntry(identity);
+    bindAccountForProfile(identity).then(function (r) {
+      if (!r.ok) {
+        lgFormMsg.textContent = r.message || '无法绑定班级';
+        markLoginBad();
+        return;
+      }
+      setSession(true);
+      showEntry(identity, r);
+    }).catch(function (err) {
+      lgFormMsg.textContent = '绑定班级出错：' + ((err && err.message) || err);
+    });
   });
 
   /* ---------- 提交：注册（写档案 + 自动登录 + 预填） ---------- */
@@ -873,11 +940,21 @@ input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;backgroun
       name: $('rg-name').value.trim(),
       subject: subjectValue()
     };
-    saveProfile(profile);
-    clearSwitched();
-    setSession(true);
-    prefill(profile);
-    showEntry(profile);
+    bindAccountForProfile(profile).then(function (r) {
+      if (!r.ok) {
+        var msg = document.getElementById('rg-submit-msg') || lgFormMsg;
+        if (msg) { msg.textContent = r.message || '创建班级失败'; }
+        return;
+      }
+      saveProfile(profile);
+      clearSwitched();
+      setSession(true);
+      prefill(profile);
+      showEntry(profile, r);
+    }).catch(function (err) {
+      var msg = document.getElementById('rg-submit-msg') || lgFormMsg;
+      if (msg) { msg.textContent = '创建班级出错：' + ((err && err.message) || err); }
+    });
   });
 
   /* ---------- 退出：回登录页，输入框里的档案保留 ---------- */

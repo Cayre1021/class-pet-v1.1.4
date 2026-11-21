@@ -644,6 +644,64 @@ class SQLiteService {
         return { success: true, studentId, realId, subjectCode, speciesCode };
     }
 
+
+    // ============ 新建班级（V3 门户注册用）：默认阈值/形态/三科/13 条规则，名单为空 ============
+    // 之前 V3 门户的"注册"只写 localStorage，不建库，于是新账号会沿用上一个账号的班级数据（严重串号）
+    createClassWithDefaults({ classId, className, teacherName, schoolName = '实验小学本部', subjectCode = 'chinese', teacherId = '' } = {}) {
+        const now = Date.now();
+        try {
+            if (!classId) return { success: false, error: 'MISSING_CLASS_ID:缺少班级 id' };
+            if (!className) return { success: false, error: 'MISSING_CLASS_NAME:缺少班级名称' };
+            const tid = teacherId || ('t_' + now + '_' + Math.random().toString(36).slice(2, 6));
+            const subjId = 'subj_' + (['chinese', 'math', 'english'].indexOf(subjectCode) >= 0 ? subjectCode : 'chinese');
+
+            this.db.run('BEGIN TRANSACTION;');
+            /* 注意：种子库的 teachers 有 NOT NULL 列（password_hash / password_algo / profile_color），必须给值 */
+            this.db.run(
+                "INSERT OR REPLACE INTO teachers (id, school_name, teacher_name, class_name, school_norm, class_norm, teacher_norm, password_hash, password_algo, profile_color, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [tid, schoolName, teacherName || '', className, schoolName, className, teacherName || '', '!', 'bcryptjs', 'purple', now, now]
+            );
+            this.db.run(
+                "INSERT OR REPLACE INTO classes (id, teacher_id, school_name, class_name, class_norm, default_subject_id, max_level, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 20, ?, ?)",
+                [classId, tid, schoolName, className, className, subjId, now, now]
+            );
+            const subjects = [['subj_chinese', 'chinese', '语文'], ['subj_math', 'math', '数学'], ['subj_english', 'english', '英语']];
+            subjects.forEach(([sid, code, name]) => {
+                this.db.run("INSERT OR REPLACE INTO subjects (id, class_id, code, name, is_preset, created_at) VALUES (?, ?, ?, ?, 1, ?)", [sid + '_' + classId, classId, code, name, now]);
+            });
+            const NEW = [0, 50, 150, 250, 350, 450, 550, 650, 750, 850, 950, 1050, 1150, 1250, 1350, 1450, 1550, 1650, 1750, 1850, 1950];
+            NEW.forEach((exp, level) => {
+                this.db.run("INSERT OR REPLACE INTO class_level_thresholds (class_id, level, min_exp) VALUES (?, ?, ?)", [classId, level, exp]);
+            });
+            const stages = [[0, 0, 'egg'], [1, 1, 'form1'], [2, 4, 'form2'], [3, 8, 'form3'], [4, 13, 'form4'], [5, 20, 'form5']];
+            stages.forEach(([stage, minLevel, code]) => {
+                this.db.run("INSERT OR REPLACE INTO class_visual_stages (class_id, stage, min_level, code) VALUES (?, ?, ?, ?)", [classId, stage, minLevel, code]);
+            });
+            const rules = [
+                ['p1', '帮助打扫卫生', 5, 'positive', 1], ['p2', '帮忙擦黑板', 3, 'positive', 2],
+                ['p3', '作业优秀', 5, 'positive', 3], ['p4', '主动回答问题', 3, 'positive', 4],
+                ['p5', '好人好事', 5, 'positive', 5], ['p6', '乐于助人', 4, 'positive', 6],
+                ['p7', '听课认真', 3, 'positive', 7], ['p8', '思维活跃', 4, 'positive', 8],
+                ['n1', '迟到/早退', -3, 'negative', 9], ['n2', '课上讲话', -5, 'negative', 10],
+                ['n3', '逃避值日', -5, 'negative', 11], ['n4', '未交作业', -5, 'negative', 12],
+                ['n5', '乱扔垃圾', -3, 'negative', 13]
+            ];
+            rules.forEach(([key, name, points, type, order]) => {
+                this.db.run(
+                    "INSERT OR REPLACE INTO behavior_rules (id, class_id, name, points, type, sort_order, archived_at, created_at) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)",
+                    [classId + '_rule_' + key, classId, name, points, type, order, now]
+                );
+            });
+            this.db.run('COMMIT;');
+            this.saveToDiskSync();
+            return { success: true, classId: classId, teacherId: tid, thresholds: NEW.length, stages: stages.length, rules: rules.length, students: 0 };
+        } catch (err) {
+            try { this.db.run('ROLLBACK;'); } catch (e) {}
+            console.error('[SQLiteService] 建班失败:', err);
+            return { success: false, error: String((err && err.message) || err) };
+        }
+    }
+
     // 默认阈值升级迁移：把"旧曲线"的班级一次性改成新默认（破壳 50、每级 +100）
     // 旧曲线有两类（都匹配过）：
     //   ① 官方旧默认 0,15,35,60,90,125,…（步长递增）
