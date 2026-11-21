@@ -496,6 +496,14 @@ class SQLiteService {
                     UPDATE pets SET exp = ?, level = ?, visual_stage = ?, updated_at = ? WHERE id = ?;
                 `, [expAfter, levelAfter, stageAfter, now, pet.id]);
 
+                // 3b. 展示宠跟随"正在赋分的这一科"：老师给哪一科加分，卡片/大屏就该动哪一只。
+                //     不这么做的话，新班级（或导入的学生）展示宠可能停在语文，加数学分时进度条看着不动，
+                //     还会让"教师台与大屏不互通"的错觉出现（其实两页都在读 display_pet_id）。
+                try {
+                    this.db.run("UPDATE students SET display_pet_id = ?, updated_at = ? WHERE id = ? AND (display_pet_id IS NULL OR display_pet_id <> ?)",
+                        [pet.id, now, sId, pet.id]);
+                } catch (e) { console.warn('[SQLiteService] 更新展示宠失败:', e && e.message); }
+
                 entries.push({ studentId: rawSId, normalizedStudentId: sId, petId: pet.id, expBefore, expAfter, levelBefore, levelAfter, visualStage: stageAfter });
             }
 
