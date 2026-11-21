@@ -31,6 +31,7 @@
       "main.js",
       "preload.js",
       "sqlite_service.js",
+      "update_check.js",
       "src/**/*",
       "!src/assets/pets_raw/**/*"
     ],
