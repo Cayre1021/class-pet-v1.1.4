@@ -130,6 +130,14 @@ button{cursor:pointer}
   background:#C2452A;box-shadow:0 0 0 2px var(--paper)}
 #btn-data-menu{position:relative}
 .mi-sub.is-new{color:#C2452A}
+.stepper{display:flex;align-items:stretch;gap:6px}
+.stepper input{flex:1;min-width:0;text-align:center}
+.step-btn{flex:none;min-width:56px;height:44px;border:2px solid var(--ink);border-radius:10px;background:var(--surface);
+  font:inherit;font-weight:800;font-size:15px;color:var(--ink);cursor:pointer;transition:transform 80ms ease,background 120ms ease}
+.step-btn:hover{background:var(--accent-soft)}
+.step-btn:active{transform:translateY(1px)}
+.step-btn:disabled{opacity:.45;cursor:not-allowed}
+.step-btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .upd-notes{margin:8px 0 0;padding:10px 12px;max-height:190px;overflow:auto;white-space:pre-wrap;word-break:break-word;
   font:inherit;font-size:13px;line-height:1.65;color:var(--ink-2);background:var(--surface-2);
   border:1px solid rgba(17,17,17,.14);border-radius:10px}
@@ -1018,7 +1026,7 @@ html.theme-fade *::after{
   </button>
   <button class="menu-item" role="menuitem" data-action="excel" data-audit="mi-excel" data-audit-label="Excel 导入导出">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 8l8 8M16 8l-8 8"/></svg></span>
-    Excel 导入导出<span class="mi-sub">CSV</span>
+    名单导入导出<span class="mi-sub">XLSX</span>
   </button>
   <button class="menu-item" role="menuitem" data-action="threshold" data-audit="mi-threshold" data-audit-label="经验阈值">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M7 19V9M12 19V5M17 19v-7"/></svg></span>
@@ -2741,7 +2749,11 @@ html.theme-fade *::after{
         ? '正式数据以班级库的等级阈值为准（LV0–LV' + state.maxLevel + ' 阶梯）。此处仅演示态生效，保存不会改写班级库，也不影响卡片显示。'
         : '决定升到下一级需要的经验值，影响全班 EXP 进度条与升级判定。当前：每级 <b>' + state.expPerLevel + '</b> EXP。') + '</p>' +
         '<div class="form-row"><div class="field"><label for="threshold-value">每级所需 EXP</label>' +
-        '<input id="threshold-value" type="number" min="50" max="300" step="10" value="' + state.expPerLevel + '"' + (real ? ' readonly' : '') + '></div></div>' +
+        '<div class="stepper">' +
+          '<button class="step-btn" type="button" data-step="-10" aria-label="步长减 10">−10</button>' +
+          '<input id="threshold-value" type="number" min="50" max="300" step="10" value="' + state.expPerLevel + '"' + (real ? ' readonly' : '') + '>' +
+          '<button class="step-btn" type="button" data-step="10" aria-label="步长加 10">+10</button>' +
+        '</div></div></div>' +
         '<div class="rule-list">' +
           '<div class="rule-item"><span>快节奏（50）</span><span class="val">课堂上更快看到升级</span></div>' +
           '<div class="rule-item"><span>常规（100）</span><span class="val">当前默认</span></div>' +
@@ -2755,6 +2767,7 @@ html.theme-fade *::after{
           } }
       ],
       onMount: function (body) {
+        bindStepper(body);
         if (real) return;
         $$('.rule-item', body).forEach(function (item, i) {
           item.style.cursor = 'pointer';
@@ -2805,7 +2818,11 @@ html.theme-fade *::after{
       sub: '班级库 · 保存后立即生效',
       body: '<p class="note">保存后会写入班级库并立即生效：LV0 = 0 EXP，LV1 = 当前破壳所需（<b>' + base + '</b> EXP），此后每级比上一级多「步长」点 EXP。当前步长 <b>' + curStep + '</b> EXP。</p>' +
         '<div class="form-row"><div class="field"><label for="threshold-value">每级递增步长（EXP）</label>' +
-        '<input id="threshold-value" type="number" min="1" max="500" step="10" value="' + curStep + '"></div></div>' +
+        '<div class="stepper">' +
+          '<button class="step-btn" type="button" data-step="-10" aria-label="步长减 10">−10</button>' +
+          '<input id="threshold-value" type="number" min="1" max="500" step="10" value="' + curStep + '">' +
+          '<button class="step-btn" type="button" data-step="10" aria-label="步长加 10">+10</button>' +
+        '</div></div></div>' +
         '<div class="rule-list">' +
           '<div class="rule-item"><span>当前步长（' + curStep + '）</span><span class="val">保持不动 = 不改全班升级速度</span></div>' +
           '<div class="rule-item"><span>更快（' + Math.max(10, Math.round(curStep / 2)) + '）</span><span class="val">升级更快</span></div>' +
@@ -2816,7 +2833,8 @@ html.theme-fade *::after{
             var v = Number($('#threshold-value').value);
             saveRealThresholds(v).then(function (ok) { if (ok) closeDialog(); });
           } }
-      ]
+      ],
+      onMount: function (body) { bindStepper(body); }
     });
   }
 
@@ -2974,6 +2992,30 @@ html.theme-fade *::after{
         { label: '打开发布页', onClick: function () { api.openUpdateDownload('https://github.com/' + (res.repo || 'Cayre1021/class-pet-v1.1.4') + '/releases'); } }
       ]
     });
+  }
+  /* 阈值步进器：两侧 ±10，夹在输入框的 min/max 之间；只读态不响应 */
+  function bindStepper(scope) {
+    var box = (scope || document).querySelector('.stepper');
+    if (!box) return;
+    var input = box.querySelector('input');
+    if (!input) return;
+    var min = Number(input.getAttribute('min'));
+    var max = Number(input.getAttribute('max'));
+    var btns = Array.prototype.slice.call(box.querySelectorAll('.step-btn'));
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (input.readOnly || input.disabled) return;
+        var step = Number(btn.getAttribute('data-step')) || 0;
+        var cur = Number(input.value);
+        if (!isFinite(cur)) cur = isFinite(min) ? min : 0;
+        var next = cur + step;
+        if (isFinite(min) && next < min) next = min;
+        if (isFinite(max) && next > max) next = max;
+        input.value = String(next);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    });
+    if (input.readOnly) { btns.forEach(function (b) { b.disabled = true; }); }
   }
   function fmtSize(bytes) {
     var n = Number(bytes) || 0;
