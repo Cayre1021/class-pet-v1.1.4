@@ -25,6 +25,9 @@ if [ "$DRY" = "1" ]; then
   exit 0
 fi
 
+# 发版前自检：白名单 / asar 内容 / 真实启动一次（任何一项失败都不发布）
+bash scripts/verify_package.sh || { echo "包自检未通过，已中止发布" >&2; exit 1; }
+
 command -v gh >/dev/null || { echo "未找到 gh CLI：https://cli.github.com/" >&2; exit 1; }
 gh auth status >/dev/null 2>&1 || { echo "gh 未登录：先运行 gh auth login" >&2; exit 1; }
 
