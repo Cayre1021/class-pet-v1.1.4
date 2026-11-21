@@ -82,6 +82,24 @@ app.whenReady().then(async()=>{
  assert(locks2['语文'] && locks2['语文'].locked === false, '★ 语文现在可用了', locks2['语文']);
  assert(locks2['英语'] && locks2['英语'].locked === true, '英语仍锁着（等语文满级再选）', locks2['英语']);
 
+ // ⑥ 存量数学班：曾被旧迁移错误塞入语文解锁（负责人遇到的就是这种）
+ const OLD='c_legacy_math';
+ svc.db.run("INSERT OR REPLACE INTO classes (id,teacher_id,school_name,class_name,class_norm,default_subject_id,max_level,created_at,updated_at) VALUES (?, 't_old','实验小学本部','数学老班','数学老班','subj_math',20,0,0)",[OLD]);
+ svc.db.run("INSERT OR REPLACE INTO class_subject_unlocks (class_id,code,unlocked_at) VALUES (?, 'chinese', 1)",[OLD]);
+ svc.db.run("INSERT OR REPLACE INTO class_subject_unlocks (class_id,code,unlocked_at) VALUES (?, 'math', 2)",[OLD]);
+ svc.saveStudent({ id:'st_legacy_1', student_no:'1', name:'老班学生', group:1, pets:{} }, OLD);
+ svc.db.run("DELETE FROM app_meta WHERE key='subject_unlock_v2'");
+ svc._subjectUnlockMigrated = false;   /* 模拟"新进程首次读库"：清掉内存里的一次性标记 */
+ await js("localStorage.setItem('classpet_current_account', JSON.stringify({id:'acc_legacy',classId:'"+OLD+"',className:'数学老班',teacherName:'数学老师',subject:'数学'})), localStorage.setItem('classpet_active_account_id','acc_legacy'), true");
+ await win.webContents.reload(); await sleep(3000);
+ await js("(function(){var d=document.getElementById('dlg');if(d&&d.open){var b=[].slice.call(document.querySelectorAll('#dlg-foot button')).filter(function(x){return /稍后再说|关闭/.test(x.textContent);})[0];if(b)b.click();}return true;})()");
+ await sleep(400);
+ const legacyLocks = await js(LOCKS);
+ const legacyUnlocks = svc.getUnlockedSubjects(OLD);
+ assert(legacyUnlocks.join(',') === 'math', '★ 存量数学班：库里只剩数学（旧语文解锁被订正掉）', legacyUnlocks);
+ assert(legacyLocks['语文'] && legacyLocks['语文'].locked === true, '★ 存量数学班：界面上语文是锁着的（负责人报的那个问题）', legacyLocks['语文']);
+ assert(legacyLocks['数学'] && legacyLocks['数学'].locked === false, '存量数学班：数学可用', legacyLocks['数学']);
+
  win.destroy();
  console.log('\n结果: '+passed+' passed, '+failed+' failed');
  try{svc.db.close()}catch(e){}

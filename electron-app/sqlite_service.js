@@ -619,9 +619,13 @@ class SQLiteService {
         return Number.isFinite(n) && n > 0 ? n : 20;
     }
 
-    // 老班级推断：语文 + 主科 + 任何"有已破壳宠物"的学科（不推断则会把老用户锁死）
+    // 老班级推断：主科 + 任何"真的用过（有已破壳宠物）"的学科。
+    // 注意：不能无条件把语文加进去——数学班如果被硬塞语文解锁，就会出现"数学账号能用语文"的错误。
     _inferUnlockCodes(classId) {
-        const codes = ['chinese', String(this.getClassDefaultSubject(classId) || 'chinese')];
+        const cls = this.query("SELECT default_subject_id FROM classes WHERE id = ? LIMIT 1", [classId])[0];
+        const rawDefault = cls ? String(cls.default_subject_id || '') : '';
+        const codes = [rawDefault ? this.normalizeUnlockCode(rawDefault) : 'chinese'];
+        if (!rawDefault) codes.push('chinese');   /* 老班没记主科：保持旧行为，避免把人锁死 */
         const hasCol = this.query("PRAGMA table_info(pets)").some(c => c.name === 'hatched_at');
         const cols = hasCol ? 'subject_id, hatched_at, visual_stage, species_code' : 'subject_id, visual_stage, species_code';
         this.query("SELECT " + cols + " FROM pets WHERE class_id = ?", [classId]).forEach(r => {
@@ -722,9 +726,46 @@ class SQLiteService {
     }
 
     // 首次读解锁时跑一次迁移（此时破壳规则迁移已完成，hatched_at 才是可信的）
+    // v2 订正：v1 曾无条件给每个班补语文，导致数学班也能用语文。这里只清理"没被真正用过"的语文行。
+    migrateSubjectUnlockV2() {
+        try {
+            const done = this.query("SELECT value FROM app_meta WHERE key = 'subject_unlock_v2'")[0];
+            if (done) return { migrated: 0, skipped: true };
+            this.ensureSubjectUnlockTable();
+            const hasCol = this.query("PRAGMA table_info(pets)").some(c => c.name === 'hatched_at');
+            const classes = this.query("SELECT id, default_subject_id FROM classes");
+            let removed = 0;
+            classes.forEach(c => {
+                const rawDefault = String(c.default_subject_id || '');
+                if (!rawDefault) return;                                   /* 老班不动 */
+                if (this.normalizeUnlockCode(rawDefault) === 'chinese') return;   /* 主科是语文，正常 */
+                const chineseUsed = this.query(
+                    "SELECT subject_id, " + (hasCol ? 'hatched_at' : 'visual_stage') + ", species_code FROM pets WHERE class_id = ? AND subject_id = 'subj_chinese'",
+                    [c.id]
+                ).some(r => hasCol
+                    ? (r.hatched_at !== null && r.hatched_at !== undefined)
+                    : (Number(r.visual_stage) >= 1 && String(r.species_code || 'egg') !== 'egg'));
+                if (chineseUsed) return;                                   /* 真的用过语文：保留 */
+                const before = this.query("SELECT code FROM class_subject_unlocks WHERE class_id = ? AND code = 'chinese'", [c.id]);
+                if (before.length) {
+                    this.db.run("DELETE FROM class_subject_unlocks WHERE class_id = ? AND code = 'chinese'", [c.id]);
+                    removed += 1;
+                }
+            });
+            this.db.run("INSERT OR REPLACE INTO app_meta (key, value) VALUES ('subject_unlock_v2', ?)", [String(Date.now())]);
+            this.scheduleSave();
+            console.log('[SQLiteService] 学科解锁 v2 订正：清理了 ' + removed + ' 个班级里未使用的语文解锁');
+            return { migrated: removed, skipped: false };
+        } catch (e) {
+            console.warn('[SQLiteService] 学科解锁 v2 订正失败:', e && e.message);
+            return { migrated: 0, error: e && e.message };
+        }
+    }
+
     _migrateSubjectUnlockV1Once() {
         if (this._subjectUnlockMigrated) return true;
         this.migrateSubjectUnlockV1();
+        this.migrateSubjectUnlockV2();
         return this._subjectUnlockMigrated === true;
     }
 
