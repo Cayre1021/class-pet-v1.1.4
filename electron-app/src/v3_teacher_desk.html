@@ -1034,6 +1034,10 @@ html.theme-fade *::after{
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v11"/><path d="M8 7l4-4 4 4"/><path d="M4 15v4h16v-4"/></svg></span>
     备份与还原<span class="mi-sub">JSON</span>
   </button>
+  <button class="menu-item" role="menuitem" data-action="unlock-subject" data-audit="mi-unlock-subject" data-audit-label="唤醒新学科">
+    <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><circle cx="12" cy="12" r="4"/></svg></span>
+    唤醒新学科<span class="mi-sub" id="mi-unlock-sub">查看</span>
+  </button>
   <button class="menu-item" role="menuitem" data-action="update" data-audit="mi-update" data-audit-label="检查更新">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v11"/><path d="M8 11l4 4 4-4"/><path d="M4 17v3h16v-3"/></svg></span>
     检查更新<span class="mi-sub" id="mi-update-sub">版本</span>
@@ -1053,6 +1057,10 @@ html.theme-fade *::after{
   <button class="menu-item" role="menuitem" data-row-action="log" data-audit="rm-log" data-audit-label="学生日志">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l5 5v13H6z"/><path d="M9 12h6M9 16h6"/></svg></span>
     学生日志
+  </button>
+  <button class="menu-item" role="menuitem" data-row-action="archive" data-audit="rm-archive" data-audit-label="移出班级">
+    <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M7 7v12h10V7"/><path d="M9 7V4h6v3"/><path d="M10 11v4M14 11v4"/></svg></span>
+    移出班级<span class="mi-sub">可恢复</span>
   </button>
   <button class="menu-item" role="menuitem" data-row-action="edit" data-audit="rm-edit" data-audit-label="编辑资料">
     <span class="mi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4l11-11-4-4L4 16z"/><path d="M14 5l4 4"/></svg></span>
@@ -1642,6 +1650,7 @@ html.theme-fade *::after{
   }
   function visibleStudentsForGroup(group) {
     return state.students.filter(function (s) {
+      if (s.isArchived) return false;                    /* 已移出班级的不出现在名单里 */
       return s.group === Number(group) && matchesQuery(s);
     }).sort(function (a, b) {
       if (state.sort === 'level') return (b.level - a.level) || (b.exp - a.exp) || cmpNo(a, b);
@@ -1697,7 +1706,9 @@ html.theme-fade *::after{
         '<br>请确认班级库连接后重新打开本页（未使用演示数据）';
     }
     if (state.query) return '没有匹配「' + esc(state.query) + '」的学生<br>试试清空搜索或切换分组';
-    if (isRealMode() && !state.students.length) return '本班还没有学生<br>在正式系统里添加学生后，这里会自动显示';
+    if (isRealMode() && !state.students.length) {
+        return '本班还没有学生<br>点右上角「新增学生」逐个添加，或用「数据与设置 → 名单导入导出」导入 Excel';
+      }
     return '该分组暂无学生';
   }
 
@@ -2354,7 +2365,7 @@ html.theme-fade *::after{
   /* 4.3 真实数据态台账：直接查班级库（D10=A：本堂课 / 今日两档） */
   var sessionStartTs = Date.now();   /* 本堂课起算点 = 页面打开时刻 */
   var ledgerRows = [];
-  var ledgerRange = 'session';
+  var ledgerRange = 'today';   /* 默认「今日」：第二天打开才不至于显示 0 笔以为记录丢了 */
   function todayStartTs() { var d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
   function ledgerRangeFrom() { return ledgerRange === 'today' ? todayStartTs() : sessionStartTs; }
   function ledgerTime(ts) {
@@ -2431,7 +2442,7 @@ html.theme-fade *::after{
             if (res && res.ok) toast('台账已导出：' + res.filePath);
             else if (!res || !res.canceled) toast('导出失败：' + ((res && res.error) || '未知原因'), 'warn');
           } },
-        { label: '清空台账', danger: true, onClick: function () {
+        { label: '清空本页显示', danger: true, onClick: function () {
             state.history = []; state.lastOp = null;   /* 只清本页台账记忆，班级库记录保留 */
             renderDock();
             toast('已清空本页台账记忆（班级库记录不受影响）');
@@ -2490,7 +2501,7 @@ html.theme-fade *::after{
             });
             if (downloadFile('赋分台账-三年级二班-' + Date.now() + '.csv', lines.join('\n'), 'text/csv;charset=utf-8')) toast('台账 CSV 已导出（模拟数据）');
           } },
-        { label: '清空台账', danger: true, onClick: function () {
+        { label: '清空本页显示', danger: true, onClick: function () {
             state.history = []; state.lastOp = null;
             closeDialog(); renderDock(); toast('台账与撤销记录已清空');
           } }
@@ -2585,6 +2596,18 @@ html.theme-fade *::after{
     return Object.keys(pets).filter(function (k) { return pets[k] && pets[k].petId === d; })[0] || 'chinese';
   }
   /* 真实态导入按当前班级学号合并，等级和经验沿用库中数值（D12=A）。 */
+  /* 小组列兼容：3 / "3" / "第3组" / "三组"；识别不了给 1 组 */
+  var CN_NUM = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10 };
+  function parseGroupCell(raw) {
+    var s = String(raw === undefined || raw === null ? '' : raw).trim();
+    if (!s) return 1;
+    var m = s.match(/[0-9]+/);
+    if (m) return clamp(parseInt(m[0], 10), 1, 4);
+    var cn = s.replace(/第|组|班/g, '').trim().charAt(0);
+    if (CN_NUM[cn]) return clamp(CN_NUM[cn], 1, 4);
+    return 1;
+  }
+
   async function importRealRoster(text) { return importRealRosterRows(parseCSV(text)); }
   /* 行数组导入：CSV 走 parseCSV，xlsx 由主进程解析后同样进这里，保证两条路写库行为一致 */
   async function importRealRosterRows(rows) {
@@ -2612,7 +2635,7 @@ html.theme-fade *::after{
       if (key) seenNo.add(key);
       if (seenName.has(name)) dupNames.add(name);
       seenName.add(name);
-      var group = clamp(Number(cols[2]) || 1, 1, 4);
+      var group = parseGroupCell(cols[2]);
       var speciesRaw = String(cols[5] === undefined ? '' : cols[5]).trim();
       var statusRaw = String(cols[6] === undefined ? '' : cols[6]).trim();
       var prev = key ? byNo.get(key) : null;
@@ -2830,8 +2853,8 @@ html.theme-fade *::after{
   async function saveRealThresholds(step) {
     if (v3Busy) return false;
     var v = Number(step);
-    if (!isFinite(v) || Math.round(v) !== v || v < 1) {
-      toast('每级递增步长必须是 ≥ 1 的整数（未写入班级库）', 'warn');
+    if (!isFinite(v) || Math.round(v) !== v || v < 1 || v > 500) {
+      toast('每级递增步长必须是 1~500 的整数（未写入班级库）', 'warn');
       return false;
     }
     var core = await v3Core(['v3SaveThresholds']);
@@ -2941,7 +2964,9 @@ html.theme-fade *::after{
       actions: [
         { label: '导出 JSON 备份', primary: true, onClick: function () {
             var payload = buildRealBackup();
-            if (downloadFile('班级备份-' + Date.now() + '.json', JSON.stringify(payload, null, 2), 'application/json', true)) toast('JSON 备份已导出（班级库数据）');
+            if (downloadFile('班级备份-' + todayStamp() + '.json', JSON.stringify(payload, null, 2), 'application/json', true)) {
+          toast('JSON 备份已导出到「下载」文件夹，换电脑时把它拷过去即可');
+        }
           } },
         { label: '导入 JSON 备份', onClick: function () { pendingImport = 'backup'; $('#file-input').value = ''; $('#file-input').click(); } },
       ]
@@ -3303,6 +3328,14 @@ html.theme-fade *::after{
   }
 
   /* 3.3 真实数据态破壳：门槛判定与写库都在 core，页面如实播报 reason */
+  /* 破壳物种：按学号轮转（与大屏同规则），不再一律变猫 */
+  var V3_HATCH_SPECIES = ['cat', 'dog', 'bunny', 'hamster', 'bird', 'deer', 'fish', 'fox'];
+  function v3SpeciesForHatch(s) {
+    var n = parseInt(String((s && s.no) || '0'), 10);
+    if (!isFinite(n) || n <= 0) n = (s && s.id) || 0;
+    return V3_HATCH_SPECIES[Math.abs(n) % V3_HATCH_SPECIES.length];
+  }
+
   async function hatchReal(id) {
     if (v3Busy) return false;
     var s = byId(id);
@@ -3318,7 +3351,7 @@ html.theme-fade *::after{
       res = await core.v3Hatch({
         studentId: s.dbId,
         subjectCode: subjectCodeFor(state.subject),
-        speciesCode: 'cat',
+        speciesCode: v3SpeciesForHatch(s),
         isAbsent: !!s.isAbsent
       });
     } catch (e) {
@@ -3861,10 +3894,37 @@ html.theme-fade *::after{
       if (pendingUnlockChoices.indexOf(code) < 0) pendingUnlockChoices.push(code);
     });
     state.unlockedSeen = map;
+    var sub = $('#mi-unlock-sub');
+    if (sub) {
+      var n = (Array.isArray(vm && vm.subjectCandidates) ? vm.subjectCandidates.length : 0);
+      sub.textContent = n ? (n + ' 科可选') : '查看';
+      sub.classList.toggle('is-new', n > 0);
+    }
     var dlgEl = document.getElementById('dlg');
     var dialogBusy = !!(dlgEl && dlgEl.open);
     if (pendingUnlockChoices.length && !state.unlockPrompted && !dialogBusy) showUnlockChooser();
   }
+  /* 数据与设置 → 唤醒新学科：老师错过一次性弹窗后仍能解锁 */
+  function openUnlockMenu() {
+    closeDataMenu();
+    var vm = state.vm || {};
+    var cands = Array.isArray(vm.subjectCandidates) ? vm.subjectCandidates.slice() : [];
+    if (!cands.length) {
+      var unlocked = (vm.subjectUnlocks || []).map(function (c) { return labelOfCode(c, vm); }).join('、');
+      openDialog({
+        title: '唤醒新学科',
+        sub: '条件未满足',
+        body: '<p class="note">现在还不到解锁下一科的时候。<br>已解锁：<b>' + esc(unlocked || '—') + '</b><br>' +
+          '把已解锁科目的宠物练到 <b>Lv.' + (state.maxLevel || 20) + ' 满级</b>后，这里就会出现可解锁的科目，由你自己挑一个。</p>',
+        actions: [{ label: '知道了', primary: true, onClick: function () { closeDialog(); } }]
+      });
+      return;
+    }
+    pendingUnlockChoices = cands;
+    state.unlockPrompted = false;
+    showUnlockChooser();
+  }
+
   function showUnlockChooser() {
     state.unlockPrompted = true;
     var codes = pendingUnlockChoices.slice();
@@ -3961,6 +4021,7 @@ html.theme-fade *::after{
     else if (a === 'threshold') openThresholdDialog();
     else if (a === 'backup') openBackupDialog();
     else if (a === 'update') openUpdateDialog(true);
+    else if (a === 'unlock-subject') openUnlockMenu();
 
     else if (a === 'sound') { closeDataMenu(); setSound(!state.sound); }
     else if (a === 'fullscreen') toggleFullscreen();
@@ -3978,7 +4039,37 @@ html.theme-fade *::after{
     if (!s) return;
     if (action === 'log') openLogDialog(id);
     else if (action === 'edit') openEditDialog(id);
+    else if (action === 'archive') archiveStudentConfirm(id);
   });
+
+  /* 移出班级 = 归档（不可赋分、从名单消失，数据留在库里可恢复） */
+  function archiveStudentConfirm(id) {
+    var s = byId(id);
+    if (!s) return;
+    openDialog({
+      title: '移出班级 · ' + s.name,
+      sub: '可恢复',
+      body: '<p class="note">移出后该同学会从名单里消失、不能再赋分；<b>历史流水与台账都会保留</b>，以后需要可以恢复。</p>' +
+        '<p class="note warn" style="margin-top:8px">如果是转学/毕业，用这个更稳妥；只是想改名字请用「编辑资料」。</p>',
+      actions: [
+        { label: '移出班级', primary: true, danger: true, onClick: async function () {
+            var api = window.electronAPI;
+            if (!isRealMode() || !api || !api.db || typeof api.db.archiveStudent !== 'function') {
+              if (s.isArchived !== undefined) s.isArchived = true;
+              closeDialog(); renderLanes(); renderBatch();
+              toast('已在演示数据里移出（未写库）');
+              return;
+            }
+            var vm = state.vm || {};
+            var res = await api.db.archiveStudent(String(id), true, vm.classId);
+            if (!res || res.success !== true) { toast('移出失败：' + ((res && res.error) || '班级库未确认'), 'warn'); return; }
+            closeDialog();
+            await v3Refresh();
+            toast('已把「' + s.name + '」移出班级（历史记录保留）');
+          } }
+      ]
+    });
+  }
 
   var bigscreen = $('#btn-bigscreen');
   if (bigscreen) bigscreen.addEventListener('click', function (e) {

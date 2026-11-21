@@ -83,7 +83,11 @@ class SQLiteService {
             if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, { recursive: true });
             }
-            fs.writeFileSync(this.dbPath, buffer);
+            /* 原子写：先写 .tmp 再 rename（同盘 rename 是原子的），避免断电时把主库写成半截 */
+            const tmpPath = this.dbPath + '.tmp';
+            fs.writeFileSync(tmpPath, buffer);
+            try { fs.renameSync(tmpPath, this.dbPath); }
+            catch (e) { fs.writeFileSync(this.dbPath, buffer); try { fs.unlinkSync(tmpPath); } catch (e2) {} }
             console.log('[SQLiteService] 数据已真实落盘至本地 SQLite 文件:', this.dbPath);
         } catch (err) {
             console.error('[SQLiteService] 数据库写入硬盘失败:', err);
@@ -444,8 +448,16 @@ class SQLiteService {
                 }
 
                 if (!pet) {
-                    // 不再凭空造宠物：目标学科没有宠物时拒绝本次赋分，由上层先孵化/认领
-                    throw new Error('NO_PET_FOR_SUBJECT:' + (subId || this.subjectIdForCode(this.getClassDefaultSubject(classId))));
+                    /* 目标学科没有宠物行（老班级升级后常见：解锁了数学但学生只有语文蛋）：
+                       补一条蛋形态行再赋分，否则老师会撞上 "NO_PET_FOR_SUBJECT" 且无出路 */
+                    const sid = subId || this.subjectIdForCode(this.getClassDefaultSubject(classId));
+                    const newPetId = this.petIdForSubject(sId, (String(sid).indexOf('subj_') === 0 ? String(sid).slice(5) : String(sid)));
+                    this.db.run(
+                        "INSERT OR IGNORE INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, created_at, updated_at) VALUES (?, ?, ?, 'egg', ?, '神秘宠物蛋', '#FFAA00', 0, 0, 0, ?, ?)",
+                        [newPetId, classId, sId, sid, now, now]
+                    );
+                    pet = this.query("SELECT * FROM pets WHERE class_id = ? AND student_id = ? AND subject_id = ? LIMIT 1", [classId, sId, sid])[0];
+                    if (!pet) throw new Error('NO_PET_FOR_SUBJECT:' + sid);
                 }
 
                 const expBefore = pet.exp;
@@ -788,7 +800,11 @@ class SQLiteService {
             "SELECT subject_id, MAX(level) AS max_level_row, MAX(exp) AS max_exp FROM pets WHERE class_id = ? AND subject_id IN (" + subIds.map(() => '?').join(',') + ") GROUP BY subject_id",
             [classId].concat(subIds)
         );
-        const reached = rows.some(r => (Number(r.max_level_row) || 0) >= maxLevel || (maxExp !== null && (Number(r.max_exp) || 0) >= maxExp));
+        /* 只按 exp 与满级阈值比较：pets.level 是写入时的快照，改阈值/导入后会与界面显示的等级不一致，
+           导致"界面说满级、这里说没满级"（或反过来），资格被莫名抹掉。 */
+        const reached = maxExp !== null
+            ? rows.some(r => (Number(r.max_exp) || 0) >= maxExp)
+            : rows.some(r => (Number(r.max_level_row) || 0) >= maxLevel);
         return reached ? locked : [];
     }
 
@@ -1116,10 +1132,31 @@ class SQLiteService {
         if (!payload || !Array.isArray(payload.students)) return { success: false, error: 'BAD_PAYLOAD:缺少学生名单' };
         const now = Date.now();
         try {
+            /* 还原前先留一份现场（老师误还原时还能找回） */
+            try { if (this.dbPath) fs.copyFileSync(this.dbPath, this.dbPath + '.bak-' + now); } catch (e) { console.warn('[SQLiteService] 还原前备份现场失败:', e && e.message); }
+
             this.db.run('BEGIN TRANSACTION;');
 
             this.db.run("DELETE FROM pets WHERE class_id = ?;", [classId]);
             this.db.run("DELETE FROM students WHERE class_id = ?;", [classId]);
+            /* 学生/规则 id 在库里是全局主键：备份来自别的班/别的机器时会撞车。
+               统一重写成"班级前缀 + 原 id"，既避免冲突，也保持同一备份可重复导入。 */
+            const idMap = new Map();
+            /* 只在"这个 id 已被别的班占用"时才改号：
+               同班还原保持原 id 不変（台账里的 student_id 引用才不会断），
+               跨班/换机还原才加班级前缀避免主键冲突。 */
+            const freeId = (table, oldId, idx) => {
+                const key = String(oldId || ('row' + idx));
+                if (idMap.has(key)) return idMap.get(key);
+                let fresh = key;
+                try {
+                    const hit = this.query("SELECT class_id FROM " + table + " WHERE id = ? LIMIT 1", [key])[0];
+                    if (hit && String(hit.class_id || '') !== String(classId)) fresh = classId + '_' + key;
+                } catch (e) { fresh = classId + '_' + key; }
+                idMap.set(key, fresh);
+                return fresh;
+            };
+            const scopedId = (oldId, idx) => freeId('students', oldId, idx);
 
             const subjects = this._classSubjectRows(classId).map(s => ({
                 key: s.code,
@@ -1129,21 +1166,25 @@ class SQLiteService {
             for (let idx = 0; idx < payload.students.length; idx++) {
                 const student = payload.students[idx] || {};
                 if (!student.id) throw new Error('BAD_STUDENT:第 ' + (idx + 1) + ' 条缺少 id');
+                const newStudentId = scopedId(student.id, idx);
                 const no = String(student.no !== undefined ? student.no : (student.student_no !== undefined ? student.student_no : idx + 1)).padStart(2, '0');
                 const groupNum = typeof student.group === 'number' ? student.group : (parseInt(String(student.group || student.group_name || 1).replace(/\D/g, ''), 10) || 1);
                 this.db.run(`INSERT INTO students (id, class_id, student_no, name, group_name, note, display_pet_id, archived_at, created_at, updated_at)
                              VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?);`,
-                    [student.id, classId, no, student.name || '未命名', '第' + groupNum + '组', student.displayPetId || null, student.isArchived ? now : null, now, now]);
+                    [newStudentId, classId, no, student.name || '未命名', '第' + groupNum + '组', null, student.isArchived ? now : null, now, now]);
 
+                let displayPetId = null;
                 for (const sub of subjects) {
                     const p = (student.pets && student.pets[sub.key]) || {};
-                    const pId = p.id || this.petIdForSubject(student.id, sub.key);
+                    const pId = p.id ? freeId('pets', p.id, sub.key) : this.petIdForSubject(newStudentId, sub.key);
+                    if (!displayPetId) displayPetId = pId;
                     const spCode = p.species || p.speciesCode || 'egg';
                     const nickname = p.name || (spCode === 'egg' ? sub.defaultName : sub.defaultName);
                     this.db.run(`INSERT INTO pets (id, class_id, student_id, species_code, subject_id, nickname, egg_color, exp, level, visual_stage, is_display, created_at, updated_at)
                                  VALUES (?, ?, ?, ?, ?, ?, '#FFAA00', ?, ?, ?, ?, ?, ?);`,
-                        [pId, classId, student.id, spCode, sub.subId, nickname, Number(p.exp) || 0, Number(p.level) || 0, Number(p.visualStage) || 0, p.isDisplay ? 1 : 0, now, now]);
+                        [pId, classId, newStudentId, spCode, sub.subId, nickname, Number(p.exp) || 0, Number(p.level) || 0, Number(p.visualStage) || 0, p.isDisplay ? 1 : 0, now, now]);
                 }
+                if (displayPetId) this.db.run("UPDATE students SET display_pet_id = ? WHERE id = ?", [displayPetId, newStudentId]);
             }
 
             if (Array.isArray(payload.thresholds) && payload.thresholds.length === 21) {
@@ -1162,8 +1203,9 @@ class SQLiteService {
             if (Array.isArray(payload.rules)) {
                 this.db.run("DELETE FROM behavior_rules WHERE class_id = ?", [classId]);
                 payload.rules.forEach((r, i) => {
-                    this.db.run("INSERT INTO behavior_rules (id, class_id, name, points, type, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        [r.id || ('rule_' + (i + 1)), classId, r.name, Number(r.points) || 0, r.type === 'negative' ? 'negative' : 'positive', i + 1, now]);
+                    const rid = freeId('behavior_rules', r.id || ('rule_' + (i + 1)), i);
+                    this.db.run("INSERT OR REPLACE INTO behavior_rules (id, class_id, name, points, type, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        [rid, classId, r.name, Number(r.points) || 0, r.type === 'negative' ? 'negative' : 'positive', i + 1, now]);
                 });
             }
 
@@ -1173,7 +1215,13 @@ class SQLiteService {
         } catch (err) {
             try { this.db.run('ROLLBACK;'); } catch (e) {}
             console.error('[SQLiteService] restoreClassBackup 失败，已回滚:', err);
-            return { success: false, error: err.message };
+            const msg = String((err && err.message) || err);
+            return {
+                success: false, error: msg,
+                message: /UNIQUE constraint failed/.test(msg)
+                    ? '备份里有与本机冲突的编号，已中止且数据未改动（还原前已自动备份现场）'
+                    : ('还原失败，已回滚：' + msg)
+            };
         }
     }
 

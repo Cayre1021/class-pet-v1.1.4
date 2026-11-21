@@ -1667,7 +1667,8 @@ class ClassPetStore {
         const list = (Array.isArray(rules) ? rules : [])
             .filter(r => r && String(r.name || '').trim())
             .map((r, i) => ({
-                id: r.id || ('rule_' + (i + 1)),
+                /* 新规则用随机 id：用下标生成的话，删掉中间一条后再新增会撞 behavior_rules.id 主键 */
+                id: r.id || ('rule_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)),
                 name: String(r.name).trim(),
                 points: Math.round(Number(r.points) || 0),
                 type: r.type === 'negative' ? 'negative' : 'positive',
