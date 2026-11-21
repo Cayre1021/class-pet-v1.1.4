@@ -23,6 +23,7 @@
   "build": {
     "appId": "com.classpet.classroom",
     "productName": "ClassPet",
+    "publish": null,
     "directories": {
       "output": "release"
     },
